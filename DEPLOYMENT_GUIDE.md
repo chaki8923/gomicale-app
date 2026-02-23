@@ -93,6 +93,14 @@ aws lambda update-function-configuration \
   }"
 ```
 
+# 編集を反映
+```bash
+npm run build:zip && aws lambda update-function-code \
+  --function-name gomicale-processor \
+  --zip-file fileb://function.zip \
+  --region ap-northeast-1
+```
+
 ### 7. Vercel デプロイ
 
 1. Vercel CLI でログイン:

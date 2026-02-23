@@ -1,9 +1,92 @@
 import { S3Client, GetObjectCommand } from '@aws-sdk/client-s3'
 import { createClient } from '@supabase/supabase-js'
 import { createHash } from 'crypto'
+import { Resend } from 'resend'
 import type { LambdaPayload } from './types'
 import { createPdfParser } from './parsers/factory'
 import { refreshAccessToken, batchInsertGarbageEvents } from './calendar/client'
+
+const APP_URL = process.env.APP_URL ?? 'https://gomicale-app.vercel.app'
+
+async function sendCompletionEmail(
+  toEmail: string,
+  inserted: number,
+  skipped: number,
+): Promise<void> {
+  const apiKey = process.env.RESEND_API_KEY
+  const fromEmail = process.env.APP_FROM_EMAIL ?? 'ゴミカレ <onboarding@resend.dev>'
+  if (!apiKey) {
+    console.warn('[email] RESEND_API_KEY not set, skipping email')
+    return
+  }
+  const resend = new Resend(apiKey)
+  const { error } = await resend.emails.send({
+    from: fromEmail,
+    to: toEmail,
+    subject: 'ゴミカレ - カレンダー登録が完了しました',
+    html: `
+      <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:24px">
+        <h2 style="color:#0d9488;margin-bottom:8px">Googleカレンダーへの登録が完了しました</h2>
+        <p style="color:#374151;margin-bottom:16px">
+          アップロードされたPDFの解析と、Googleカレンダーへの予定登録が完了しました。
+        </p>
+        <div style="background:#f0fdf4;border-radius:8px;padding:16px;margin-bottom:16px">
+          <p style="margin:0;color:#065f46;font-size:18px;font-weight:bold">${inserted}件 登録完了</p>
+          ${skipped > 0 ? `<p style="margin:4px 0 0;color:#6b7280;font-size:13px">（${skipped}件は既存のためスキップ）</p>` : ''}
+        </div>
+        <a href="${APP_URL}/dashboard"
+           style="display:inline-block;background:#0d9488;color:#fff;text-decoration:none;padding:10px 20px;border-radius:8px;font-size:14px">
+          ダッシュボードで確認する
+        </a>
+        <p style="color:#9ca3af;font-size:12px;margin-top:24px">ゴミカレ</p>
+      </div>
+    `,
+  })
+  if (error) {
+    console.warn('[email] send error:', error)
+  } else {
+    console.info('[email] completion email sent to', toEmail)
+  }
+}
+
+async function sendErrorEmail(
+  toEmail: string,
+  errorMessage: string,
+): Promise<void> {
+  const apiKey = process.env.RESEND_API_KEY
+  const fromEmail = process.env.APP_FROM_EMAIL ?? 'ゴミカレ <onboarding@resend.dev>'
+  if (!apiKey) {
+    console.warn('[email] RESEND_API_KEY not set, skipping email')
+    return
+  }
+  const resend = new Resend(apiKey)
+  const { error } = await resend.emails.send({
+    from: fromEmail,
+    to: toEmail,
+    subject: 'ゴミカレ - カレンダー登録に失敗しました',
+    html: `
+      <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:24px">
+        <h2 style="color:#dc2626;margin-bottom:8px">カレンダー登録でエラーが発生しました</h2>
+        <p style="color:#374151;margin-bottom:16px">
+          PDFの解析またはGoogleカレンダーへの登録中にエラーが発生しました。
+        </p>
+        <div style="background:#fef2f2;border-radius:8px;padding:16px;margin-bottom:16px">
+          <p style="margin:0;color:#991b1b;font-size:13px;word-break:break-all">${errorMessage}</p>
+        </div>
+        <a href="${APP_URL}/dashboard"
+           style="display:inline-block;background:#6b7280;color:#fff;text-decoration:none;padding:10px 20px;border-radius:8px;font-size:14px">
+          ダッシュボードで確認する
+        </a>
+        <p style="color:#9ca3af;font-size:12px;margin-top:24px">ゴミカレ</p>
+      </div>
+    `,
+  })
+  if (error) {
+    console.warn('[email] send error:', error)
+  } else {
+    console.info('[email] error email sent to', toEmail)
+  }
+}
 
 // Cloudflare R2 は S3 互換 API を使用
 const r2 = new S3Client({
@@ -103,6 +186,16 @@ export const handler = async (event: LambdaPayload): Promise<void> => {
     }).eq('id', jobId)
 
     console.info('[handler] done', jobId)
+
+    // ── 9. 完了通知メール送信（失敗してもジョブは成功扱い）──────
+    try {
+      const { data: { user: authUser } } = await supabase.auth.admin.getUserById(userId)
+      if (authUser?.email) {
+        await sendCompletionEmail(authUser.email, inserted, skipped)
+      }
+    } catch (emailErr) {
+      console.warn('[handler] email notification failed:', emailErr)
+    }
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err)
     console.error('[handler] error:', message, err)
@@ -112,5 +205,15 @@ export const handler = async (event: LambdaPayload): Promise<void> => {
       status: 'error',
       error_message: message,
     }).eq('id', jobId)
+
+    // エラー通知メール送信（失敗しても無視）
+    try {
+      const { data: { user: authUser } } = await supabase.auth.admin.getUserById(userId)
+      if (authUser?.email) {
+        await sendErrorEmail(authUser.email, message)
+      }
+    } catch (emailErr) {
+      console.warn('[handler] error email notification failed:', emailErr)
+    }
   }
 }

@@ -105,9 +105,14 @@ export function JobStatusCard({ jobId, onComplete }: JobStatusCardProps) {
           )}
 
           {isProcessing && (
-            <p className="text-sm text-gray-400 mt-2">
-              PDFを解析してGoogleカレンダーに登録しています...
-            </p>
+            <div className="mt-2 space-y-1">
+              <p className="text-sm text-gray-500">
+                PDFの解析とGoogleカレンダーへの登録を開始しました。
+              </p>
+              <p className="text-xs text-amber-600 font-medium">
+                完了まで約10分程度かかります。完了後にメールでお知らせします。
+              </p>
+            </div>
           )}
         </div>
 
