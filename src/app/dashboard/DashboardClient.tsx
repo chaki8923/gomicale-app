@@ -94,14 +94,22 @@ export function DashboardClient({ userEmail, initialJobs }: DashboardClientProps
                   >
                     <div className="flex items-center justify-between">
                       <div>
-                        {job.status === 'completed' && job.result_data && (
-                          <p className="text-sm text-gray-700">
-                            <span className="font-semibold text-teal-600">
-                              {(job.result_data as { calendar_event_count?: number }).calendar_event_count}件
-                            </span>
-                            {' '}登録済み
-                          </p>
-                        )}
+                        {job.status === 'completed' && job.result_data && (() => {
+                          const rd = job.result_data as { calendar_event_count?: number; skipped_count?: number }
+                          const inserted = rd.calendar_event_count ?? 0
+                          const skipped  = rd.skipped_count ?? 0
+                          return (
+                            <p className="text-sm text-gray-700">
+                              <span className="font-semibold text-teal-600">{inserted}件</span>
+                              {' '}登録済み
+                              {skipped > 0 && (
+                                <span className="text-gray-400 text-xs ml-1">
+                                  （{skipped}件は既存のためスキップ）
+                                </span>
+                              )}
+                            </p>
+                          )
+                        })()}
                         {job.status === 'error' && (
                           <p className="text-sm text-red-400">エラー: {job.error_message}</p>
                         )}

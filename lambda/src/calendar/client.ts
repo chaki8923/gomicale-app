@@ -4,8 +4,8 @@ import type { CalendarEvent } from '../types'
 
 const CALENDAR_ID = 'primary'
 
-// 1リクエストごとに待機するミリ秒（250ms = 4 req/sec、レート制限10 req/secに対して余裕）
-const REQUEST_INTERVAL_MS = 250
+// 1リクエストごとに待機するミリ秒（120ms ≈ 8.3 req/sec、レート制限10 req/secに対して余裕）
+const REQUEST_INTERVAL_MS = 120
 
 interface BatchInsertResult {
   inserted: number
@@ -86,7 +86,35 @@ export async function batchInsertGarbageEvents(
     } catch (err) {
       const code = (err as { code?: number })?.code
       if (code === 409) {
-        skipped++
+        try {
+          const existing = await calendar.events.get({ calendarId: CALENDAR_ID, eventId })
+          if (existing.data.status === 'cancelled') {
+            // delete は不可（410 Gone）なので patch で再アクティブ化
+            await calendar.events.patch({
+              calendarId: CALENDAR_ID,
+              eventId,
+              requestBody: {
+                status: 'confirmed',
+                summary: ev.title,
+                start: { date: ev.date },
+                end:   { date: ev.date },
+                description: ev.description
+                  ? `${ev.description}\n\nゴミカレアプリにより自動登録 (PDF: ${pdfHash.slice(0, 8)}...)`
+                  : `ゴミカレアプリにより自動登録 (PDF: ${pdfHash.slice(0, 8)}...)`,
+                reminders: {
+                  useDefault: false,
+                  overrides: [{ method: 'popup', minutes: 720 }],
+                },
+              },
+            })
+            inserted++
+          } else {
+            skipped++ // アクティブな真の重複
+          }
+        } catch (reinsertErr) {
+          console.error('[calendar] reinsert error:', reinsertErr)
+          skipped++
+        }
       } else {
         console.error('[calendar] insert error:', err)
         skipped++
