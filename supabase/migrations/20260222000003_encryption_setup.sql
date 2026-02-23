@@ -1,0 +1,21 @@
+-- ============================================================
+-- gomicale-app: トークン暗号化設定
+-- ============================================================
+-- Supabase Dashboard の Settings > Database > Vault、
+-- または以下のように database.secrets に暗号化キーを登録してください。
+--
+-- 使用方法:
+--   -- 暗号化 (Lambda / API Route 内で実行)
+--   SELECT pgp_sym_encrypt('refresh_token_value', current_setting('app.settings.encryption_key'))
+--
+--   -- 復号 (Lambda 内で実行)
+--   SELECT pgp_sym_decrypt(google_refresh_token_enc::bytea, current_setting('app.settings.encryption_key'))
+--   FROM user_integrations WHERE user_id = '...';
+--
+-- ⚠️ 本番環境では必ず Supabase Vault を使用してください。
+--    本ファイルはデモ設定用のプレースホルダーです。
+-- ============================================================
+
+-- データベース設定にキーを登録（開発環境用プレースホルダー）
+-- 本番では Supabase Vault / pgsodium を使用すること
+alter database postgres set app.settings.encryption_key = 'REPLACE_WITH_STRONG_SECRET_KEY';

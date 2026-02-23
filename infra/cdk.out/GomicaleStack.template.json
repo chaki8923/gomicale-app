@@ -1,0 +1,298 @@
+{
+ "Description": "Gomicale - ゴミ出しカレンダー自動登録サービス",
+ "Resources": {
+  "ProcessorLogGroup6E9C0C0D": {
+   "Type": "AWS::Logs::LogGroup",
+   "Properties": {
+    "LogGroupName": "/aws/lambda/gomicale-processor",
+    "RetentionInDays": 30
+   },
+   "UpdateReplacePolicy": "Delete",
+   "DeletionPolicy": "Delete",
+   "Metadata": {
+    "aws:cdk:path": "GomicaleStack/ProcessorLogGroup/Resource"
+   }
+  },
+  "ProcessorDLQ2CA58934": {
+   "Type": "AWS::SQS::Queue",
+   "Properties": {
+    "KmsMasterKeyId": "alias/aws/sqs",
+    "MessageRetentionPeriod": 1209600,
+    "QueueName": "gomicale-processor-dlq",
+    "VisibilityTimeout": 330
+   },
+   "UpdateReplacePolicy": "Delete",
+   "DeletionPolicy": "Delete",
+   "Metadata": {
+    "aws:cdk:path": "GomicaleStack/ProcessorDLQ/Resource"
+   }
+  },
+  "ProcessorRoleFC8890DE": {
+   "Type": "AWS::IAM::Role",
+   "Properties": {
+    "AssumeRolePolicyDocument": {
+     "Statement": [
+      {
+       "Action": "sts:AssumeRole",
+       "Effect": "Allow",
+       "Principal": {
+        "Service": "lambda.amazonaws.com"
+       }
+      }
+     ],
+     "Version": "2012-10-17"
+    },
+    "ManagedPolicyArns": [
+     {
+      "Fn::Join": [
+       "",
+       [
+        "arn:",
+        {
+         "Ref": "AWS::Partition"
+        },
+        ":iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+       ]
+      ]
+     }
+    ]
+   },
+   "Metadata": {
+    "aws:cdk:path": "GomicaleStack/ProcessorRole/Resource"
+   }
+  },
+  "ProcessorRoleDefaultPolicy1C43AEFA": {
+   "Type": "AWS::IAM::Policy",
+   "Properties": {
+    "PolicyDocument": {
+     "Statement": [
+      {
+       "Action": [
+        "ssm:GetParameter",
+        "ssm:GetParameters"
+       ],
+       "Effect": "Allow",
+       "Resource": "arn:aws:ssm:ap-northeast-1:014372010501:parameter/gomicale/*"
+      },
+      {
+       "Action": [
+        "sqs:GetQueueAttributes",
+        "sqs:GetQueueUrl",
+        "sqs:SendMessage"
+       ],
+       "Effect": "Allow",
+       "Resource": {
+        "Fn::GetAtt": [
+         "ProcessorDLQ2CA58934",
+         "Arn"
+        ]
+       }
+      }
+     ],
+     "Version": "2012-10-17"
+    },
+    "PolicyName": "ProcessorRoleDefaultPolicy1C43AEFA",
+    "Roles": [
+     {
+      "Ref": "ProcessorRoleFC8890DE"
+     }
+    ]
+   },
+   "Metadata": {
+    "aws:cdk:path": "GomicaleStack/ProcessorRole/DefaultPolicy/Resource"
+   }
+  },
+  "ProcessorFunctionE1AA307D": {
+   "Type": "AWS::Lambda::Function",
+   "Properties": {
+    "Code": {
+     "S3Bucket": "cdk-hnb659fds-assets-014372010501-ap-northeast-1",
+     "S3Key": "2a54da70722835317bd13b886788d00ddceb368ca521e4a4f1c1a4114c0070cc.zip"
+    },
+    "Environment": {
+     "Variables": {
+      "NODE_OPTIONS": "--enable-source-maps",
+      "PARSER_PROVIDER": "gemini",
+      "R2_BUCKET_NAME": "gomicale-pdfs",
+      "GEMINI_API_KEY": "",
+      "SUPABASE_URL": "",
+      "SUPABASE_SERVICE_ROLE_KEY": "",
+      "CLOUDFLARE_ACCOUNT_ID": "",
+      "R2_ACCESS_KEY_ID": "",
+      "R2_SECRET_ACCESS_KEY": "",
+      "GOOGLE_CLIENT_ID": "",
+      "GOOGLE_CLIENT_SECRET": ""
+     }
+    },
+    "FunctionName": "gomicale-processor",
+    "Handler": "index.handler",
+    "LoggingConfig": {
+     "LogGroup": {
+      "Ref": "ProcessorLogGroup6E9C0C0D"
+     }
+    },
+    "MemorySize": 512,
+    "Role": {
+     "Fn::GetAtt": [
+      "ProcessorRoleFC8890DE",
+      "Arn"
+     ]
+    },
+    "Runtime": "nodejs20.x",
+    "Timeout": 300
+   },
+   "DependsOn": [
+    "ProcessorRoleDefaultPolicy1C43AEFA",
+    "ProcessorRoleFC8890DE"
+   ],
+   "Metadata": {
+    "aws:cdk:path": "GomicaleStack/ProcessorFunction/Resource",
+    "aws:asset:path": "asset.2a54da70722835317bd13b886788d00ddceb368ca521e4a4f1c1a4114c0070cc",
+    "aws:asset:is-bundled": false,
+    "aws:asset:property": "Code"
+   }
+  },
+  "ProcessorEventInvokeConfig385414D9": {
+   "Type": "AWS::Lambda::EventInvokeConfig",
+   "Properties": {
+    "DestinationConfig": {
+     "OnFailure": {
+      "Destination": {
+       "Fn::GetAtt": [
+        "ProcessorDLQ2CA58934",
+        "Arn"
+       ]
+      }
+     }
+    },
+    "FunctionName": {
+     "Ref": "ProcessorFunctionE1AA307D"
+    },
+    "MaximumEventAgeInSeconds": 3600,
+    "MaximumRetryAttempts": 1,
+    "Qualifier": "$LATEST"
+   },
+   "Metadata": {
+    "aws:cdk:path": "GomicaleStack/ProcessorEventInvokeConfig/Resource"
+   }
+  },
+  "LambdaInvokerUser7250CA44": {
+   "Type": "AWS::IAM::User",
+   "Properties": {
+    "UserName": "gomicale-lambda-invoker"
+   },
+   "Metadata": {
+    "aws:cdk:path": "GomicaleStack/LambdaInvokerUser/Resource"
+   }
+  },
+  "LambdaInvokerUserDefaultPolicyB4467286": {
+   "Type": "AWS::IAM::Policy",
+   "Properties": {
+    "PolicyDocument": {
+     "Statement": [
+      {
+       "Action": "lambda:InvokeFunction",
+       "Effect": "Allow",
+       "Resource": {
+        "Fn::GetAtt": [
+         "ProcessorFunctionE1AA307D",
+         "Arn"
+        ]
+       }
+      }
+     ],
+     "Version": "2012-10-17"
+    },
+    "PolicyName": "LambdaInvokerUserDefaultPolicyB4467286",
+    "Users": [
+     {
+      "Ref": "LambdaInvokerUser7250CA44"
+     }
+    ]
+   },
+   "Metadata": {
+    "aws:cdk:path": "GomicaleStack/LambdaInvokerUser/DefaultPolicy/Resource"
+   }
+  },
+  "InvokerAccessKey": {
+   "Type": "AWS::IAM::AccessKey",
+   "Properties": {
+    "UserName": {
+     "Ref": "LambdaInvokerUser7250CA44"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "GomicaleStack/InvokerAccessKey"
+   }
+  },
+  "CDKMetadata": {
+   "Type": "AWS::CDK::Metadata",
+   "Properties": {
+    "Analytics": "v2:deflate64:H4sIAAAAAAAA/2WMQW/CMAxGfwv31EPtZTsC2tC0SdtAOyOTmio0jVmdFKEo/31KgF12es/vk1xD3TzBfIZnqXTbV9bsIW496l7hWXbRcicQ37lbjxxOanVwd09KfgTiV6BAuRdJyuAAccO2tMJPtkZf8nmzb6Exn3cutCaRN7okZXHYtwjxJTjtDbs8//nzRM6/uol7WrE7mC6v/2JS0uxQhLzAIkNJA8uge/JLFEqqxK3Hzrjy4SP4U/BJOW4JjvIw1Q08wnx2FGOqMThvBoLNlb9KOSo3LwEAAA=="
+   },
+   "Metadata": {
+    "aws:cdk:path": "GomicaleStack/CDKMetadata/Default"
+   }
+  }
+ },
+ "Outputs": {
+  "LambdaFunctionArn": {
+   "Description": "Lambda function ARN",
+   "Value": {
+    "Fn::GetAtt": [
+     "ProcessorFunctionE1AA307D",
+     "Arn"
+    ]
+   }
+  },
+  "InvokerAccessKeyId": {
+   "Description": "AWS_LAMBDA_ACCESS_KEY_ID for Next.js .env",
+   "Value": {
+    "Ref": "InvokerAccessKey"
+   }
+  },
+  "InvokerSecretKey": {
+   "Description": "AWS_LAMBDA_SECRET_ACCESS_KEY for Next.js .env",
+   "Value": {
+    "Fn::GetAtt": [
+     "InvokerAccessKey",
+     "SecretAccessKey"
+    ]
+   }
+  }
+ },
+ "Parameters": {
+  "BootstrapVersion": {
+   "Type": "AWS::SSM::Parameter::Value<String>",
+   "Default": "/cdk-bootstrap/hnb659fds/version",
+   "Description": "Version of the CDK Bootstrap resources in this environment, automatically retrieved from SSM Parameter Store. [cdk:skip]"
+  }
+ },
+ "Rules": {
+  "CheckBootstrapVersion": {
+   "Assertions": [
+    {
+     "Assert": {
+      "Fn::Not": [
+       {
+        "Fn::Contains": [
+         [
+          "1",
+          "2",
+          "3",
+          "4",
+          "5"
+         ],
+         {
+          "Ref": "BootstrapVersion"
+         }
+        ]
+       }
+      ]
+     },
+     "AssertDescription": "CDK bootstrap stack version 6 required. Please run 'cdk bootstrap' with a recent version of the CDK CLI."
+    }
+   ]
+  }
+ }
+}

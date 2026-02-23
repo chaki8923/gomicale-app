@@ -1,0 +1,36 @@
+{
+  "version": "50.0.0",
+  "files": {
+    "2a54da70722835317bd13b886788d00ddceb368ca521e4a4f1c1a4114c0070cc": {
+      "displayName": "ProcessorFunction/Code",
+      "source": {
+        "path": "asset.2a54da70722835317bd13b886788d00ddceb368ca521e4a4f1c1a4114c0070cc",
+        "packaging": "zip"
+      },
+      "destinations": {
+        "014372010501-ap-northeast-1-3297d55d": {
+          "bucketName": "cdk-hnb659fds-assets-014372010501-ap-northeast-1",
+          "objectKey": "2a54da70722835317bd13b886788d00ddceb368ca521e4a4f1c1a4114c0070cc.zip",
+          "region": "ap-northeast-1",
+          "assumeRoleArn": "arn:${AWS::Partition}:iam::014372010501:role/cdk-hnb659fds-file-publishing-role-014372010501-ap-northeast-1"
+        }
+      }
+    },
+    "13cf7f91b85dbd2a050f8820c53cc02ae16468d99a4d90e8f8434ac3ba17f6c7": {
+      "displayName": "GomicaleStack Template",
+      "source": {
+        "path": "GomicaleStack.template.json",
+        "packaging": "file"
+      },
+      "destinations": {
+        "014372010501-ap-northeast-1-24b51b5b": {
+          "bucketName": "cdk-hnb659fds-assets-014372010501-ap-northeast-1",
+          "objectKey": "13cf7f91b85dbd2a050f8820c53cc02ae16468d99a4d90e8f8434ac3ba17f6c7.json",
+          "region": "ap-northeast-1",
+          "assumeRoleArn": "arn:${AWS::Partition}:iam::014372010501:role/cdk-hnb659fds-file-publishing-role-014372010501-ap-northeast-1"
+        }
+      }
+    }
+  },
+  "dockerImages": {}
+}
