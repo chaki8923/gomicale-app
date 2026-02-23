@@ -20,6 +20,10 @@
 # production
 /build
 
+/lambda/node_modules
+
+/infra/node_modules
+
 # misc
 .DS_Store
 *.pem
