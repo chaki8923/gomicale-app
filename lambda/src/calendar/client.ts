@@ -1,16 +1,29 @@
 import { google } from 'googleapis'
 import { buildCalendarEventId } from './idempotency'
+import { addEmojiToTitle } from './emoji'
 import type { CalendarEvent } from '../types'
 
 const CALENDAR_ID = 'primary'
 
-// 1リクエストごとに待機するミリ秒（120ms ≈ 8.3 req/sec、レート制限10 req/secに対して余裕）
-const REQUEST_INTERVAL_MS = 120
+// Phase 1: insert の間隔 (120ms = 8.3 req/sec、上限10 req/sec に余裕)
+const PHASE1_INTERVAL_MS = 120
+
+// Phase 2: conflict の get+patch 間隔 (200ms = 5 req/sec)
+const PHASE2_INTERVAL_MS = 200
 
 interface BatchInsertResult {
   inserted: number
   skipped: number
 }
+
+type InsertOutcome =
+  | { kind: 'inserted' }
+  | { kind: 'conflict'; ev: CalendarEvent; eventId: string; displayTitle: string; descriptionText: string }
+  | { kind: 'error' }
+
+type ConflictOutcome = 'inserted' | 'skipped' | 'error'
+
+const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms))
 
 /**
  * Google Calendar API クライアントを生成する
@@ -39,11 +52,91 @@ export async function refreshAccessToken(refreshToken: string): Promise<string> 
 }
 
 /**
- * Google Calendar API にイベントを1件ずつ順番に登録する
+ * Phase 1: 1件の insert を試みる
+ * 成功 → { kind: 'inserted' }
+ * 409  → { kind: 'conflict', ... } (Phase 2 へ引き渡す)
+ * その他エラー → { kind: 'error' }
+ */
+async function attemptInsert(
+  calendar: ReturnType<typeof createCalendarClient>,
+  ev: CalendarEvent,
+  eventId: string,
+  displayTitle: string,
+  descriptionText: string,
+): Promise<InsertOutcome> {
+  try {
+    await calendar.events.insert({
+      calendarId: CALENDAR_ID,
+      requestBody: {
+        id:      eventId,
+        summary: displayTitle,
+        start:   { date: ev.date },
+        end:     { date: ev.date },
+        description: descriptionText,
+        reminders: {
+          useDefault: false,
+          overrides: [{ method: 'popup', minutes: 720 }],
+        },
+      },
+    })
+    return { kind: 'inserted' }
+  } catch (err) {
+    const code = (err as { code?: number })?.code
+    if (code === 409) {
+      return { kind: 'conflict', ev, eventId, displayTitle, descriptionText }
+    }
+    console.error('[calendar] insert error:', err)
+    return { kind: 'error' }
+  }
+}
+
+/**
+ * Phase 2: 409 だったイベントを get で状態確認し、
+ * cancelled なら patch で再アクティブ化、confirmed なら skip
+ */
+async function handleConflict(
+  calendar: ReturnType<typeof createCalendarClient>,
+  ev: CalendarEvent,
+  eventId: string,
+  displayTitle: string,
+  descriptionText: string,
+): Promise<ConflictOutcome> {
+  try {
+    const existing = await calendar.events.get({ calendarId: CALENDAR_ID, eventId })
+    if (existing.data.status === 'cancelled') {
+      // delete は不可（410 Gone）なので patch で再アクティブ化
+      await calendar.events.patch({
+        calendarId: CALENDAR_ID,
+        eventId,
+        requestBody: {
+          status:      'confirmed',
+          summary:     displayTitle,
+          start:       { date: ev.date },
+          end:         { date: ev.date },
+          description: descriptionText,
+          reminders: {
+            useDefault: false,
+            overrides: [{ method: 'popup', minutes: 720 }],
+          },
+        },
+      })
+      return 'inserted'
+    }
+    return 'skipped' // アクティブな真の重複
+  } catch (err) {
+    console.error('[calendar] conflict handler error:', err)
+    return 'error'
+  }
+}
+
+/**
+ * Google Calendar API にイベントを2フェーズ逐次で登録する
+ *
+ * Phase 1: 全件を120ms間隔で逐次 insert (8.3 req/sec、レート制限10 req/sec以内)
+ * Phase 2: 409 だったものだけ200ms間隔で逐次 get→patch
  *
  * 冪等性: イベント ID に buildCalendarEventId() で生成した固定ハッシュを使用。
- * 同一イベントが既に存在する場合は 409 Conflict が返るが、それは正常として無視する。
- * レート制限対策として REQUEST_INTERVAL_MS ごとに1件ずつ処理する。
+ * 絵文字: displayTitle に付与するが、ID 生成にはオリジナルタイトルを使う。
  */
 export async function batchInsertGarbageEvents(
   accessToken: string,
@@ -52,79 +145,50 @@ export async function batchInsertGarbageEvents(
 ): Promise<BatchInsertResult> {
   const calendar = createCalendarClient(accessToken)
 
+  // 各イベントのメタデータを事前計算
+  const items = events.map((ev) => {
+    const eventId      = buildCalendarEventId({ date: ev.date, garbageType: ev.title })
+    const displayTitle = addEmojiToTitle(ev.title)
+    const descriptionText = ev.description
+      ? `${ev.description}\n\nゴミカレアプリにより自動登録 (PDF: ${pdfHash.slice(0, 8)}...)`
+      : `ゴミカレアプリにより自動登録 (PDF: ${pdfHash.slice(0, 8)}...)`
+    return { ev, eventId, displayTitle, descriptionText }
+  })
+
+  // ── Phase 1: 逐次 insert ──────────────────────────────────────
   let inserted = 0
   let skipped  = 0
+  const conflicts: Array<{ ev: CalendarEvent; eventId: string; displayTitle: string; descriptionText: string }> = []
 
-  for (let i = 0; i < events.length; i++) {
-    const ev = events[i]
-
-    const eventId = buildCalendarEventId({
-      date:        ev.date,
-      garbageType: ev.title,
-    })
-
-    try {
-      await calendar.events.insert({
-        calendarId: CALENDAR_ID,
-        requestBody: {
-          id:      eventId,
-          summary: ev.title,
-          start:   { date: ev.date },
-          end:     { date: ev.date },
-          description: ev.description
-            ? `${ev.description}\n\nゴミカレアプリにより自動登録 (PDF: ${pdfHash.slice(0, 8)}...)`
-            : `ゴミカレアプリにより自動登録 (PDF: ${pdfHash.slice(0, 8)}...)`,
-          reminders: {
-            useDefault: false,
-            overrides: [
-              { method: 'popup', minutes: 720 },
-            ],
-          },
-        },
-      })
+  for (let i = 0; i < items.length; i++) {
+    const item    = items[i]
+    const outcome = await attemptInsert(
+      calendar, item.ev, item.eventId, item.displayTitle, item.descriptionText,
+    )
+    if (outcome.kind === 'inserted') {
       inserted++
-    } catch (err) {
-      const code = (err as { code?: number })?.code
-      if (code === 409) {
-        try {
-          const existing = await calendar.events.get({ calendarId: CALENDAR_ID, eventId })
-          if (existing.data.status === 'cancelled') {
-            // delete は不可（410 Gone）なので patch で再アクティブ化
-            await calendar.events.patch({
-              calendarId: CALENDAR_ID,
-              eventId,
-              requestBody: {
-                status: 'confirmed',
-                summary: ev.title,
-                start: { date: ev.date },
-                end:   { date: ev.date },
-                description: ev.description
-                  ? `${ev.description}\n\nゴミカレアプリにより自動登録 (PDF: ${pdfHash.slice(0, 8)}...)`
-                  : `ゴミカレアプリにより自動登録 (PDF: ${pdfHash.slice(0, 8)}...)`,
-                reminders: {
-                  useDefault: false,
-                  overrides: [{ method: 'popup', minutes: 720 }],
-                },
-              },
-            })
-            inserted++
-          } else {
-            skipped++ // アクティブな真の重複
-          }
-        } catch (reinsertErr) {
-          console.error('[calendar] reinsert error:', reinsertErr)
-          skipped++
-        }
-      } else {
-        console.error('[calendar] insert error:', err)
-        skipped++
-      }
+    } else if (outcome.kind === 'conflict') {
+      conflicts.push({
+        ev:              outcome.ev,
+        eventId:         outcome.eventId,
+        displayTitle:    outcome.displayTitle,
+        descriptionText: outcome.descriptionText,
+      })
+    } else {
+      skipped++
     }
+    if (i < items.length - 1) await sleep(PHASE1_INTERVAL_MS)
+  }
 
-    // 最後の1件以外は待機してレート制限を回避
-    if (i < events.length - 1) {
-      await new Promise((resolve) => setTimeout(resolve, REQUEST_INTERVAL_MS))
-    }
+  // ── Phase 2: 409 だったもののみ get→patch (逐次) ───────────────
+  for (let i = 0; i < conflicts.length; i++) {
+    const item    = conflicts[i]
+    const outcome = await handleConflict(
+      calendar, item.ev, item.eventId, item.displayTitle, item.descriptionText,
+    )
+    if (outcome === 'inserted') inserted++
+    else skipped++
+    if (i < conflicts.length - 1) await sleep(PHASE2_INTERVAL_MS)
   }
 
   return { inserted, skipped }
