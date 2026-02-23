@@ -145,6 +145,16 @@ export function DashboardClient({ userEmail, initialJobs }: DashboardClientProps
           </div>
         )}
       </main>
+
+      {/* フッター */}
+      <footer className="mt-12 py-6 border-t border-gray-100 bg-white">
+        <div className="max-w-2xl mx-auto px-4 flex flex-wrap justify-center gap-4 text-xs text-gray-400">
+          <a href="/terms" className="hover:text-gray-600 transition">利用規約</a>
+          <a href="/privacy" className="hover:text-gray-600 transition">プライバシーポリシー</a>
+          <a href="/legal" className="hover:text-gray-600 transition">特定商取引法に基づく表記</a>
+        </div>
+        <p className="text-center text-xs text-gray-300 mt-3">© 2026 ゴミカレ</p>
+      </footer>
     </div>
   )
 }
