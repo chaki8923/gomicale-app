@@ -150,8 +150,8 @@ export async function batchInsertGarbageEvents(
     const eventId      = buildCalendarEventId({ date: ev.date, garbageType: ev.title })
     const displayTitle = addEmojiToTitle(ev.title)
     const descriptionText = ev.description
-      ? `${ev.description}\n\nゴミカレアプリにより自動登録 (PDF: ${pdfHash.slice(0, 8)}...)`
-      : `ゴミカレアプリにより自動登録 (PDF: ${pdfHash.slice(0, 8)}...)`
+      ? `${ev.description}\n\nゴミカレにより自動登録された予定です`
+      : `ゴミカレにより自動登録された予定です`
     return { ev, eventId, displayTitle, descriptionText }
   })
 
