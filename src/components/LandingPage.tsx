@@ -11,12 +11,10 @@ import { GoogleLoginButton } from './GoogleLoginButton'
 const slides = [
   {
     id: 'hero',
-    bg: 'from-green-50/90 to-teal-100/90',
     content: 'hero' as const,
   },
   {
     id: 'upload',
-    bg: 'from-sky-50/90 to-blue-100/90',
     icon: '📄',
     step: '01',
     heading: 'PDFをアップロードするだけ',
@@ -25,7 +23,6 @@ const slides = [
   },
   {
     id: 'ai',
-    bg: 'from-violet-50/90 to-purple-100/90',
     icon: '🤖',
     step: '02',
     heading: 'AIが複雑なルールも正確に解析',
@@ -34,7 +31,6 @@ const slides = [
   },
   {
     id: 'calendar',
-    bg: 'from-amber-50/90 to-orange-100/90',
     icon: '📅',
     step: '03',
     heading: 'Googleカレンダーに自動登録',
@@ -43,7 +39,6 @@ const slides = [
   },
   {
     id: 'cta',
-    bg: 'from-teal-50/90 to-green-100/90',
     content: 'cta' as const,
   },
 ]
