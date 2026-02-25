@@ -72,7 +72,7 @@ export function LandingPage() {
         {slides.map((slide) => (
           <SwiperSlide key={slide.id}>
             <div
-              className="flex h-full w-full items-center justify-center bg-gradient-to-br from-green-50/90 to-teal-100/90"
+              className="flex h-full w-full items-center justify-center to-teal-100/90"
             >
               {slide.content === 'hero' ? (
                 <HeroSlide />
