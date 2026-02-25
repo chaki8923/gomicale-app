@@ -3,6 +3,7 @@ import 'source-map-support/register'
 import * as cdk from 'aws-cdk-lib'
 import { GomicaleStack } from '../lib/gomicale-stack'
 
+
 const app = new cdk.App()
 
 new GomicaleStack(app, 'GomicaleStack', {

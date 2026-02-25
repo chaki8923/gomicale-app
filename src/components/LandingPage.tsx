@@ -3,6 +3,7 @@
 import { Swiper, SwiperSlide } from 'swiper/react'
 import { Mousewheel, Pagination } from 'swiper/modules'
 import Link from 'next/link'
+import Image from 'next/image'
 import 'swiper/css'
 import 'swiper/css/pagination'
 import { GoogleLoginButton } from './GoogleLoginButton'
@@ -10,12 +11,12 @@ import { GoogleLoginButton } from './GoogleLoginButton'
 const slides = [
   {
     id: 'hero',
-    bg: 'from-green-50 to-teal-100',
+    bg: 'from-green-50/90 to-teal-100/90',
     content: 'hero' as const,
   },
   {
     id: 'upload',
-    bg: 'from-sky-50 to-blue-100',
+    bg: 'from-sky-50/90 to-blue-100/90',
     icon: '📄',
     step: '01',
     heading: 'PDFをアップロードするだけ',
@@ -24,7 +25,7 @@ const slides = [
   },
   {
     id: 'ai',
-    bg: 'from-violet-50 to-purple-100',
+    bg: 'from-violet-50/90 to-purple-100/90',
     icon: '🤖',
     step: '02',
     heading: 'AIが複雑なルールも正確に解析',
@@ -33,7 +34,7 @@ const slides = [
   },
   {
     id: 'calendar',
-    bg: 'from-amber-50 to-orange-100',
+    bg: 'from-amber-50/90 to-orange-100/90',
     icon: '📅',
     step: '03',
     heading: 'Googleカレンダーに自動登録',
@@ -42,14 +43,21 @@ const slides = [
   },
   {
     id: 'cta',
-    bg: 'from-teal-50 to-green-100',
+    bg: 'from-teal-50/90 to-green-100/90',
     content: 'cta' as const,
   },
 ]
 
 export function LandingPage() {
   return (
-    <div className="h-screen w-screen overflow-hidden">
+    <div className="relative h-screen w-screen overflow-hidden">
+      <Image
+        src="/gomi_mother.png"
+        alt=""
+        fill
+        className="object-cover opacity-[0.18]"
+        priority
+      />
       <Swiper
         modules={[Mousewheel, Pagination]}
         direction="vertical"
@@ -57,7 +65,7 @@ export function LandingPage() {
         mousewheel={{ sensitivity: 1, thresholdDelta: 30 }}
         pagination={{ clickable: true }}
         speed={700}
-        className="h-full w-full"
+        className="relative z-10 h-full w-full"
         style={
           {
             '--swiper-pagination-color': '#0d9488',
@@ -91,6 +99,7 @@ export function LandingPage() {
     </div>
   )
 }
+
 
 function HeroSlide() {
   return (
