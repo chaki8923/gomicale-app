@@ -12,6 +12,7 @@ const slides = [
   {
     id: 'hero',
     content: 'hero' as const,
+    bgImage: '/gomi_mother.png',
   },
   {
     id: 'upload',
@@ -20,6 +21,7 @@ const slides = [
     heading: 'PDFからカレンダー登録まで、アップロードするだけ',
     body: '自治体から配られるゴミ出しカレンダーや学校の予定表PDFをドラッグ＆ドロップ。複雑なレイアウトも、AIが自動で読み解きます。',
     note: '手入力や転記ミスはもう不要',
+    bgImage: '/house_mother.webp',
   },
   {
     id: 'ai',
@@ -28,6 +30,7 @@ const slides = [
     heading: 'AIが複雑なゴミ出しルールも正確に解析',
     body: '「第1・第3水曜はペットボトル」「月に1回の粗大ごみ」── PDF特有の複雑なルールもAIなら間違えません。年間分のスケジュールを一気に抽出します。',
     note: '見落としゼロで、ゴミ出し当日のリマインダーも自動設定',
+    bgImage: '/anger_mother.webp',
   },
   {
     id: 'calendar',
@@ -36,23 +39,18 @@ const slides = [
     heading: 'PDFの予定をGoogleカレンダーに自動登録',
     body: '抽出したデータは、お使いのGoogleカレンダーに一括で自動登録されます。PDFに書かれた日付と予定なら何でもカレンダー登録できます。',
     note: 'ゴミ出しカレンダー以外のPDFにも対応',
+    bgImage: '/calendar_mother.webp',
   },
   {
     id: 'cta',
     content: 'cta' as const,
+    bgImage: '/enjoy_mother.webp',
   },
 ]
 
 export function LandingPage() {
   return (
-    <div className="relative h-screen w-screen overflow-hidden">
-      <Image
-        src="/gomi_mother.png"
-        alt=""
-        fill
-        className="object-cover opacity-[0.18]"
-        priority
-      />
+    <div className="h-screen w-screen overflow-hidden">
       <Swiper
         modules={[Mousewheel, Pagination]}
         direction="vertical"
@@ -60,7 +58,7 @@ export function LandingPage() {
         mousewheel={{ sensitivity: 1, thresholdDelta: 30 }}
         pagination={{ clickable: true }}
         speed={700}
-        className="relative z-10 h-full w-full"
+        className="h-full w-full"
         style={
           {
             '--swiper-pagination-color': '#0d9488',
@@ -69,24 +67,31 @@ export function LandingPage() {
           } as React.CSSProperties
         }
       >
-        {slides.map((slide) => (
+        {slides.map((slide, i) => (
           <SwiperSlide key={slide.id}>
-            <div
-              className="flex h-full w-full items-center justify-center to-teal-100/90"
-            >
-              {slide.content === 'hero' ? (
-                <HeroSlide />
-              ) : slide.content === 'cta' ? (
-                <CtaSlide />
-              ) : (
-                <FeatureSlide
-                  icon={slide.icon!}
-                  step={slide.step!}
-                  heading={slide.heading!}
-                  body={slide.body!}
-                  note={slide.note!}
-                />
-              )}
+            <div className="relative flex h-full w-full items-center justify-center">
+              <Image
+                src={slide.bgImage}
+                alt=""
+                fill
+                className="object-cover opacity-[0.18]"
+                priority={i === 0}
+              />
+              <div className="relative z-10 flex h-full w-full items-center justify-center">
+                {slide.content === 'hero' ? (
+                  <HeroSlide />
+                ) : slide.content === 'cta' ? (
+                  <CtaSlide />
+                ) : (
+                  <FeatureSlide
+                    icon={slide.icon!}
+                    step={slide.step!}
+                    heading={slide.heading!}
+                    body={slide.body!}
+                    note={slide.note!}
+                  />
+                )}
+              </div>
             </div>
           </SwiperSlide>
         ))}
