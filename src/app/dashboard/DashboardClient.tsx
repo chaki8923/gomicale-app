@@ -29,7 +29,7 @@ export function DashboardClient({ userEmail, initialJobs }: DashboardClientProps
   const handleLogout = async () => {
     const supabase = getSupabaseBrowserClient()
     await supabase.auth.signOut()
-    router.push('/login')
+    router.push('/')
   }
 
   return (

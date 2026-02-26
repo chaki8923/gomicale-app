@@ -150,9 +150,6 @@ export function LandingPage() {
         <nav className="flex items-center gap-5 text-sm text-gray-500">
           <Link href="/faq" className="hover:text-teal-600 transition">よくある質問</Link>
           <Link href="/terms" className="hover:text-teal-600 transition hidden sm:block">利用規約</Link>
-          <Link href="/login" className="rounded-lg bg-teal-500 px-4 py-1.5 text-sm font-semibold text-white hover:bg-teal-600 transition">
-            ログイン
-          </Link>
         </nav>
       </header>
 
@@ -298,7 +295,7 @@ function StaticContent() {
           </div>
 
           <div className="mx-auto max-w-3xl pt-8 pb-4">
-            <AdBanner slot="3248117735" />
+            <AdBanner slot="3248117735" format="horizontal" height={90} />
           </div>
         </div>
       </section>

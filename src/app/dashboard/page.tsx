@@ -7,7 +7,7 @@ export default async function DashboardPage() {
   const supabase = await getSupabaseServerClient()
 
   const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/login')
+  if (!user) redirect('/')
 
   // 最新 10 件のジョブ履歴を取得
   const { data: jobs } = await supabase
