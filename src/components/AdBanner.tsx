@@ -10,10 +10,11 @@ declare global {
 
 interface AdBannerProps {
   slot: string
-  format?: string
+  format?: 'auto' | 'horizontal' | 'rectangle'
+  height?: number
 }
 
-export function AdBanner({ slot, format = 'auto' }: AdBannerProps) {
+export function AdBanner({ slot, format = 'auto', height }: AdBannerProps) {
   useEffect(() => {
     try {
       ;(window.adsbygoogle = window.adsbygoogle || []).push({})
@@ -22,14 +23,19 @@ export function AdBanner({ slot, format = 'auto' }: AdBannerProps) {
     }
   }, [])
 
+  const insStyle: React.CSSProperties = {
+    display: 'block',
+    ...(height ? { height: `${height}px` } : {}),
+  }
+
   return (
     <ins
       className="adsbygoogle"
-      style={{ display: 'block' }}
+      style={insStyle}
       data-ad-client="ca-pub-6348441325859182"
       data-ad-slot={slot}
-      data-ad-format={format}
-      data-full-width-responsive="true"
+      data-ad-format={height ? undefined : format}
+      {...(!height && { 'data-full-width-responsive': 'true' })}
     />
   )
 }
