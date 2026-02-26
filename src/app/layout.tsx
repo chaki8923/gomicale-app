@@ -60,6 +60,9 @@ export const metadata: Metadata = {
   alternates: {
     canonical: 'https://gomicale.jp',
   },
+  other: {
+    'google-adsense-account': 'ca-pub-6348441325859182',
+  },
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
