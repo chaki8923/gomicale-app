@@ -14,6 +14,9 @@ export const metadata: Metadata = {
   authors: [{ name: 'ゴミカレ' }],
   creator: 'ゴミカレ',
   publisher: 'ゴミカレ',
+  icons: {
+    icon: '/favicon.ico',
+  },
   formatDetection: {
     email: false,
     address: false,
