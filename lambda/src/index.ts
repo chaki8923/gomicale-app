@@ -6,7 +6,7 @@ import type { LambdaPayload } from './types'
 import { createPdfParser } from './parsers/factory'
 import { refreshAccessToken, batchInsertGarbageEvents } from './calendar/client'
 
-const APP_URL = process.env.APP_URL ?? 'https://gomicale-app.vercel.app'
+const APP_URL = process.env.APP_URL ?? 'https://gomicale.jp'
 
 async function sendCompletionEmail(
   toEmail: string,
