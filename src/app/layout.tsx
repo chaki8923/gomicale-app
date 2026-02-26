@@ -5,6 +5,7 @@ import './globals.css'
 const geist = Geist({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
+  metadataBase: new URL('https://gomicale.jp'),
   title: {
     default: 'ゴミカレ | PDFからGoogleカレンダーへ自動登録',
     template: '%s | ゴミカレ'
