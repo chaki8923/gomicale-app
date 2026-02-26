@@ -196,7 +196,7 @@ function CtaSlide() {
         </div>
       </div>
 
-      <div className="w-full px-4 pb-2">
+      <div className="w-full max-h-[120px] overflow-hidden px-4 pb-2">
         <AdBanner slot="3248117735" />
       </div>
 
