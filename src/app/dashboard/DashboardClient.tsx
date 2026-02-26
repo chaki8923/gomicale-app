@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { getSupabaseBrowserClient } from '@/lib/supabase/client'
 import { UploadZone } from '@/components/UploadZone'
 import { JobStatusCard } from '@/components/JobStatusCard'
+import { AdBanner } from '@/components/AdBanner'
 import type { Job } from '@/types/database'
 
 interface DashboardClientProps {
@@ -144,6 +145,10 @@ export function DashboardClient({ userEmail, initialJobs }: DashboardClientProps
             <p className="text-xs mt-1">PDFをアップロードして始めましょう</p>
           </div>
         )}
+
+        <div className="pt-4">
+          <AdBanner slot="3248117735" />
+        </div>
       </main>
 
       {/* フッター */}

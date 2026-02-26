@@ -7,6 +7,7 @@ import Image from 'next/image'
 import 'swiper/css'
 import 'swiper/css/pagination'
 import { GoogleLoginButton } from './GoogleLoginButton'
+import { AdBanner } from './AdBanner'
 
 const slides = [
   {
@@ -195,7 +196,11 @@ function CtaSlide() {
         </div>
       </div>
 
-      <footer className="w-full py-6 text-center text-xs text-teal-700/60">
+      <div className="w-full px-4 pb-2">
+        <AdBanner slot="3248117735" />
+      </div>
+
+      <footer className="w-full py-4 text-center text-xs text-teal-700/60">
         <div className="flex justify-center gap-4">
           <Link href="/terms" className="hover:text-teal-700 hover:underline">
             利用規約
