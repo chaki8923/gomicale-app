@@ -51,8 +51,24 @@ const slides = [
 
 export function LandingPage() {
   return (
-    <div className="h-screen w-screen overflow-hidden">
-      <Swiper
+    <div className="min-h-screen w-screen">
+      {/* ナビゲーションヘッダー */}
+      <header className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between bg-white/80 backdrop-blur-sm border-b border-gray-100 px-6 py-3">
+        <Link href="/" className="flex items-center gap-2 text-lg font-bold text-teal-600">
+          ♻️ ゴミカレ
+        </Link>
+        <nav className="flex items-center gap-5 text-sm text-gray-500">
+          <Link href="/faq" className="hover:text-teal-600 transition">よくある質問</Link>
+          <Link href="/terms" className="hover:text-teal-600 transition hidden sm:block">利用規約</Link>
+          <Link href="/login" className="rounded-lg bg-teal-500 px-4 py-1.5 text-sm font-semibold text-white hover:bg-teal-600 transition">
+            ログイン
+          </Link>
+        </nav>
+      </header>
+
+      {/* フルスクリーン Swiper */}
+      <div className="h-screen w-screen overflow-hidden">
+        <Swiper
         modules={[Mousewheel, Pagination]}
         direction="vertical"
         slidesPerView={1}
@@ -96,11 +112,104 @@ export function LandingPage() {
             </div>
           </SwiperSlide>
         ))}
-      </Swiper>
+        </Swiper>
+      </div>
+
+      {/* クローラー向け静的コンテンツ（Swiper外） */}
+      <StaticContent />
     </div>
   )
 }
 
+
+function StaticContent() {
+  return (
+    <div className="bg-gray-50">
+      {/* サービス詳細説明 */}
+      <section className="mx-auto max-w-3xl px-6 py-20">
+        <h2 className="text-2xl font-bold text-gray-900 mb-2 text-center">ゴミカレとは</h2>
+        <p className="text-center text-gray-500 text-sm mb-12">PDFをアップロードするだけで、ゴミ出し予定がGoogleカレンダーに自動登録されます</p>
+        <div className="grid gap-8 sm:grid-cols-3">
+          <div className="bg-white rounded-2xl p-6 shadow-sm text-center">
+            <div className="text-4xl mb-4">📄</div>
+            <h3 className="font-bold text-gray-800 mb-2">STEP 1: PDFをアップロード</h3>
+            <p className="text-sm text-gray-600 leading-relaxed">
+              自治体から配布されるゴミ出しカレンダーのPDFをドラッグ＆ドロップ。学校の年間予定表など、日付が書かれたPDF全般に対応しています。
+            </p>
+          </div>
+          <div className="bg-white rounded-2xl p-6 shadow-sm text-center">
+            <div className="text-4xl mb-4">🤖</div>
+            <h3 className="font-bold text-gray-800 mb-2">STEP 2: AIが自動解析</h3>
+            <p className="text-sm text-gray-600 leading-relaxed">
+              「第1・第3水曜はペットボトル」といった複雑なルールもAIが正確に読み取ります。手入力での転記ミスはもう不要です。
+            </p>
+          </div>
+          <div className="bg-white rounded-2xl p-6 shadow-sm text-center">
+            <div className="text-4xl mb-4">📅</div>
+            <h3 className="font-bold text-gray-800 mb-2">STEP 3: カレンダーに自動登録</h3>
+            <p className="text-sm text-gray-600 leading-relaxed">
+              解析結果はGoogleカレンダーに一括で自動登録されます。スマートフォンのリマインダーも自動設定され、ゴミ出しを見逃しません。
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/* FAQ抜粋 */}
+      <section className="bg-white py-20">
+        <div className="mx-auto max-w-3xl px-6">
+          <h2 className="text-2xl font-bold text-gray-900 mb-2 text-center">よくある質問</h2>
+          <p className="text-center text-gray-500 text-sm mb-10">ご利用前によくいただく質問をまとめました</p>
+          <div className="space-y-4">
+            {[
+              {
+                q: '料金はかかりますか？',
+                a: '現在、ゴミカレは完全無料でご利用いただけます。Googleアカウントでログインするだけで、すべての機能をお使いいただけます。',
+              },
+              {
+                q: 'どのようなPDFに対応していますか？',
+                a: 'ゴミ出しカレンダーを主な対象としていますが、学校の行事予定表や地域の広報カレンダーなど、日付と予定が記載されたPDF全般に対応しています。',
+              },
+              {
+                q: 'アップロードしたPDFは安全ですか？',
+                a: 'PDFはAI解析のために一時的に保存されますが、解析完了後は自動的に削除されます。第三者への公開や広告利用は一切行いません。',
+              },
+              {
+                q: 'スマートフォンからも使えますか？',
+                a: 'はい、iPhoneのSafariやAndroidのChromeなど、スマートフォンの標準ブラウザからご利用いただけます。',
+              },
+            ].map((faq, i) => (
+              <div key={i} className="rounded-xl border border-gray-100 p-5">
+                <p className="font-semibold text-gray-800 mb-2 flex items-start gap-2">
+                  <span className="text-teal-500 shrink-0">Q.</span>{faq.q}
+                </p>
+                <p className="text-sm text-gray-600 leading-relaxed pl-6">{faq.a}</p>
+              </div>
+            ))}
+          </div>
+          <div className="mt-8 text-center">
+            <Link
+              href="/faq"
+              className="inline-block rounded-xl border border-teal-500 px-6 py-3 text-sm font-semibold text-teal-600 hover:bg-teal-50 transition"
+            >
+              すべてのよくある質問を見る →
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* フッター */}
+      <footer className="border-t bg-gray-50 py-8 text-center text-xs text-gray-400">
+        <div className="flex justify-center gap-6 mb-3">
+          <Link href="/faq" className="hover:text-gray-600 transition">よくある質問</Link>
+          <Link href="/terms" className="hover:text-gray-600 transition">利用規約</Link>
+          <Link href="/privacy" className="hover:text-gray-600 transition">プライバシーポリシー</Link>
+          <Link href="/legal" className="hover:text-gray-600 transition">特定商取引法に基づく表記</Link>
+        </div>
+        <p>© {new Date().getFullYear()} ゴミカレ</p>
+      </footer>
+    </div>
+  )
+}
 
 function HeroSlide() {
   return (
