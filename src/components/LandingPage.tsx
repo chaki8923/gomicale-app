@@ -296,6 +296,10 @@ function StaticContent() {
               すべてのよくある質問を見る →
             </Link>
           </div>
+
+          <div className="mx-auto max-w-3xl pt-8 pb-4">
+            <AdBanner slot="3248117735" />
+          </div>
         </div>
       </section>
 
