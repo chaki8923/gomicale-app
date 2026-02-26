@@ -17,24 +17,24 @@ const slides = [
     id: 'upload',
     icon: '📄',
     step: '01',
-    heading: 'PDFをアップロードするだけ',
-    body: '自治体から配られるゴミ出しカレンダーPDFをドラッグ＆ドロップするだけ。複雑なレイアウトも、AIが自動で読み解きます。',
+    heading: 'PDFからカレンダー登録まで、アップロードするだけ',
+    body: '自治体から配られるゴミ出しカレンダーや学校の予定表PDFをドラッグ＆ドロップ。複雑なレイアウトも、AIが自動で読み解きます。',
     note: '手入力や転記ミスはもう不要',
   },
   {
     id: 'ai',
     icon: '🤖',
     step: '02',
-    heading: 'AIが複雑なルールも正確に解析',
-    body: '「第1・第3水曜はペットボトル」「月に1回の粗大ごみ」── ルールが複雑でもAIなら間違えません。年間分のスケジュールを一気に抽出します。',
+    heading: 'AIが複雑なゴミ出しルールも正確に解析',
+    body: '「第1・第3水曜はペットボトル」「月に1回の粗大ごみ」── PDF特有の複雑なルールもAIなら間違えません。年間分のスケジュールを一気に抽出します。',
     note: '見落としゼロで、ゴミ出し当日のリマインダーも自動設定',
   },
   {
     id: 'calendar',
     icon: '📅',
     step: '03',
-    heading: 'Googleカレンダーに自動登録',
-    body: 'ゴミ出しだけでなく、学校行事や地域のイベント予定表など、日付と予定が書かれたPDFなら何でもカレンダーに一括登録できます。',
+    heading: 'PDFの予定をGoogleカレンダーに自動登録',
+    body: '抽出したデータは、お使いのGoogleカレンダーに一括で自動登録されます。PDFに書かれた日付と予定なら何でもカレンダー登録できます。',
     note: 'ゴミ出しカレンダー以外のPDFにも対応',
   },
   {
@@ -102,30 +102,30 @@ function HeroSlide() {
       <div className="flex flex-col items-center gap-2">
         <span className="text-5xl">♻️</span>
         <h1 className="text-4xl font-bold tracking-tight text-gray-900 sm:text-5xl">
-          ゴミカレ
+          <span className="block">ゴミカレ</span>
+          <span className="mt-2 block text-2xl sm:text-3xl">PDFからGoogleカレンダーへ自動登録</span>
         </h1>
-        <p className="mt-2 text-lg text-gray-500 sm:text-xl">
-          ゴミ出しカレンダーを
-          <br className="sm:hidden" />
-          Googleカレンダーに自動登録
+        <p className="mt-4 text-lg text-gray-600 sm:text-xl">
+          ゴミ出しカレンダーや予定表のPDFをアップロードするだけ。<br className="hidden sm:block" />
+          AIが解析してGoogleカレンダーに一括登録します。
         </p>
       </div>
 
-      <div className="flex flex-col items-center gap-3 text-sm text-gray-400">
+      <div className="flex flex-col items-center gap-3 text-sm text-gray-500 font-medium">
         <p className="flex items-center gap-2">
-          <span className="text-teal-500">✓</span> PDFをアップロードするだけ
+          <span className="text-teal-500 text-lg">✓</span> PDFをアップロードするだけ
         </p>
         <p className="flex items-center gap-2">
-          <span className="text-teal-500">✓</span> AIが自動でスケジュール抽出
+          <span className="text-teal-500 text-lg">✓</span> AIが自動でスケジュール抽出
         </p>
         <p className="flex items-center gap-2">
-          <span className="text-teal-500">✓</span> Googleカレンダーに一括登録
+          <span className="text-teal-500 text-lg">✓</span> Googleカレンダーに一括登録
         </p>
       </div>
 
       <GoogleLoginButton className="flex items-center gap-3 rounded-2xl bg-teal-500 px-8 py-4 text-base font-semibold text-white shadow-lg transition hover:bg-teal-600 hover:shadow-xl active:scale-95" />
 
-      <p className="text-xs text-gray-400">
+      <p className="text-xs font-bold text-teal-700 animate-bounce">
         スクロールして詳しく見る ↓
       </p>
     </div>
