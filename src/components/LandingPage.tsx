@@ -178,7 +178,7 @@ export function LandingPage() {
                 src={slide.bgImage}
                 alt=""
                 fill
-                className="object-cover opacity-[0.18]"
+                className="object-cover object-right opacity-[0.18]"
                 priority={i === 0}
               />
               <div className="relative z-10 flex h-full w-full items-center justify-center">
