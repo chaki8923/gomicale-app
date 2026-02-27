@@ -127,11 +127,13 @@ export const handler = async (event: LambdaPayload): Promise<void> => {
     console.info('[handler] pdfHash:', pdfHash)
 
     // ── 3. キャッシュチェック（再解析防止） ──────────────────────
+    // 言語ごとに異なる解析結果になるため、キーに language を含める
+    const cacheKey = `${pdfHash}_${language}`
     let events
     const { data: cached } = await supabase
       .from('parsed_pdfs')
       .select('extracted_json')
-      .eq('pdf_hash', pdfHash)
+      .eq('pdf_hash', cacheKey)
       .maybeSingle()
 
     if (cached) {
@@ -145,7 +147,7 @@ export const handler = async (event: LambdaPayload): Promise<void> => {
 
       // 解析結果をキャッシュに保存
       await supabase.from('parsed_pdfs').upsert({
-        pdf_hash: pdfHash,
+        pdf_hash: cacheKey,
         extracted_json: events,
       })
     }
