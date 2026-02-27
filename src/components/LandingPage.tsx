@@ -5,6 +5,8 @@ import { Mousewheel, Pagination } from 'swiper/modules'
 import Link from 'next/link'
 import Image from 'next/image'
 import type { ReactNode } from 'react'
+import { useRef, useCallback } from 'react'
+import type { Swiper as SwiperType } from 'swiper'
 import 'swiper/css'
 import 'swiper/css/pagination'
 import { GoogleLoginButton } from './GoogleLoginButton'
@@ -145,6 +147,41 @@ const slides: Array<{
 ]
 
 export function LandingPage() {
+  const staticContentRef = useRef<HTMLDivElement>(null)
+  const swiperRef = useRef<SwiperType | null>(null)
+  // デスクトップ用: 最後のスライドで wheel イベントを監視するハンドラ
+  const wheelHandlerRef = useRef<((e: WheelEvent) => void) | null>(null)
+  // 遷移中フラグ（遷移中の誤検知を防ぐ）
+  const isTransitioningRef = useRef(false)
+
+  const scrollToStatic = useCallback(() => {
+    staticContentRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }, [])
+
+  // 最後のスライド到達時: 次の下スクロールを監視するリスナーをアタッチ
+  const attachWheelAtEnd = useCallback(() => {
+    const el = swiperRef.current?.el
+    if (!el || wheelHandlerRef.current) return
+
+    const handler = (e: WheelEvent) => {
+      // 遷移中または上スクロールは無視
+      if (isTransitioningRef.current || e.deltaY <= 0) return
+      scrollToStatic()
+      el.removeEventListener('wheel', handler)
+      wheelHandlerRef.current = null
+    }
+    wheelHandlerRef.current = handler
+    el.addEventListener('wheel', handler)
+  }, [scrollToStatic])
+
+  // 最後のスライドから戻った時: リスナーを解除
+  const detachWheelAtEnd = useCallback(() => {
+    const el = swiperRef.current?.el
+    if (!el || !wheelHandlerRef.current) return
+    el.removeEventListener('wheel', wheelHandlerRef.current)
+    wheelHandlerRef.current = null
+  }, [])
+
   return (
     <div className="min-h-screen w-screen">
       {/* ナビゲーションヘッダー */}
@@ -164,23 +201,37 @@ export function LandingPage() {
       </header>
 
       {/* フルスクリーン Swiper */}
-      <div className="h-screen w-screen">
+      <div className="h-screen w-screen overflow-hidden">
         <Swiper
-        modules={[Mousewheel, Pagination]}
-        direction="vertical"
-        slidesPerView={1}
-        mousewheel={{ sensitivity: 1, thresholdDelta: 30, releaseOnEdges: true }}
-        pagination={{ clickable: true }}
-        speed={700}
-        className="h-full w-full"
-        style={
-          {
-            '--swiper-pagination-color': '#0d9488',
-            '--swiper-pagination-bullet-inactive-color': '#9ca3af',
-            '--swiper-pagination-bullet-inactive-opacity': '0.5',
-          } as React.CSSProperties
-        }
-      >
+          modules={[Mousewheel, Pagination]}
+          direction="vertical"
+          slidesPerView={1}
+          mousewheel={{ sensitivity: 1, thresholdDelta: 30 }}
+          pagination={{ clickable: true }}
+          speed={700}
+          className="h-full w-full"
+          style={
+            {
+              '--swiper-pagination-color': '#0d9488',
+              '--swiper-pagination-bullet-inactive-color': '#9ca3af',
+              '--swiper-pagination-bullet-inactive-opacity': '0.5',
+            } as React.CSSProperties
+          }
+          onSwiper={(swiper) => { swiperRef.current = swiper }}
+          onTransitionStart={() => { isTransitioningRef.current = true }}
+          onTransitionEnd={() => { isTransitioningRef.current = false }}
+          onReachEnd={attachWheelAtEnd}
+          onActiveIndexChange={(swiper) => {
+            if (!swiper.isEnd) detachWheelAtEnd()
+          }}
+          onTouchEnd={(swiper) => {
+            // モバイル: 最後のスライドで下スワイプ（上方向へ指を動かす）を検知
+            if (!swiper.isEnd || isTransitioningRef.current) return
+            if (swiper.touches.diff < -50) {
+              scrollToStatic()
+            }
+          }}
+        >
         {slides.map((slide, i) => (
           <SwiperSlide key={slide.id}>
             <div className="relative flex h-full w-full items-center justify-center">
@@ -222,7 +273,9 @@ export function LandingPage() {
       </div>
 
       {/* クローラー向け静的コンテンツ（Swiper外） */}
-      <StaticContent />
+      <div ref={staticContentRef}>
+        <StaticContent />
+      </div>
     </div>
   )
 }
