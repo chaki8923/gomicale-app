@@ -6,7 +6,6 @@ import Link from 'next/link'
 import Image from 'next/image'
 import type { ReactNode } from 'react'
 import { useRef, useCallback } from 'react'
-import type { Swiper as SwiperType } from 'swiper'
 import 'swiper/css'
 import 'swiper/css/pagination'
 import { GoogleLoginButton } from './GoogleLoginButton'
@@ -148,36 +147,10 @@ const slides: Array<{
 
 export function LandingPage() {
   const staticContentRef = useRef<HTMLDivElement>(null)
-  const swiperRef = useRef<SwiperType | null>(null)
-  const wheelHandlerRef = useRef<((e: WheelEvent) => void) | null>(null)
 
   const scrollToStatic = useCallback(() => {
     staticContentRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [])
-
-  // デスクトップ用: アニメーション完了後に wheel を監視開始
-  const handleTransitionEnd = useCallback((swiper: SwiperType) => {
-    if (!swiper.isEnd) {
-      // 最後のスライドから離れた → リスナー解除
-      const el = swiper.el
-      if (wheelHandlerRef.current) {
-        el.removeEventListener('wheel', wheelHandlerRef.current)
-        wheelHandlerRef.current = null
-      }
-      return
-    }
-    // 最後のスライドに到達 & アニメーション完了 → 次の下スクロールだけ監視
-    if (wheelHandlerRef.current) return
-    const el = swiper.el
-    const handler = (e: WheelEvent) => {
-      if (e.deltaY <= 0) return
-      scrollToStatic()
-      el.removeEventListener('wheel', handler)
-      wheelHandlerRef.current = null
-    }
-    wheelHandlerRef.current = handler
-    el.addEventListener('wheel', handler)
-  }, [scrollToStatic])
 
   return (
     <div className="min-h-screen w-screen">
@@ -214,8 +187,6 @@ export function LandingPage() {
               '--swiper-pagination-bullet-inactive-opacity': '0.5',
             } as React.CSSProperties
           }
-          onSwiper={(swiper) => { swiperRef.current = swiper }}
-          onSlideChangeTransitionEnd={handleTransitionEnd}
         >
         {slides.map((slide, i) => (
           <SwiperSlide key={slide.id}>
@@ -479,11 +450,11 @@ function CtaSlide({ onScrollDown }: { onScrollDown?: () => void }) {
           <p>Googleアカウントでかんたんログイン</p>
         </div>
 
-        {/* モバイル向け: 下のコンテンツへ誘導ボタン */}
+        {/* 下のコンテンツへ誘導ボタン */}
         {onScrollDown && (
           <button
             onClick={onScrollDown}
-            className="flex flex-col items-center gap-1 text-xs text-gray-400 hover:text-teal-500 transition sm:hidden"
+            className="flex flex-col items-center gap-1 text-xs text-gray-400 hover:text-teal-500 transition"
             aria-label="ゴミカレについてもっと見る"
           >
             <span>ゴミカレについてもっと見る</span>
