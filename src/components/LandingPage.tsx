@@ -164,12 +164,12 @@ export function LandingPage() {
       </header>
 
       {/* フルスクリーン Swiper */}
-      <div className="h-screen w-screen overflow-hidden">
+      <div className="h-screen w-screen">
         <Swiper
         modules={[Mousewheel, Pagination]}
         direction="vertical"
         slidesPerView={1}
-        mousewheel={{ sensitivity: 1, thresholdDelta: 30 }}
+        mousewheel={{ sensitivity: 1, thresholdDelta: 30, releaseOnEdges: true }}
         pagination={{ clickable: true }}
         speed={700}
         className="h-full w-full"
