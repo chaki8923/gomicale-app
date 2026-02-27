@@ -149,23 +149,28 @@ const slides: Array<{
 export function LandingPage() {
   const staticContentRef = useRef<HTMLDivElement>(null)
   const swiperRef = useRef<SwiperType | null>(null)
-  // デスクトップ用: 最後のスライドで wheel イベントを監視するハンドラ
   const wheelHandlerRef = useRef<((e: WheelEvent) => void) | null>(null)
-  // 遷移中フラグ（遷移中の誤検知を防ぐ）
-  const isTransitioningRef = useRef(false)
 
   const scrollToStatic = useCallback(() => {
     staticContentRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [])
 
-  // 最後のスライド到達時: 次の下スクロールを監視するリスナーをアタッチ
-  const attachWheelAtEnd = useCallback(() => {
-    const el = swiperRef.current?.el
-    if (!el || wheelHandlerRef.current) return
-
+  // デスクトップ用: アニメーション完了後に wheel を監視開始
+  const handleTransitionEnd = useCallback((swiper: SwiperType) => {
+    if (!swiper.isEnd) {
+      // 最後のスライドから離れた → リスナー解除
+      const el = swiper.el
+      if (wheelHandlerRef.current) {
+        el.removeEventListener('wheel', wheelHandlerRef.current)
+        wheelHandlerRef.current = null
+      }
+      return
+    }
+    // 最後のスライドに到達 & アニメーション完了 → 次の下スクロールだけ監視
+    if (wheelHandlerRef.current) return
+    const el = swiper.el
     const handler = (e: WheelEvent) => {
-      // 遷移中または上スクロールは無視
-      if (isTransitioningRef.current || e.deltaY <= 0) return
+      if (e.deltaY <= 0) return
       scrollToStatic()
       el.removeEventListener('wheel', handler)
       wheelHandlerRef.current = null
@@ -173,14 +178,6 @@ export function LandingPage() {
     wheelHandlerRef.current = handler
     el.addEventListener('wheel', handler)
   }, [scrollToStatic])
-
-  // 最後のスライドから戻った時: リスナーを解除
-  const detachWheelAtEnd = useCallback(() => {
-    const el = swiperRef.current?.el
-    if (!el || !wheelHandlerRef.current) return
-    el.removeEventListener('wheel', wheelHandlerRef.current)
-    wheelHandlerRef.current = null
-  }, [])
 
   return (
     <div className="min-h-screen w-screen">
@@ -218,19 +215,7 @@ export function LandingPage() {
             } as React.CSSProperties
           }
           onSwiper={(swiper) => { swiperRef.current = swiper }}
-          onTransitionStart={() => { isTransitioningRef.current = true }}
-          onTransitionEnd={() => { isTransitioningRef.current = false }}
-          onReachEnd={attachWheelAtEnd}
-          onActiveIndexChange={(swiper) => {
-            if (!swiper.isEnd) detachWheelAtEnd()
-          }}
-          onTouchEnd={(swiper) => {
-            // モバイル: 最後のスライドで下スワイプ（上方向へ指を動かす）を検知
-            if (!swiper.isEnd || isTransitioningRef.current) return
-            if (swiper.touches.diff < -50) {
-              scrollToStatic()
-            }
-          }}
+          onSlideChangeTransitionEnd={handleTransitionEnd}
         >
         {slides.map((slide, i) => (
           <SwiperSlide key={slide.id}>
@@ -255,7 +240,7 @@ export function LandingPage() {
                 {slide.content === 'hero' ? (
                   <HeroSlide />
                 ) : slide.content === 'cta' ? (
-                  <CtaSlide />
+                  <CtaSlide onScrollDown={scrollToStatic} />
                 ) : (
                   <FeatureSlide
                     icon={slide.icon!}
@@ -467,7 +452,7 @@ function FeatureSlide({
   )
 }
 
-function CtaSlide() {
+function CtaSlide({ onScrollDown }: { onScrollDown?: () => void }) {
   return (
     <div className="flex h-full w-full flex-col">
       <div className="flex flex-1 flex-col items-center justify-center gap-8 px-6 text-center">
@@ -493,6 +478,20 @@ function CtaSlide() {
           <p>完全無料で利用できます</p>
           <p>Googleアカウントでかんたんログイン</p>
         </div>
+
+        {/* モバイル向け: 下のコンテンツへ誘導ボタン */}
+        {onScrollDown && (
+          <button
+            onClick={onScrollDown}
+            className="flex flex-col items-center gap-1 text-xs text-gray-400 hover:text-teal-500 transition sm:hidden"
+            aria-label="ゴミカレについてもっと見る"
+          >
+            <span>ゴミカレについてもっと見る</span>
+            <svg className="w-5 h-5 animate-bounce" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12 5v14M5 12l7 7 7-7"/>
+            </svg>
+          </button>
+        )}
       </div>
 
       <div className="w-full px-4 pb-2">
