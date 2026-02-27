@@ -98,11 +98,13 @@ const slides: Array<{
   body?: string
   note?: string
   bgImage: string
+  bgImageSp: string
 }> = [
   {
     id: 'hero',
     content: 'hero',
     bgImage: '/gomi_mother.png',
+    bgImageSp: '/gomi_mother_sp.webp',
   },
   {
     id: 'upload',
@@ -112,6 +114,7 @@ const slides: Array<{
     body: '自治体から配られるゴミ出しカレンダーや学校の予定表PDFをドラッグ＆ドロップ。複雑なレイアウトも、AIが自動で読み解きます。',
     note: '手入力や転記ミスはもう不要',
     bgImage: '/house_mother.webp',
+    bgImageSp: '/house_mother_sp.webp',
   },
   {
     id: 'ai',
@@ -121,6 +124,7 @@ const slides: Array<{
     body: '「第1・第3水曜はペットボトル」「月に1回の粗大ごみ」── PDF特有の複雑なルールもAIなら間違えません。年間分のスケジュールを一気に抽出します。',
     note: '見落としゼロで、ゴミ出し当日のリマインダーも自動設定',
     bgImage: '/anger_mother.webp',
+    bgImageSp: '/anger_mother_sp.webp',
   },
   {
     id: 'calendar',
@@ -130,11 +134,13 @@ const slides: Array<{
     body: '抽出したデータは、お使いのGoogleカレンダーに一括で自動登録されます。PDFに書かれた日付と予定なら何でもカレンダー登録できます。',
     note: 'ゴミ出しカレンダー以外のPDFにも対応',
     bgImage: '/calendar_mother.webp',
+    bgImageSp: '/calendar_mother_sp.webp',
   },
   {
     id: 'cta',
     content: 'cta',
     bgImage: '/enjoy_mother.webp',
+    bgImageSp: '/enjoy_mother_sp.webp',
   },
 ]
 
@@ -147,9 +153,13 @@ export function LandingPage() {
           <IconRecycle className="w-5 h-5" />
           ゴミカレ
         </Link>
-        <nav className="flex items-center gap-5 text-sm text-gray-500">
-          <Link href="/faq" className="hover:text-teal-600 transition">よくある質問</Link>
+        <nav className="flex items-center gap-4 text-sm text-gray-500">
+          <Link href="/faq" className="hover:text-teal-600 transition hidden sm:block">よくある質問</Link>
           <Link href="/terms" className="hover:text-teal-600 transition hidden sm:block">利用規約</Link>
+          <GoogleLoginButton
+            className="flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 shadow-sm transition hover:bg-gray-50 hover:shadow-md"
+            label="Googleでログイン"
+          />
         </nav>
       </header>
 
@@ -174,11 +184,20 @@ export function LandingPage() {
         {slides.map((slide, i) => (
           <SwiperSlide key={slide.id}>
             <div className="relative flex h-full w-full items-center justify-center">
+              {/* SP用背景画像 */}
+              <Image
+                src={slide.bgImageSp}
+                alt=""
+                fill
+                className="block sm:hidden object-cover object-center opacity-[0.18]"
+                priority={i === 0}
+              />
+              {/* PC用背景画像 */}
               <Image
                 src={slide.bgImage}
                 alt=""
                 fill
-                className="object-cover object-right opacity-[0.18]"
+                className="hidden sm:block object-cover object-right opacity-[0.18]"
                 priority={i === 0}
               />
               <div className="relative z-10 flex h-full w-full items-center justify-center">
