@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useState } from 'react'
-import { useTranslations, useLocale } from 'next-intl'
+import { useTranslations, useLocale, type TranslationValues } from 'next-intl'
 
 type ParserMode = 'garbage' | 'general'
 
@@ -9,7 +9,7 @@ interface UploadZoneProps {
   onUploadComplete: (jobId: string) => void
 }
 
-type UploadState = 'idle' | 'presigning' | 'uploading' | 'starting' | 'done' | 'error'
+type UploadState = 'idle' | 'uploading' | 'starting' | 'done' | 'error'
 
 export function UploadZone({ onUploadComplete }: UploadZoneProps) {
   const t = useTranslations('upload')
@@ -39,27 +39,18 @@ export function UploadZone({ onUploadComplete }: UploadZoneProps) {
     setProgress(0)
 
     try {
-      // ── 1. Presigned URL を取得 ──────────────────────────────
-      setState('presigning')
-      const presignRes = await fetch('/api/upload/presign', { method: 'POST' })
-      if (!presignRes.ok) throw new Error(t('errorPresign'))
-      const { uploadUrl, jobId } = await presignRes.json() as {
-        uploadUrl: string
-        jobId: string
-      }
-
-      // ── 2. R2 へ直接アップロード ─────────────────────────────
+      // ── 1. サーバー経由で R2 にアップロード ──────────────────
+      // XHR を使って進捗を表示しつつ /api/upload/file に直接 POST
+      // （ブラウザ→R2 の直接アップロードは CORS の問題があるためサーバー経由にする）
       setState('uploading')
-      await uploadWithProgress(uploadUrl, file, setProgress, (status) =>
-        t('errorUploadFailed', { status }),
-      )
+      const jobId = await uploadViaServer(file, setProgress, t)
 
-      // ── 3. Lambda を非同期で起動（locale を language として渡す）
+      // ── 2. Lambda を非同期で起動 ─────────────────────────────
       setState('starting')
       const startRes = await fetch('/api/jobs/start', {
-        method:  'POST',
+        method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({ jobId, parserMode, language: locale }),
+        body: JSON.stringify({ jobId, parserMode, language: locale }),
       })
       if (!startRes.ok) throw new Error(t('errorJobStart'))
 
@@ -85,7 +76,7 @@ export function UploadZone({ onUploadComplete }: UploadZoneProps) {
     e.target.value = ''
   }, [processFile])
 
-  const isLoading = ['presigning', 'uploading', 'starting'].includes(state)
+  const isLoading = ['uploading', 'starting'].includes(state)
 
   return (
     <div className="w-full space-y-3">
@@ -137,7 +128,6 @@ export function UploadZone({ onUploadComplete }: UploadZoneProps) {
           <div className="flex flex-col items-center gap-3">
             <div className="w-10 h-10 border-4 border-teal-500 border-t-transparent rounded-full animate-spin" />
             <p className="text-sm text-gray-500">
-              {state === 'presigning' && t('presigning')}
               {state === 'uploading' && t('uploading', { progress })}
               {state === 'starting' && t('starting')}
             </p>
@@ -169,30 +159,43 @@ export function UploadZone({ onUploadComplete }: UploadZoneProps) {
   )
 }
 
-function uploadWithProgress(
-  url: string,
+// XHR で /api/upload/file に PDF を送信し、jobId を返す
+// XHR を使うことでアップロード進捗を取得できる
+function uploadViaServer(
   file: File,
   onProgress: (n: number) => void,
-  errorMessage: (status: number) => string,
-): Promise<void> {
+  t: (key: string, values?: TranslationValues) => string,
+): Promise<string> {
   return new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest()
-    xhr.open('PUT', url)
+    xhr.open('POST', '/api/upload/file')
     xhr.setRequestHeader('Content-Type', 'application/pdf')
+
     xhr.upload.onprogress = (e) => {
       if (e.lengthComputable) {
         onProgress(Math.round((e.loaded / e.total) * 100))
       }
     }
-    xhr.onload  = () => (xhr.status < 300 ? resolve() : reject(new Error(errorMessage(xhr.status))))
-    xhr.onerror = () => {
-      console.error('[UploadZone] xhr.onerror fired', {
-        status: xhr.status,
-        readyState: xhr.readyState,
-        url: url.split('?')[0],
-      })
-      reject(new Error('network-error'))
+
+    xhr.onload = () => {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        try {
+          const data = JSON.parse(xhr.responseText) as { jobId: string }
+          resolve(data.jobId)
+        } catch {
+          reject(new Error(t('errorUnexpected')))
+        }
+      } else if (xhr.status === 401) {
+        reject(new Error(t('errorPresign')))
+      } else {
+        reject(new Error(t('errorUploadFailed', { status: xhr.status })))
+      }
     }
+
+    xhr.onerror = () => {
+      reject(new Error(t('errorNetwork')))
+    }
+
     xhr.send(file)
   })
 }
