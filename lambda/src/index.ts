@@ -106,8 +106,8 @@ const supabase = createClient(
 )
 
 export const handler = async (event: LambdaPayload): Promise<void> => {
-  const { jobId, userId, r2ObjectKey } = event
-  console.info('[handler] start', { jobId, userId, r2ObjectKey })
+  const { jobId, userId, r2ObjectKey, language = 'ja' } = event
+  console.info('[handler] start', { jobId, userId, r2ObjectKey, language })
 
   try {
     // ── 1. R2 から PDF をダウンロード ──────────────────────────────
@@ -139,7 +139,7 @@ export const handler = async (event: LambdaPayload): Promise<void> => {
       events = cached.extracted_json
     } else {
       // ── 4. LLM で PDF 解析（Strategy パターン） ──────────────────
-      const parser = createPdfParser(event.parserMode ?? 'garbage')
+      const parser = createPdfParser(event.parserMode ?? 'garbage', language)
       events = await parser.parse(pdfBuffer)
       console.info('[handler] parsed events count:', events.length)
 

@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { useTranslations } from 'next-intl'
 import { getSupabaseBrowserClient } from '@/lib/supabase/client'
 import type { Job } from '@/types/database'
 
@@ -9,27 +10,13 @@ interface JobStatusCardProps {
   onComplete?: (job: Job) => void
 }
 
-const STATUS_LABEL: Record<Job['status'], string> = {
-  pending:    '待機中',
-  processing: '解析・登録中',
-  completed:  '完了',
-  error:      'エラー',
-}
-
-const STATUS_COLOR: Record<Job['status'], string> = {
-  pending:    'bg-gray-100 text-gray-600',
-  processing: 'bg-blue-100 text-blue-700',
-  completed:  'bg-green-100 text-green-700',
-  error:      'bg-red-100 text-red-600',
-}
-
 export function JobStatusCard({ jobId, onComplete }: JobStatusCardProps) {
+  const t = useTranslations('jobStatus')
   const [job, setJob] = useState<Job | null>(null)
 
   useEffect(() => {
     const supabase = getSupabaseBrowserClient()
 
-    // 初回フェッチ
     supabase
       .from('jobs')
       .select('*')
@@ -37,7 +24,6 @@ export function JobStatusCard({ jobId, onComplete }: JobStatusCardProps) {
       .single()
       .then(({ data }) => { if (data) setJob(data as Job) })
 
-    // Supabase Realtime でリアルタイム監視
     const channel = supabase
       .channel(`job-${jobId}`)
       .on(
@@ -62,10 +48,22 @@ export function JobStatusCard({ jobId, onComplete }: JobStatusCardProps) {
     return () => { supabase.removeChannel(channel) }
   }, [jobId, onComplete])
 
+  const statusLabel: Record<Job['status'], string> = {
+    pending:    t('pending'),
+    processing: t('processing'),
+    completed:  t('completed'),
+    error:      t('error'),
+  }
+
+  const statusColor: Record<Job['status'], string> = {
+    pending:    'bg-gray-100 text-gray-600',
+    processing: 'bg-blue-100 text-blue-700',
+    completed:  'bg-green-100 text-green-700',
+    error:      'bg-red-100 text-red-600',
+  }
+
   if (!job) {
-    return (
-      <div className="animate-pulse rounded-xl bg-gray-100 h-20" />
-    )
+    return <div className="animate-pulse rounded-xl bg-gray-100 h-20" />
   }
 
   const isProcessing = job.status === 'pending' || job.status === 'processing'
@@ -79,20 +77,20 @@ export function JobStatusCard({ jobId, onComplete }: JobStatusCardProps) {
             {isProcessing && (
               <span className="inline-block w-3 h-3 rounded-full bg-blue-400 animate-pulse" />
             )}
-            <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${STATUS_COLOR[job.status]}`}>
-              {STATUS_LABEL[job.status]}
+            <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${statusColor[job.status]}`}>
+              {statusLabel[job.status]}
             </span>
           </div>
 
           {job.status === 'completed' && resultData && (
             <p className="text-sm text-gray-700 mt-2">
               <span className="font-semibold text-teal-600 text-lg">
-                {resultData.calendar_event_count}件
+                {resultData.calendar_event_count}
               </span>
-              {' '}をGoogleカレンダーに登録しました
+              {' '}{t('registeredTo')}
               {resultData.skipped_count != null && resultData.skipped_count > 0 && (
                 <span className="text-gray-400 text-xs ml-1">
-                  （{resultData.skipped_count}件は既存のため省略）
+                  {t('skipped', { count: resultData.skipped_count })}
                 </span>
               )}
             </p>
@@ -100,18 +98,14 @@ export function JobStatusCard({ jobId, onComplete }: JobStatusCardProps) {
 
           {job.status === 'error' && (
             <p className="text-sm text-red-500 mt-2 break-all">
-              {job.error_message ?? '不明なエラーが発生しました'}
+              {job.error_message ?? t('unknownError')}
             </p>
           )}
 
           {isProcessing && (
             <div className="mt-2 space-y-1">
-              <p className="text-sm text-gray-500">
-                PDFの解析とGoogleカレンダーへの登録を開始しました。
-              </p>
-              <p className="text-xs text-amber-600 font-medium">
-                完了まで約10分程度かかります。完了後にメールでお知らせします。
-              </p>
+              <p className="text-sm text-gray-500">{t('processingMessage')}</p>
+              <p className="text-xs text-amber-600 font-medium">{t('processingTime')}</p>
             </div>
           )}
         </div>

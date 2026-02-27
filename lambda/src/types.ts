@@ -1,10 +1,12 @@
 export type ParserMode = 'garbage' | 'general'
+export type Language = 'ja' | 'en'
 
 export interface LambdaPayload {
   jobId: string
   userId: string
   r2ObjectKey: string
   parserMode?: ParserMode
+  language?: Language
 }
 
 export interface CalendarEvent {

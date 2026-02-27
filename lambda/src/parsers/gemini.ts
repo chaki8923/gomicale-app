@@ -4,7 +4,7 @@ import {
   HarmBlockThreshold,
 } from '@google/generative-ai'
 import type { PdfParser } from './base'
-import type { CalendarEvent } from '../types'
+import type { CalendarEvent, Language } from '../types'
 
 const GARBAGE_PROMPT = `
 あなたはゴミ出しカレンダーのデータ抽出AIです。
@@ -122,15 +122,76 @@ async function parseWithPrompt(prompt: string, pdfBuffer: Buffer): Promise<Calen
   return events
 }
 
+const GARBAGE_PROMPT_EN = `
+You are an AI for extracting data from garbage collection calendars.
+The attached PDF is a garbage collection calendar distributed by a municipality.
+
+## Critical Instructions
+- Extract ALL collection dates without missing any
+- Include collections fixed on specific days of the week (e.g., every Tuesday)
+- The title must NEVER be empty. If unclear, use the text visible in the PDF cell as-is
+
+## PDF Structure
+- Multiple months' calendars may be arranged side by side
+- Each month's calendar has a header with day-of-week names
+- Each week often alternates between "date rows" and "collection type rows"
+- Collection type cells may be color-coded or use symbols
+
+## Common Collection Types (for reference)
+Burnable garbage, Non-burnable garbage, Plastic, Cans/Bottles/PET bottles,
+Recyclables, Bulky waste, Paper, Cardboard, etc.
+
+## Output Format
+Return only a JSON array with one entry per date and collection type:
+
+[
+  { "date": "YYYY-MM-DD", "title": "Collection Type (in English)", "description": "Details if specified in PDF (e.g., plastic bags, trays, bottles)" },
+  ...
+]
+
+## Notes
+- date must be in ISO 8601 format (YYYY-MM-DD)
+- title should be translated to natural English (e.g., "Burnable Garbage", "Plastic Recycling", "Cans & Bottles")
+- Never output an empty title (exclude the entire entry)
+- description only if the PDF lists specific items; otherwise use empty string ""
+- If the year is not shown, estimate from surrounding dates
+- If multiple collection types occur on one date, output them as separate objects
+- Output only the JSON array, nothing else
+`.trim()
+
+const GENERAL_PROMPT_EN = `
+You are an AI that extracts schedule information from PDFs.
+Extract all "dates" and "event titles" listed in the attached PDF and return them
+only in the following JSON array format. No explanatory text needed.
+
+[
+  { "date": "YYYY-MM-DD", "title": "Event Title (in English)" },
+  ...
+]
+
+Notes:
+- date must be in ISO 8601 format (YYYY-MM-DD)
+- title should be translated to natural English
+- If the year is unknown, estimate from other dates or context in the document
+- If multiple events occur on one date, output them as separate objects
+- Output only the JSON array, nothing else
+`.trim()
+
 export class GeminiGarbageParser implements PdfParser {
+  constructor(private readonly language: Language = 'ja') {}
+
   async parse(pdfBuffer: Buffer): Promise<CalendarEvent[]> {
-    return parseWithPrompt(GARBAGE_PROMPT, pdfBuffer)
+    const prompt = this.language === 'en' ? GARBAGE_PROMPT_EN : GARBAGE_PROMPT
+    return parseWithPrompt(prompt, pdfBuffer)
   }
 }
 
 export class GeminiGeneralParser implements PdfParser {
+  constructor(private readonly language: Language = 'ja') {}
+
   async parse(pdfBuffer: Buffer): Promise<CalendarEvent[]> {
-    return parseWithPrompt(GENERAL_PROMPT, pdfBuffer)
+    const prompt = this.language === 'en' ? GENERAL_PROMPT_EN : GENERAL_PROMPT
+    return parseWithPrompt(prompt, pdfBuffer)
   }
 }
 

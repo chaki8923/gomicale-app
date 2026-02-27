@@ -1,0 +1,166 @@
+{
+  "common": {
+    "appName": "GomiCale",
+    "faq": "FAQ",
+    "terms": "Terms of Service",
+    "privacy": "Privacy Policy",
+    "legal": "Legal Notice",
+    "login": "Sign in with Google",
+    "logout": "Sign out",
+    "topPage": "Home",
+    "backToTop": "Back to Home",
+    "copyright": "© {year} GomiCale"
+  },
+  "landing": {
+    "header": {
+      "faq": "FAQ",
+      "terms": "Terms",
+      "login": "Sign in with Google"
+    },
+    "hero": {
+      "subtitle": "Auto-register PDF calendars to Google Calendar",
+      "description": "Just upload your PDF garbage collection calendar or schedule. AI analyzes it and bulk-registers events to Google Calendar.",
+      "check1": "Just upload a PDF",
+      "check2": "AI extracts the schedule automatically",
+      "check3": "Bulk-register to Google Calendar",
+      "scrollHint": "Scroll to learn more ↓"
+    },
+    "slides": {
+      "upload": {
+        "heading": "Upload your PDF — that's all it takes",
+        "body": "Drag and drop the garbage collection calendar or school schedule PDF distributed by your municipality. No matter how complex the layout, AI will read it automatically.",
+        "note": "No more manual entry or copy mistakes"
+      },
+      "ai": {
+        "heading": "AI accurately parses complex garbage collection rules",
+        "body": "\"Plastic bottles every 1st and 3rd Wednesday\", \"Bulky waste once a month\" — AI never makes mistakes with complex PDF rules. Extract a full year's schedule at once.",
+        "note": "Zero missed collections, automatic reminders on collection day"
+      },
+      "calendar": {
+        "heading": "Automatically register PDF schedules to Google Calendar",
+        "body": "Extracted data is automatically bulk-registered to your Google Calendar. Any date and event written in the PDF can be registered.",
+        "note": "Works with PDFs beyond just garbage collection calendars"
+      },
+      "cta": {
+        "heading": "Say goodbye to manual entry",
+        "description": "A full year of schedules registered in 1 minute.",
+        "description2": "Get started now!",
+        "free": "Completely free to use",
+        "easyLogin": "Easy login with your Google account",
+        "moreAbout": "Learn more about GomiCale"
+      }
+    },
+    "static": {
+      "whatIs": {
+        "title": "What is GomiCale?",
+        "subtitle": "Just upload a PDF and your garbage collection schedule is automatically registered to Google Calendar",
+        "step1Title": "STEP 1: Upload PDF",
+        "step1Body": "Drag and drop the PDF garbage collection calendar distributed by your municipality. Compatible with school annual schedules and any PDF with dates.",
+        "step2Title": "STEP 2: AI Analyzes Automatically",
+        "step2Body": "Complex rules like \"Plastic bottles every 1st and 3rd Wednesday\" are accurately read by AI. No more manual entry mistakes.",
+        "step3Title": "STEP 3: Auto-register to Calendar",
+        "step3Body": "Analysis results are bulk-registered to Google Calendar automatically. Reminders are also set on your smartphone so you never miss a collection day."
+      },
+      "faqSection": {
+        "title": "FAQ",
+        "subtitle": "Common questions before you start",
+        "viewAll": "View all FAQ →",
+        "items": [
+          {
+            "q": "Is it free to use?",
+            "a": "Currently, GomiCale is completely free. Just sign in with your Google account to use all features."
+          },
+          {
+            "q": "What types of PDFs are supported?",
+            "a": "Primarily garbage collection calendars, but also school event schedules, community calendars, and any PDF with dates and events."
+          },
+          {
+            "q": "Is my uploaded PDF safe?",
+            "a": "PDFs are temporarily stored for AI analysis and automatically deleted after processing. We never share your PDF with third parties or use it for advertising."
+          },
+          {
+            "q": "Can I use it from my smartphone?",
+            "a": "Yes, it works in mobile browsers including Safari on iPhone and Chrome on Android."
+          }
+        ]
+      },
+      "footer": {
+        "faq": "FAQ",
+        "terms": "Terms of Service",
+        "privacy": "Privacy Policy",
+        "legal": "Legal Notice"
+      }
+    }
+  },
+  "dashboard": {
+    "uploadTitle": "Upload Garbage Collection Calendar",
+    "uploadDescription": "Upload a PDF garbage collection calendar distributed by your municipality. AI will read the schedule and automatically register it to Google Calendar.",
+    "processingTitle": "Processing Status",
+    "historyTitle": "Registration History",
+    "emptyTitle": "No registration history yet",
+    "emptySubtitle": "Upload a PDF to get started",
+    "registeredSuffix": "events registered",
+    "skipped": "({count} skipped as duplicates)",
+    "errorPrefix": "Error: ",
+    "processing": "Processing...",
+    "statusCompleted": "Completed",
+    "statusError": "Error",
+    "statusProcessing": "Processing"
+  },
+  "upload": {
+    "garbageLabel": "Garbage Calendar",
+    "garbageDesc": "Analyzes municipality garbage collection calendar PDFs and registers collection dates to Google Calendar.",
+    "generalLabel": "General Schedule PDF",
+    "generalDesc": "Analyzes schedule tables, event calendars, and other PDFs with dates and events.",
+    "dropzone": "Drag & drop PDF here, or click to select",
+    "dropzoneHint": "PDF format · Max 20MB",
+    "presigning": "Preparing upload...",
+    "uploading": "Uploading... {progress}%",
+    "starting": "Starting analysis...",
+    "errorPdfOnly": "Only PDF files can be uploaded",
+    "errorTooLarge": "File size must be 20MB or less",
+    "errorPresign": "Failed to get upload URL",
+    "errorJobStart": "Failed to start job",
+    "errorNetwork": "A network error occurred",
+    "errorUnexpected": "An unexpected error occurred",
+    "errorUploadFailed": "Upload failed (HTTP {status})"
+  },
+  "jobStatus": {
+    "pending": "Queued",
+    "processing": "Analyzing & registering",
+    "completed": "Completed",
+    "error": "Error",
+    "registeredTo": "events registered to Google Calendar",
+    "skipped": "({count} skipped as duplicates)",
+    "processingMessage": "Started analyzing PDF and registering to Google Calendar.",
+    "processingTime": "This may take up to 10 minutes. You will be notified by email when complete.",
+    "unknownError": "An unknown error occurred"
+  },
+  "login": {
+    "title": "GomiCale",
+    "subtitle": "Auto-register garbage collection calendars to Google Calendar",
+    "authError": "Authentication failed. Please try again.",
+    "disclaimer": "By signing in, you authorize GomiCale to access your Google Calendar"
+  },
+  "faq": {
+    "title": "FAQ",
+    "subtitle": "Frequently asked questions about GomiCale.",
+    "contactTitle": "Still have questions?",
+    "contactSubtitle": "Please contact us via the inquiry form in our Privacy Policy.",
+    "contactLink": "View contact information",
+    "items": [
+      { "q": "What is GomiCale?", "a": "GomiCale is a free web service that automatically reads PDF garbage collection calendars and school/community schedule PDFs distributed by municipalities, then bulk-registers them to Google Calendar. Tasks that used to take hours of manual entry are completed in just 1 minute." },
+      { "q": "Is it free to use?", "a": "Currently, GomiCale is completely free. Just sign in with your Google account to use all features. We may introduce some premium features in the future, but basic features will remain free." },
+      { "q": "What types of PDFs are supported?", "a": "Primarily garbage collection calendar PDFs distributed by municipalities. Also supports school annual event schedules, community bulletin calendars, condominium management association schedules, and any PDF with dates and events. Both scanned image PDFs and text-based PDFs can be processed. However, extremely complex layouts or unclear text may reduce accuracy." },
+      { "q": "Which Google Calendar will events be registered to?", "a": "Events are registered to the default calendar of your signed-in Google account (usually the calendar named after your email address). After registration, events can be edited, deleted, or moved just like regular Google Calendar events." },
+      { "q": "Is there a limit to how many events can be registered?", "a": "There is no limit to the number of events that can be registered in a single PDF upload. You can register a full year's garbage collection schedule at once. However, PDFs with very many pages or complex layouts may take a few minutes to process." },
+      { "q": "What if the PDF content is not read correctly?", "a": "AI analysis results can be edited directly in Google Calendar. Accuracy depends on the quality and layout of the PDF. Low scan resolution or complex table structures may reduce accuracy. If you encounter issues, please contact us via the support page." },
+      { "q": "How is my uploaded PDF managed?", "a": "Uploaded PDFs are temporarily stored on the server for AI analysis processing. They are automatically deleted after analysis is complete. PDF content is never shared with third parties or used for marketing purposes. Please see our Privacy Policy for details." },
+      { "q": "I'm worried about Google Calendar access permissions.", "a": "GomiCale uses Google's official OAuth authentication and only requests the minimum permissions needed to add events to Google Calendar. We never obtain your password, and you can revoke access at any time from your Google Account settings under Security > Third-party apps and services." },
+      { "q": "Will events duplicate with existing Google Calendar events?", "a": "GomiCale adds events extracted from the PDF as new entries to Google Calendar. We perform duplicate checking and skip events with the same date, time, and title that already exist. You can check the number of skipped events in the registration history on the dashboard." },
+      { "q": "Can I use it from my smartphone?", "a": "Yes, it works in mobile browsers including Safari on iPhone and Chrome on Android. PDF files can be selected from your phone's Photos app or Files app to upload." },
+      { "q": "Are there any unsupported municipalities?", "a": "GomiCale is not limited to specific municipalities and supports any PDF calendar format from any municipality in Japan. However, accuracy may vary depending on how each municipality formats and distributes their PDF calendars." },
+      { "q": "Can I delete my account?", "a": "Yes, you can request account and data deletion by contacting us. Deletion will remove your registration history and Google account integration information. Note that events already registered to Google Calendar will not be deleted — please remove those from Google Calendar if needed." }
+    ]
+  }
+}

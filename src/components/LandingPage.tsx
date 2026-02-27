@@ -2,14 +2,16 @@
 
 import { Swiper, SwiperSlide } from 'swiper/react'
 import { Mousewheel, Pagination } from 'swiper/modules'
-import Link from 'next/link'
 import Image from 'next/image'
 import type { ReactNode } from 'react'
 import { useRef, useCallback } from 'react'
+import { useTranslations } from 'next-intl'
+import { Link } from '@/i18n/navigation'
 import 'swiper/css'
 import 'swiper/css/pagination'
 import { GoogleLoginButton } from './GoogleLoginButton'
 import { AdBanner } from './AdBanner'
+import { LanguageSwitcher } from './LanguageSwitcher'
 
 // ─── SVG アイコン ───────────────────────────────────────────
 function IconRecycle({ className = 'w-6 h-6' }: { className?: string }) {
@@ -90,67 +92,69 @@ function IconCheck({ className = 'w-4 h-4' }: { className?: string }) {
   )
 }
 
-const slides: Array<{
-  id: string
-  content?: 'hero' | 'cta'
-  icon?: ReactNode
-  step?: string
-  heading?: string
-  body?: string
-  note?: string
-  bgImage: string
-  bgImageSp: string
-}> = [
-  {
-    id: 'hero',
-    content: 'hero',
-    bgImage: '/gomi_mother.png',
-    bgImageSp: '/gomi_mother_sp.webp',
-  },
-  {
-    id: 'upload',
-    icon: <IconFileText />,
-    step: '01',
-    heading: 'PDFからカレンダー登録まで、アップロードするだけ',
-    body: '自治体から配られるゴミ出しカレンダーや学校の予定表PDFをドラッグ＆ドロップ。複雑なレイアウトも、AIが自動で読み解きます。',
-    note: '手入力や転記ミスはもう不要',
-    bgImage: '/house_mother.webp',
-    bgImageSp: '/house_mother_sp.webp',
-  },
-  {
-    id: 'ai',
-    icon: <IconBrain />,
-    step: '02',
-    heading: 'AIが複雑なゴミ出しルールも正確に解析',
-    body: '「第1・第3水曜はペットボトル」「月に1回の粗大ごみ」── PDF特有の複雑なルールもAIなら間違えません。年間分のスケジュールを一気に抽出します。',
-    note: '見落としゼロで、ゴミ出し当日のリマインダーも自動設定',
-    bgImage: '/anger_mother.webp',
-    bgImageSp: '/anger_mother_sp.webp',
-  },
-  {
-    id: 'calendar',
-    icon: <IconCalendar />,
-    step: '03',
-    heading: 'PDFの予定をGoogleカレンダーに自動登録',
-    body: '抽出したデータは、お使いのGoogleカレンダーに一括で自動登録されます。PDFに書かれた日付と予定なら何でもカレンダー登録できます。',
-    note: 'ゴミ出しカレンダー以外のPDFにも対応',
-    bgImage: '/calendar_mother.webp',
-    bgImageSp: '/calendar_mother_sp.webp',
-  },
-  {
-    id: 'cta',
-    content: 'cta',
-    bgImage: '/enjoy_mother.webp',
-    bgImageSp: '/enjoy_mother_sp.webp',
-  },
-]
-
 export function LandingPage() {
+  const t = useTranslations('landing')
+  const tCommon = useTranslations('common')
   const staticContentRef = useRef<HTMLDivElement>(null)
 
   const scrollToStatic = useCallback(() => {
     staticContentRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [])
+
+  const slides = [
+    {
+      id: 'hero',
+      content: 'hero' as const,
+      bgImage: '/gomi_mother.png',
+      bgImageSp: '/gomi_mother_sp.webp',
+    },
+    {
+      id: 'upload',
+      icon: <IconFileText />,
+      step: '01',
+      heading: t('slides.upload.heading'),
+      body: t('slides.upload.body'),
+      note: t('slides.upload.note'),
+      bgImage: '/house_mother.webp',
+      bgImageSp: '/house_mother_sp.webp',
+    },
+    {
+      id: 'ai',
+      icon: <IconBrain />,
+      step: '02',
+      heading: t('slides.ai.heading'),
+      body: t('slides.ai.body'),
+      note: t('slides.ai.note'),
+      bgImage: '/anger_mother.webp',
+      bgImageSp: '/anger_mother_sp.webp',
+    },
+    {
+      id: 'calendar',
+      icon: <IconCalendar />,
+      step: '03',
+      heading: t('slides.calendar.heading'),
+      body: t('slides.calendar.body'),
+      note: t('slides.calendar.note'),
+      bgImage: '/calendar_mother.webp',
+      bgImageSp: '/calendar_mother_sp.webp',
+    },
+    {
+      id: 'cta',
+      content: 'cta' as const,
+      bgImage: '/enjoy_mother.webp',
+      bgImageSp: '/enjoy_mother_sp.webp',
+    },
+  ] satisfies Array<{
+    id: string
+    content?: 'hero' | 'cta'
+    icon?: ReactNode
+    step?: string
+    heading?: string
+    body?: string
+    note?: string
+    bgImage: string
+    bgImageSp: string
+  }>
 
   return (
     <div className="min-h-screen w-screen">
@@ -158,14 +162,15 @@ export function LandingPage() {
       <header className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between bg-white/80 backdrop-blur-sm border-b border-gray-100 px-6 py-3">
         <Link href="/" className="flex items-center gap-2 text-lg font-bold text-teal-600">
           <IconRecycle className="w-5 h-5" />
-          ゴミカレ
+          {tCommon('appName')}
         </Link>
         <nav className="flex items-center gap-4 text-sm text-gray-500">
-          <Link href="/faq" className="hover:text-teal-600 transition hidden sm:block">よくある質問</Link>
-          <Link href="/terms" className="hover:text-teal-600 transition hidden sm:block">利用規約</Link>
+          <Link href="/faq" className="hover:text-teal-600 transition hidden sm:block">{t('header.faq')}</Link>
+          <Link href="/terms" className="hover:text-teal-600 transition hidden sm:block">{t('header.terms')}</Link>
+          <LanguageSwitcher />
           <GoogleLoginButton
             className="flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 shadow-sm transition hover:bg-gray-50 hover:shadow-md"
-            label="Googleでログイン"
+            label={t('header.login')}
           />
         </nav>
       </header>
@@ -188,43 +193,43 @@ export function LandingPage() {
             } as React.CSSProperties
           }
         >
-        {slides.map((slide, i) => (
-          <SwiperSlide key={slide.id}>
-            <div className="relative flex h-full w-full items-center justify-center">
-              {/* SP用背景画像 */}
-              <Image
-                src={slide.bgImageSp}
-                alt=""
-                fill
-                className="block sm:hidden object-cover object-center opacity-[0.18]"
-                priority={i === 0}
-              />
-              {/* PC用背景画像 */}
-              <Image
-                src={slide.bgImage}
-                alt=""
-                fill
-                className="hidden sm:block object-cover object-right opacity-[0.18]"
-                priority={i === 0}
-              />
-              <div className="relative z-10 flex h-full w-full items-center justify-center">
-                {slide.content === 'hero' ? (
-                  <HeroSlide />
-                ) : slide.content === 'cta' ? (
-                  <CtaSlide onScrollDown={scrollToStatic} />
-                ) : (
-                  <FeatureSlide
-                    icon={slide.icon!}
-                    step={slide.step!}
-                    heading={slide.heading!}
-                    body={slide.body!}
-                    note={slide.note!}
-                  />
-                )}
+          {slides.map((slide, i) => (
+            <SwiperSlide key={slide.id}>
+              <div className="relative flex h-full w-full items-center justify-center">
+                {/* SP用背景画像 */}
+                <Image
+                  src={slide.bgImageSp}
+                  alt=""
+                  fill
+                  className="block sm:hidden object-cover object-center opacity-[0.18]"
+                  priority={i === 0}
+                />
+                {/* PC用背景画像 */}
+                <Image
+                  src={slide.bgImage}
+                  alt=""
+                  fill
+                  className="hidden sm:block object-cover object-right opacity-[0.18]"
+                  priority={i === 0}
+                />
+                <div className="relative z-10 flex h-full w-full items-center justify-center">
+                  {slide.content === 'hero' ? (
+                    <HeroSlide />
+                  ) : slide.content === 'cta' ? (
+                    <CtaSlide onScrollDown={scrollToStatic} />
+                  ) : (
+                    <FeatureSlide
+                      icon={slide.icon!}
+                      step={slide.step!}
+                      heading={slide.heading!}
+                      body={slide.body!}
+                      note={slide.note!}
+                    />
+                  )}
+                </div>
               </div>
-            </div>
-          </SwiperSlide>
-        ))}
+            </SwiperSlide>
+          ))}
         </Swiper>
       </div>
 
@@ -238,12 +243,16 @@ export function LandingPage() {
 
 
 function StaticContent() {
+  const t = useTranslations('landing.static')
+  const tCommon = useTranslations('common')
+  const faqItems = t.raw('faqSection.items') as Array<{ q: string; a: string }>
+
   return (
     <div className="bg-gray-50">
       {/* サービス詳細説明 */}
       <section className="mx-auto max-w-3xl px-6 py-20">
-        <h2 className="text-2xl font-bold text-gray-900 mb-2 text-center">ゴミカレとは</h2>
-        <p className="text-center text-gray-500 text-sm mb-12">PDFをアップロードするだけで、ゴミ出し予定がGoogleカレンダーに自動登録されます</p>
+        <h2 className="text-2xl font-bold text-gray-900 mb-2 text-center">{t('whatIs.title')}</h2>
+        <p className="text-center text-gray-500 text-sm mb-12">{t('whatIs.subtitle')}</p>
         <div className="grid gap-8 sm:grid-cols-3">
           <div className="bg-white rounded-2xl p-6 shadow-sm text-center">
             <div className="flex justify-center mb-4">
@@ -251,10 +260,8 @@ function StaticContent() {
                 <IconFileText className="w-7 h-7" />
               </span>
             </div>
-            <h3 className="font-bold text-gray-800 mb-2">STEP 1: PDFをアップロード</h3>
-            <p className="text-sm text-gray-600 leading-relaxed">
-              自治体から配布されるゴミ出しカレンダーのPDFをドラッグ＆ドロップ。学校の年間予定表など、日付が書かれたPDF全般に対応しています。
-            </p>
+            <h3 className="font-bold text-gray-800 mb-2">{t('whatIs.step1Title')}</h3>
+            <p className="text-sm text-gray-600 leading-relaxed">{t('whatIs.step1Body')}</p>
           </div>
           <div className="bg-white rounded-2xl p-6 shadow-sm text-center">
             <div className="flex justify-center mb-4">
@@ -262,10 +269,8 @@ function StaticContent() {
                 <IconBrain className="w-7 h-7" />
               </span>
             </div>
-            <h3 className="font-bold text-gray-800 mb-2">STEP 2: AIが自動解析</h3>
-            <p className="text-sm text-gray-600 leading-relaxed">
-              「第1・第3水曜はペットボトル」といった複雑なルールもAIが正確に読み取ります。手入力での転記ミスはもう不要です。
-            </p>
+            <h3 className="font-bold text-gray-800 mb-2">{t('whatIs.step2Title')}</h3>
+            <p className="text-sm text-gray-600 leading-relaxed">{t('whatIs.step2Body')}</p>
           </div>
           <div className="bg-white rounded-2xl p-6 shadow-sm text-center">
             <div className="flex justify-center mb-4">
@@ -273,10 +278,8 @@ function StaticContent() {
                 <IconCalendar className="w-7 h-7" />
               </span>
             </div>
-            <h3 className="font-bold text-gray-800 mb-2">STEP 3: カレンダーに自動登録</h3>
-            <p className="text-sm text-gray-600 leading-relaxed">
-              解析結果はGoogleカレンダーに一括で自動登録されます。スマートフォンのリマインダーも自動設定され、ゴミ出しを見逃しません。
-            </p>
+            <h3 className="font-bold text-gray-800 mb-2">{t('whatIs.step3Title')}</h3>
+            <p className="text-sm text-gray-600 leading-relaxed">{t('whatIs.step3Body')}</p>
           </div>
         </div>
       </section>
@@ -284,27 +287,10 @@ function StaticContent() {
       {/* FAQ抜粋 */}
       <section className="bg-white py-20">
         <div className="mx-auto max-w-3xl px-6">
-          <h2 className="text-2xl font-bold text-gray-900 mb-2 text-center">よくある質問</h2>
-          <p className="text-center text-gray-500 text-sm mb-10">ご利用前によくいただく質問をまとめました</p>
+          <h2 className="text-2xl font-bold text-gray-900 mb-2 text-center">{t('faqSection.title')}</h2>
+          <p className="text-center text-gray-500 text-sm mb-10">{t('faqSection.subtitle')}</p>
           <div className="space-y-4">
-            {[
-              {
-                q: '料金はかかりますか？',
-                a: '現在、ゴミカレは完全無料でご利用いただけます。Googleアカウントでログインするだけで、すべての機能をお使いいただけます。',
-              },
-              {
-                q: 'どのようなPDFに対応していますか？',
-                a: 'ゴミ出しカレンダーを主な対象としていますが、学校の行事予定表や地域の広報カレンダーなど、日付と予定が記載されたPDF全般に対応しています。',
-              },
-              {
-                q: 'アップロードしたPDFは安全ですか？',
-                a: 'PDFはAI解析のために一時的に保存されますが、解析完了後は自動的に削除されます。第三者への公開や広告利用は一切行いません。',
-              },
-              {
-                q: 'スマートフォンからも使えますか？',
-                a: 'はい、iPhoneのSafariやAndroidのChromeなど、スマートフォンの標準ブラウザからご利用いただけます。',
-              },
-            ].map((faq, i) => (
+            {faqItems.map((faq, i) => (
               <div key={i} className="rounded-xl border border-gray-100 p-5">
                 <p className="font-semibold text-gray-800 mb-2 flex items-start gap-2">
                   <span className="text-teal-500 shrink-0">Q.</span>{faq.q}
@@ -318,7 +304,7 @@ function StaticContent() {
               href="/faq"
               className="inline-block rounded-xl border border-teal-500 px-6 py-3 text-sm font-semibold text-teal-600 hover:bg-teal-50 transition"
             >
-              すべてのよくある質問を見る →
+              {t('faqSection.viewAll')}
             </Link>
           </div>
 
@@ -331,18 +317,21 @@ function StaticContent() {
       {/* フッター */}
       <footer className="border-t bg-gray-50 py-8 text-center text-xs text-gray-400">
         <div className="flex justify-center gap-6 mb-3">
-          <Link href="/faq" className="hover:text-gray-600 transition">よくある質問</Link>
-          <Link href="/terms" className="hover:text-gray-600 transition">利用規約</Link>
-          <Link href="/privacy" className="hover:text-gray-600 transition">プライバシーポリシー</Link>
-          <Link href="/legal" className="hover:text-gray-600 transition">特定商取引法に基づく表記</Link>
+          <Link href="/faq" className="hover:text-gray-600 transition">{t('footer.faq')}</Link>
+          <Link href="/terms" className="hover:text-gray-600 transition">{t('footer.terms')}</Link>
+          <Link href="/privacy" className="hover:text-gray-600 transition">{t('footer.privacy')}</Link>
+          <Link href="/legal" className="hover:text-gray-600 transition">{t('footer.legal')}</Link>
         </div>
-        <p>© {new Date().getFullYear()} ゴミカレ</p>
+        <p>{tCommon('copyright', { year: new Date().getFullYear() })}</p>
       </footer>
     </div>
   )
 }
 
 function HeroSlide() {
+  const t = useTranslations('landing')
+  const tCommon = useTranslations('common')
+
   return (
     <div className="flex flex-col items-center gap-8 px-6 text-center">
       <div className="flex flex-col items-center gap-2">
@@ -350,12 +339,11 @@ function HeroSlide() {
           <IconRecycle className="w-8 h-8" />
         </div>
         <h1 className="text-4xl font-bold tracking-tight text-gray-900 sm:text-5xl">
-          <span className="block">ゴミカレ</span>
-          <span className="mt-2 block text-2xl sm:text-3xl">PDFからGoogleカレンダーへ自動登録</span>
+          <span className="block">{tCommon('appName')}</span>
+          <span className="mt-2 block text-2xl sm:text-3xl">{t('hero.subtitle')}</span>
         </h1>
         <p className="mt-4 text-lg text-gray-600 sm:text-xl">
-          ゴミ出しカレンダーや予定表のPDFをアップロードするだけ。<br className="hidden sm:block" />
-          AIが解析してGoogleカレンダーに一括登録します。
+          {t('hero.description')}
         </p>
       </div>
 
@@ -364,26 +352,26 @@ function HeroSlide() {
           <span className="flex items-center justify-center w-5 h-5 rounded-full bg-teal-500 text-white shrink-0">
             <IconCheck className="w-3 h-3" />
           </span>
-          PDFをアップロードするだけ
+          {t('hero.check1')}
         </p>
         <p className="flex items-center gap-2">
           <span className="flex items-center justify-center w-5 h-5 rounded-full bg-teal-500 text-white shrink-0">
             <IconCheck className="w-3 h-3" />
           </span>
-          AIが自動でスケジュール抽出
+          {t('hero.check2')}
         </p>
         <p className="flex items-center gap-2">
           <span className="flex items-center justify-center w-5 h-5 rounded-full bg-teal-500 text-white shrink-0">
             <IconCheck className="w-3 h-3" />
           </span>
-          Googleカレンダーに一括登録
+          {t('hero.check3')}
         </p>
       </div>
 
       <GoogleLoginButton className="flex items-center gap-3 rounded-2xl bg-teal-500 px-8 py-4 text-base font-semibold text-white shadow-lg transition hover:bg-teal-600 hover:shadow-xl active:scale-95" />
 
       <p className="text-xs font-bold text-teal-700 animate-bounce">
-        スクロールして詳しく見る ↓
+        {t('hero.scrollHint')}
       </p>
     </div>
   )
@@ -424,6 +412,9 @@ function FeatureSlide({
 }
 
 function CtaSlide({ onScrollDown }: { onScrollDown?: () => void }) {
+  const t = useTranslations('landing.slides.cta')
+  const tCommon = useTranslations('common')
+
   return (
     <div className="flex h-full w-full flex-col">
       <div className="flex flex-1 flex-col items-center justify-center gap-8 px-6 text-center">
@@ -434,20 +425,20 @@ function CtaSlide({ onScrollDown }: { onScrollDown?: () => void }) {
             </span>
           </div>
           <h2 className="text-3xl font-bold text-gray-800 sm:text-4xl">
-            手入力とはおさらば
+            {t('heading')}
           </h2>
           <p className="text-lg text-gray-500">
-            1分で1年分の予定登録が完了。
+            {t('description')}
             <br />
-            さあ、今すぐはじめよう！
+            {t('description2')}
           </p>
         </div>
 
         <GoogleLoginButton className="flex items-center gap-3 rounded-2xl bg-teal-500 px-8 py-4 text-base font-semibold text-white shadow-lg transition hover:bg-teal-600 hover:shadow-xl active:scale-95" />
 
         <div className="flex flex-col items-center gap-1 text-xs text-gray-400">
-          <p>完全無料で利用できます</p>
-          <p>Googleアカウントでかんたんログイン</p>
+          <p>{t('free')}</p>
+          <p>{t('easyLogin')}</p>
         </div>
 
         {/* 下のコンテンツへ誘導ボタン */}
@@ -455,9 +446,9 @@ function CtaSlide({ onScrollDown }: { onScrollDown?: () => void }) {
           <button
             onClick={onScrollDown}
             className="flex flex-col items-center gap-1 text-xs text-gray-400 hover:text-teal-500 transition"
-            aria-label="ゴミカレについてもっと見る"
+            aria-label={t('moreAbout')}
           >
-            <span>ゴミカレについてもっと見る</span>
+            <span>{t('moreAbout')}</span>
             <svg className="w-5 h-5 animate-bounce" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M12 5v14M5 12l7 7 7-7"/>
             </svg>
@@ -472,16 +463,16 @@ function CtaSlide({ onScrollDown }: { onScrollDown?: () => void }) {
       <footer className="w-full py-4 text-center text-xs text-teal-700/60">
         <div className="flex justify-center gap-4">
           <Link href="/terms" className="hover:text-teal-700 hover:underline">
-            利用規約
+            {tCommon('terms')}
           </Link>
           <Link href="/privacy" className="hover:text-teal-700 hover:underline">
-            プライバシーポリシー
+            {tCommon('privacy')}
           </Link>
           <Link href="/legal" className="hover:text-teal-700 hover:underline">
-            特定商取引法に基づく表記
+            {tCommon('legal')}
           </Link>
         </div>
-        <p className="mt-4">© {new Date().getFullYear()} ゴミカレ</p>
+        <p className="mt-4">{tCommon('copyright', { year: new Date().getFullYear() })}</p>
       </footer>
     </div>
   )

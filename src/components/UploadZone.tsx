@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback, useState } from 'react'
+import { useTranslations, useLocale } from 'next-intl'
 
 type ParserMode = 'garbage' | 'general'
 
@@ -10,31 +11,27 @@ interface UploadZoneProps {
 
 type UploadState = 'idle' | 'presigning' | 'uploading' | 'starting' | 'done' | 'error'
 
-const MODE_CONFIG: Record<ParserMode, { label: string; description: string }> = {
-  garbage: {
-    label: 'ゴミ出しカレンダー',
-    description: '自治体のゴミ収集カレンダーPDFを解析し、収集日をGoogleカレンダーに登録します。',
-  },
-  general: {
-    label: '汎用予定PDF',
-    description: 'スケジュール表・行事予定表など、日付と予定が記載されたPDFを解析して登録します。',
-  },
-}
-
 export function UploadZone({ onUploadComplete }: UploadZoneProps) {
+  const t = useTranslations('upload')
+  const locale = useLocale()
   const [state, setState] = useState<UploadState>('idle')
   const [progress, setProgress] = useState(0)
   const [error, setError] = useState<string | null>(null)
   const [isDragOver, setIsDragOver] = useState(false)
   const [parserMode, setParserMode] = useState<ParserMode>('garbage')
 
+  const modeConfig: Record<ParserMode, { label: string; description: string }> = {
+    garbage: { label: t('garbageLabel'), description: t('garbageDesc') },
+    general: { label: t('generalLabel'), description: t('generalDesc') },
+  }
+
   const processFile = useCallback(async (file: File) => {
     if (file.type !== 'application/pdf') {
-      setError('PDFファイルのみアップロードできます')
+      setError(t('errorPdfOnly'))
       return
     }
     if (file.size > 20 * 1024 * 1024) {
-      setError('ファイルサイズは20MB以下にしてください')
+      setError(t('errorTooLarge'))
       return
     }
 
@@ -45,7 +42,7 @@ export function UploadZone({ onUploadComplete }: UploadZoneProps) {
       // ── 1. Presigned URL を取得 ──────────────────────────────
       setState('presigning')
       const presignRes = await fetch('/api/upload/presign', { method: 'POST' })
-      if (!presignRes.ok) throw new Error('Presigned URL の取得に失敗しました')
+      if (!presignRes.ok) throw new Error(t('errorPresign'))
       const { uploadUrl, jobId } = await presignRes.json() as {
         uploadUrl: string
         jobId: string
@@ -53,24 +50,27 @@ export function UploadZone({ onUploadComplete }: UploadZoneProps) {
 
       // ── 2. R2 へ直接アップロード ─────────────────────────────
       setState('uploading')
-      await uploadWithProgress(uploadUrl, file, setProgress)
+      await uploadWithProgress(uploadUrl, file, setProgress, (status) =>
+        t('errorUploadFailed', { status }),
+      )
 
-      // ── 3. Lambda を非同期で起動 ─────────────────────────────
+      // ── 3. Lambda を非同期で起動（locale を language として渡す）
       setState('starting')
       const startRes = await fetch('/api/jobs/start', {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({ jobId, parserMode }),
+        body:    JSON.stringify({ jobId, parserMode, language: locale }),
       })
-      if (!startRes.ok) throw new Error('ジョブの開始に失敗しました')
+      if (!startRes.ok) throw new Error(t('errorJobStart'))
 
       setState('done')
       onUploadComplete(jobId)
     } catch (err) {
       setState('error')
-      setError(err instanceof Error ? err.message : '予期しないエラーが発生しました')
+      setError(err instanceof Error ? err.message : t('errorUnexpected'))
     }
-  }, [onUploadComplete, parserMode])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [onUploadComplete, parserMode, locale, t])
 
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault()
@@ -91,7 +91,7 @@ export function UploadZone({ onUploadComplete }: UploadZoneProps) {
     <div className="w-full space-y-3">
       {/* モード選択 */}
       <div className="flex gap-2">
-        {(Object.keys(MODE_CONFIG) as ParserMode[]).map((mode) => (
+        {(Object.keys(modeConfig) as ParserMode[]).map((mode) => (
           <button
             key={mode}
             type="button"
@@ -106,12 +106,12 @@ export function UploadZone({ onUploadComplete }: UploadZoneProps) {
               ${isLoading ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer'}
             `}
           >
-            {MODE_CONFIG[mode].label}
+            {modeConfig[mode].label}
           </button>
         ))}
       </div>
 
-      <p className="text-xs text-gray-400 px-1">{MODE_CONFIG[parserMode].description}</p>
+      <p className="text-xs text-gray-400 px-1">{modeConfig[parserMode].description}</p>
 
       {/* アップロードゾーン */}
       <label
@@ -137,9 +137,9 @@ export function UploadZone({ onUploadComplete }: UploadZoneProps) {
           <div className="flex flex-col items-center gap-3">
             <div className="w-10 h-10 border-4 border-teal-500 border-t-transparent rounded-full animate-spin" />
             <p className="text-sm text-gray-500">
-              {state === 'presigning' && 'アップロード準備中...'}
-              {state === 'uploading' && `アップロード中... ${progress}%`}
-              {state === 'starting' && '解析を開始中...'}
+              {state === 'presigning' && t('presigning')}
+              {state === 'uploading' && t('uploading', { progress })}
+              {state === 'starting' && t('starting')}
             </p>
             {state === 'uploading' && (
               <div className="w-48 bg-gray-200 rounded-full h-1.5">
@@ -156,10 +156,8 @@ export function UploadZone({ onUploadComplete }: UploadZoneProps) {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
                 d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
             </svg>
-            <p className="text-sm font-medium text-gray-700">
-              PDFをドラッグ&ドロップ、またはクリックして選択
-            </p>
-            <p className="text-xs text-gray-400">PDF形式・最大20MB</p>
+            <p className="text-sm font-medium text-gray-700">{t('dropzone')}</p>
+            <p className="text-xs text-gray-400">{t('dropzoneHint')}</p>
           </div>
         )}
       </label>
@@ -175,6 +173,7 @@ function uploadWithProgress(
   url: string,
   file: File,
   onProgress: (n: number) => void,
+  errorMessage: (status: number) => string,
 ): Promise<void> {
   return new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest()
@@ -185,14 +184,14 @@ function uploadWithProgress(
         onProgress(Math.round((e.loaded / e.total) * 100))
       }
     }
-    xhr.onload  = () => (xhr.status < 300 ? resolve() : reject(new Error(`アップロード失敗 (HTTP ${xhr.status})`)))
+    xhr.onload  = () => (xhr.status < 300 ? resolve() : reject(new Error(errorMessage(xhr.status))))
     xhr.onerror = () => {
       console.error('[UploadZone] xhr.onerror fired', {
         status: xhr.status,
         readyState: xhr.readyState,
         url: url.split('?')[0],
       })
-      reject(new Error('ネットワークエラーが発生しました'))
+      reject(new Error('network-error'))
     }
     xhr.send(file)
   })

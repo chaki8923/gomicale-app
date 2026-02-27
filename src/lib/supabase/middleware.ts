@@ -31,9 +31,13 @@ export async function updateSession(request: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
 
   // 未認証ユーザーをログインページにリダイレクト
+  // ロケールプレフィックス（/ja/, /en/）を除いたパスで判定
+  const rawPathname = request.nextUrl.pathname
+  const pathnameWithoutLocale = rawPathname.replace(/^\/[a-z]{2}(\/|$)/, '/')
+
   const protectedPaths = ['/dashboard']
   const isProtected = protectedPaths.some((path) =>
-    request.nextUrl.pathname.startsWith(path),
+    pathnameWithoutLocale.startsWith(path),
   )
 
   if (isProtected && !user) {

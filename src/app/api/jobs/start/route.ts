@@ -25,7 +25,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  const body = await request.json() as { jobId: string; parserMode?: string }
+  const body = await request.json() as { jobId: string; parserMode?: string; language?: string }
   if (!body.jobId) {
     return NextResponse.json({ error: 'jobId is required' }, { status: 400 })
   }
@@ -55,11 +55,13 @@ export async function POST(request: NextRequest) {
     .eq('id', job.id)
 
   // Lambda を非同期 (Event) で呼び出す（レスポンスを待たない）
+  const language = (body.language === 'en' ? 'en' : 'ja') as 'ja' | 'en'
   const payload = JSON.stringify({
     jobId:       job.id,
     userId:      user.id,
     r2ObjectKey: job.r2_object_key,
     parserMode:  body.parserMode ?? 'garbage',
+    language,
   })
 
   await lambdaClient.send(
