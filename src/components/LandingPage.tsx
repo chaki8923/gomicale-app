@@ -5,7 +5,7 @@ import { Mousewheel, Pagination } from 'swiper/modules'
 import Image from 'next/image'
 import type { ReactNode } from 'react'
 import { useRef, useCallback } from 'react'
-import { useTranslations } from 'next-intl'
+import { useTranslations, useLocale } from 'next-intl'
 import { Link } from '@/i18n/navigation'
 import 'swiper/css'
 import 'swiper/css/pagination'
@@ -95,18 +95,21 @@ function IconCheck({ className = 'w-4 h-4' }: { className?: string }) {
 export function LandingPage() {
   const t = useTranslations('landing')
   const tCommon = useTranslations('common')
+  const locale = useLocale()
   const staticContentRef = useRef<HTMLDivElement>(null)
 
   const scrollToStatic = useCallback(() => {
     staticContentRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [])
 
+  const isEn = locale === 'en'
+
   const slides = [
     {
       id: 'hero',
       content: 'hero' as const,
-      bgImage: '/gomi_mother.png',
-      bgImageSp: '/gomi_mother_sp.webp',
+      bgImage: isEn ? '/gomi_mother_american.webp' : '/gomi_mother.png',
+      bgImageSp: isEn ? '/gomi_mother_american_sp.webp' : '/gomi_mother_sp.webp',
     },
     {
       id: 'upload',
@@ -115,8 +118,8 @@ export function LandingPage() {
       heading: t('slides.upload.heading'),
       body: t('slides.upload.body'),
       note: t('slides.upload.note'),
-      bgImage: '/house_mother.webp',
-      bgImageSp: '/house_mother_sp.webp',
+      bgImage: isEn ? '/house_mother_american.webp' : '/house_mother.webp',
+      bgImageSp: isEn ? '/house_mother_american_sp.webp' : '/house_mother_sp.webp',
     },
     {
       id: 'ai',
@@ -125,8 +128,8 @@ export function LandingPage() {
       heading: t('slides.ai.heading'),
       body: t('slides.ai.body'),
       note: t('slides.ai.note'),
-      bgImage: '/anger_mother.webp',
-      bgImageSp: '/anger_mother_sp.webp',
+      bgImage: isEn ? '/anger_mother_american.webp' : '/anger_mother.webp',
+      bgImageSp: isEn ? '/anger_mother_american_sp.webp' : '/anger_mother_sp.webp',
     },
     {
       id: 'calendar',
@@ -135,8 +138,8 @@ export function LandingPage() {
       heading: t('slides.calendar.heading'),
       body: t('slides.calendar.body'),
       note: t('slides.calendar.note'),
-      bgImage: '/calendar_mother.webp',
-      bgImageSp: '/calendar_mother_sp.webp',
+      bgImage: isEn ? '/calendar_mother_american.webp' : '/calendar_mother.webp',
+      bgImageSp: isEn ? '/calendar_mother_american_sp.webp' : '/calendar_mother_sp.webp',
     },
     {
       id: 'cta',
@@ -284,8 +287,25 @@ function StaticContent() {
         </div>
       </section>
 
-      {/* FAQ抜粋 */}
+      {/* 利用シーン */}
       <section className="bg-white py-20">
+        <div className="mx-auto max-w-3xl px-6">
+          <h2 className="text-2xl font-bold text-gray-900 mb-2 text-center">{t('useCases.title')}</h2>
+          <p className="text-center text-gray-500 text-sm mb-12">{t('useCases.subtitle')}</p>
+          <div className="grid gap-6 sm:grid-cols-3">
+            {(t.raw('useCases.cases') as Array<{ icon: string; title: string; body: string }>).map((c, i) => (
+              <div key={i} className="rounded-2xl border border-gray-100 bg-gray-50 p-6">
+                <div className="text-3xl mb-3">{c.icon}</div>
+                <h3 className="font-bold text-gray-800 mb-2 text-sm">{c.title}</h3>
+                <p className="text-xs text-gray-600 leading-relaxed">{c.body}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* FAQ抜粋 */}
+      <section className="bg-gray-50 py-20">
         <div className="mx-auto max-w-3xl px-6">
           <h2 className="text-2xl font-bold text-gray-900 mb-2 text-center">{t('faqSection.title')}</h2>
           <p className="text-center text-gray-500 text-sm mb-10">{t('faqSection.subtitle')}</p>

@@ -1,13 +1,37 @@
+import type { Metadata } from 'next'
 import { getTranslations } from 'next-intl/server'
 import { Link } from '@/i18n/navigation'
 import { LanguageSwitcher } from '@/components/LanguageSwitcher'
+
+export const metadata: Metadata = {
+  title: 'よくある質問',
+  description: 'ゴミカレに関するよくある質問をまとめています。料金・対応PDF・セキュリティ・スマートフォン対応など。',
+}
 
 export default async function FaqPage() {
   const t = await getTranslations('faq')
   const tCommon = await getTranslations('common')
   const items = t.raw('items') as Array<{ q: string; a: string }>
 
+  const faqJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'FAQPage',
+    mainEntity: items.map((item) => ({
+      '@type': 'Question',
+      name: item.q,
+      acceptedAnswer: {
+        '@type': 'Answer',
+        text: item.a,
+      },
+    })),
+  }
+
   return (
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}
+      />
     <div className="min-h-screen bg-gray-50">
       <header className="bg-white border-b">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
@@ -64,5 +88,6 @@ export default async function FaqPage() {
         <p>{tCommon('copyright', { year: new Date().getFullYear() })}</p>
       </footer>
     </div>
+    </>
   )
 }

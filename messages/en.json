@@ -84,6 +84,27 @@
           }
         ]
       },
+      "useCases": {
+        "title": "Use Cases",
+        "subtitle": "Works with any PDF schedule — not just garbage collection calendars.",
+        "cases": [
+          {
+            "icon": "🗑️",
+            "title": "Garbage Collection Calendars",
+            "body": "The annual garbage collection calendar PDF distributed by your municipality. Register each category — burnable waste, plastics, bulky items — to Google Calendar with morning reminders on collection day."
+          },
+          {
+            "icon": "🏫",
+            "title": "School & PTA Event Schedules",
+            "body": "Annual event schedule PDFs from schools — ceremonies, sports days, parent meetings. Bulk-register to the family Google Calendar to easily share schedules between partners."
+          },
+          {
+            "icon": "📋",
+            "title": "Community & Building Events",
+            "body": "Town council calendars, condominium cleaning and inspection schedules, and more. Just upload the PDF you received and every event lands on your smartphone."
+          }
+        ]
+      },
       "footer": {
         "faq": "FAQ",
         "terms": "Terms of Service",
