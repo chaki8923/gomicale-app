@@ -31,7 +31,10 @@ function LoginContent() {
           </div>
         )}
 
-        <GoogleLoginButton className="flex w-full items-center justify-center gap-3 rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm font-medium text-gray-700 shadow-sm transition hover:bg-gray-50 hover:shadow-md" />
+        <GoogleLoginButton
+          className="flex w-full items-center justify-center gap-3 rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm font-medium text-gray-700 shadow-sm transition hover:bg-gray-50 hover:shadow-md"
+          label={tCommon('login')}
+        />
 
         <p className="mt-6 text-center text-xs text-gray-400">
           {t('disclaimer')}
@@ -40,6 +43,9 @@ function LoginContent() {
 
       <footer className="mt-12 text-center text-xs text-teal-700/60">
         <div className="flex flex-wrap justify-center gap-x-4 gap-y-2">
+          <Link href="/blog" className="hover:text-teal-700 hover:underline">
+            {tCommon('blog')}
+          </Link>
           <Link href="/terms" className="hover:text-teal-700 hover:underline">
             {tCommon('terms')}
           </Link>

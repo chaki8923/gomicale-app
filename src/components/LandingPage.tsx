@@ -168,6 +168,7 @@ export function LandingPage() {
           {tCommon('appName')}
         </Link>
         <nav className="flex items-center gap-4 text-sm text-gray-500">
+          <Link href="/blog" className="hover:text-teal-600 transition hidden sm:block">{tCommon('blog')}</Link>
           <Link href="/faq" className="hover:text-teal-600 transition hidden sm:block">{t('header.faq')}</Link>
           <Link href="/terms" className="hover:text-teal-600 transition hidden sm:block">{t('header.terms')}</Link>
           <LanguageSwitcher />
@@ -337,6 +338,7 @@ function StaticContent() {
       {/* フッター */}
       <footer className="border-t bg-gray-50 py-8 text-center text-xs text-gray-400">
         <div className="flex justify-center gap-6 mb-3">
+          <Link href="/blog" className="hover:text-gray-600 transition">{tCommon('blog')}</Link>
           <Link href="/faq" className="hover:text-gray-600 transition">{t('footer.faq')}</Link>
           <Link href="/terms" className="hover:text-gray-600 transition">{t('footer.terms')}</Link>
           <Link href="/privacy" className="hover:text-gray-600 transition">{t('footer.privacy')}</Link>
@@ -388,7 +390,10 @@ function HeroSlide() {
         </p>
       </div>
 
-      <GoogleLoginButton className="flex items-center gap-3 rounded-2xl bg-teal-500 px-8 py-4 text-base font-semibold text-white shadow-lg transition hover:bg-teal-600 hover:shadow-xl active:scale-95" />
+      <GoogleLoginButton
+        className="flex items-center gap-3 rounded-2xl bg-teal-500 px-8 py-4 text-base font-semibold text-white shadow-lg transition hover:bg-teal-600 hover:shadow-xl active:scale-95"
+        label={tCommon('login')}
+      />
 
       <p className="text-xs font-bold text-teal-700 animate-bounce">
         {t('hero.scrollHint')}
@@ -454,7 +459,10 @@ function CtaSlide({ onScrollDown }: { onScrollDown?: () => void }) {
           </p>
         </div>
 
-        <GoogleLoginButton className="flex items-center gap-3 rounded-2xl bg-teal-500 px-8 py-4 text-base font-semibold text-white shadow-lg transition hover:bg-teal-600 hover:shadow-xl active:scale-95" />
+        <GoogleLoginButton
+        className="flex items-center gap-3 rounded-2xl bg-teal-500 px-8 py-4 text-base font-semibold text-white shadow-lg transition hover:bg-teal-600 hover:shadow-xl active:scale-95"
+        label={tCommon('login')}
+      />
 
         <div className="flex flex-col items-center gap-1 text-xs text-gray-400">
           <p>{t('free')}</p>
@@ -482,6 +490,9 @@ function CtaSlide({ onScrollDown }: { onScrollDown?: () => void }) {
 
       <footer className="w-full py-4 text-center text-xs text-teal-700/60">
         <div className="flex justify-center gap-4">
+          <Link href="/blog" className="hover:text-teal-700 hover:underline">
+            {tCommon('blog')}
+          </Link>
           <Link href="/terms" className="hover:text-teal-700 hover:underline">
             {tCommon('terms')}
           </Link>

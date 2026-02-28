@@ -1,7 +1,6 @@
 import type { Metadata } from 'next'
 import { Link } from '@/i18n/navigation'
 import { getBlogList } from '@/lib/microcms'
-import { LanguageSwitcher } from '@/components/LanguageSwitcher'
 import { getTranslations } from 'next-intl/server'
 
 export const metadata: Metadata = {
@@ -35,7 +34,6 @@ export default async function BlogListPage() {
               <Link href="/blog" className="text-teal-600 font-medium">ブログ</Link>
               <Link href="/faq" className="hover:text-gray-700 transition">{tCommon('faq')}</Link>
             </nav>
-            <LanguageSwitcher />
           </div>
         </div>
       </header>

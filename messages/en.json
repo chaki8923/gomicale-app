@@ -5,6 +5,7 @@
     "terms": "Terms of Service",
     "privacy": "Privacy Policy",
     "legal": "Legal Notice",
+    "blog": "Blog",
     "login": "Sign in with Google",
     "logout": "Sign out",
     "topPage": "Home",
@@ -109,7 +110,8 @@
         "faq": "FAQ",
         "terms": "Terms of Service",
         "privacy": "Privacy Policy",
-        "legal": "Legal Notice"
+        "legal": "Legal Notice",
+        "blog": "Blog"
       }
     }
   },

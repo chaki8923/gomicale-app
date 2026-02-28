@@ -2,7 +2,6 @@ import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import { Link } from '@/i18n/navigation'
 import { getBlogPost } from '@/lib/microcms'
-import { LanguageSwitcher } from '@/components/LanguageSwitcher'
 import { getTranslations } from 'next-intl/server'
 
 export const dynamic = 'force-dynamic'
@@ -83,7 +82,6 @@ export default async function BlogPostPage({ params }: Props) {
                 <Link href="/blog" className="hover:text-gray-700 transition">ブログ</Link>
                 <Link href="/faq" className="hover:text-gray-700 transition">{tCommon('faq')}</Link>
               </nav>
-              <LanguageSwitcher />
             </div>
           </div>
         </header>
