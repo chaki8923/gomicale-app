@@ -19,6 +19,7 @@ export type Database = {
           created_at: string
           error_message: string | null
           id: string
+          parser_mode: string | null
           pdf_hash: string | null
           r2_object_key: string
           result_data: Json | null
@@ -30,6 +31,7 @@ export type Database = {
           created_at?: string
           error_message?: string | null
           id?: string
+          parser_mode?: string | null
           pdf_hash?: string | null
           r2_object_key: string
           result_data?: Json | null
@@ -41,6 +43,7 @@ export type Database = {
           created_at?: string
           error_message?: string | null
           id?: string
+          parser_mode?: string | null
           pdf_hash?: string | null
           r2_object_key?: string
           result_data?: Json | null

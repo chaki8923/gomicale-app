@@ -173,6 +173,18 @@
     "authError": "認証に失敗しました。もう一度お試しください。",
     "disclaimer": "ログインすることでGoogleカレンダーへのアクセスを許可します"
   },
+  "classifier": {
+    "title": "ゴミの分別を調べる",
+    "subtitle": "テキストまたは写真でアイテムを入力すると、AIがゴミの種類と直近の収集日を教えます",
+    "placeholder": "例：電池、ペットボトル、段ボール...",
+    "uploadImage": "写真を追加",
+    "classify": "判別する",
+    "classifying": "判別中...",
+    "resultCategory": "分類",
+    "resultNextDates": "直近の収集日",
+    "noCalendarError": "ゴミ出しカレンダーが登録されていません。先にゴミ出しカレンダーのPDFをアップロードしてください。",
+    "apiError": "エラーが発生しました。もう一度お試しください。"
+  },
   "faq": {
     "title": "よくある質問",
     "subtitle": "ゴミカレに関するよくある疑問をまとめました。",

@@ -48,10 +48,13 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Job is not in pending state' }, { status: 409 })
   }
 
-  // status を processing に更新
+  // status を processing に更新、parser_mode も保存
   await supabase
     .from('jobs')
-    .update({ status: 'processing' as const })
+    .update({
+      status: 'processing' as const,
+      parser_mode: body.parserMode ?? 'garbage',
+    })
     .eq('id', job.id)
 
   // Lambda を非同期 (Event) で呼び出す（レスポンスを待たない）

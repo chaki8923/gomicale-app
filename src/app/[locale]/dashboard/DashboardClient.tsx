@@ -9,6 +9,7 @@ import { UploadZone } from '@/components/UploadZone'
 import { JobStatusCard } from '@/components/JobStatusCard'
 import { AdBanner } from '@/components/AdBanner'
 import { LanguageSwitcher } from '@/components/LanguageSwitcher'
+import { GarbageClassifier } from './GarbageClassifier'
 import type { Job } from '@/types/database'
 
 interface DashboardClientProps {
@@ -142,6 +143,10 @@ export function DashboardClient({ userEmail, initialJobs }: DashboardClientProps
             <p className="text-xs mt-1">{t('emptySubtitle')}</p>
           </div>
         )}
+
+        <section>
+          <GarbageClassifier />
+        </section>
 
         <div className="pt-4">
           <AdBanner slot="3248117735" />

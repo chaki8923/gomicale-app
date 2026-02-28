@@ -109,8 +109,8 @@
       "about": {
         "title": "Our Story",
         "subtitle": "Born from the frustration of manual entry",
-        "body1": "Every spring, municipalities distribute new garbage collection calendars. Manually entering complex rules like 'Plastic bottles every 1st and 3rd Wednesday' into Google Calendar without making mistakes was a truly exhausting task.",
-        "body2": "'I wish AI could just read the PDF and put it in my calendar.'",
+        "body1": "Every spring, municipalities distribute new garbage collection calendars. Manually entering complex rules like 'Plastic bottles every 1st and 3rd Wednesday' or 'Non-burnable waste on the 2nd Friday' into Google Calendar without making mistakes was a truly exhausting task.",
+        "body2": "'I wish AI could just read the PDF and put it in my calendar automatically.'",
         "body3": "We created GomiCale to solve this personal frustration. We made it freely available in the hope that it will help others who, like us, waste time every year manually entering their calendars.",
         "author": "GomiCale Creator"
       },
@@ -172,6 +172,18 @@
     "subtitle": "Auto-register garbage collection calendars to Google Calendar",
     "authError": "Authentication failed. Please try again.",
     "disclaimer": "By signing in, you authorize GomiCale to access your Google Calendar"
+  },
+  "classifier": {
+    "title": "Garbage Classification",
+    "subtitle": "Enter text or a photo and AI will identify the garbage type and next collection dates",
+    "placeholder": "e.g. battery, plastic bottle, cardboard...",
+    "uploadImage": "Add photo",
+    "classify": "Classify",
+    "classifying": "Classifying...",
+    "resultCategory": "Category",
+    "resultNextDates": "Next Collection Dates",
+    "noCalendarError": "No garbage calendar found. Please upload your garbage collection PDF first.",
+    "apiError": "An error occurred. Please try again."
   },
   "faq": {
     "title": "FAQ",
