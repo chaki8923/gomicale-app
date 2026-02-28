@@ -20,20 +20,16 @@ export function LanguageSwitcher() {
   return (
     <>
       {isPending && (
-        <div className="fixed inset-0 z-[200] flex cursor-wait flex-col items-center justify-center bg-white/75 backdrop-blur-sm">
+        <div className="fixed inset-0 z-[200] flex h-screen w-screen cursor-wait items-center justify-center bg-white/75 backdrop-blur-sm">
           <div className="flex flex-col items-center gap-5">
-            <div className="relative animate-bounce">
-              <div className="absolute -inset-3 rounded-full border-4 border-teal-400 border-t-transparent animate-spin" />
-              <div className="absolute -inset-3 rounded-full border-4 border-teal-100 border-b-transparent" />
-              <Image
-                src="/oba_loading.png"
-                alt="loading"
-                width={112}
-                height={112}
-                className="rounded-full object-cover shadow-lg"
-                priority
-              />
-            </div>
+            <Image
+              src="/oba_loading.png"
+              alt="loading"
+              width={112}
+              height={112}
+              className="animate-spin rounded-full object-cover shadow-lg"
+              priority
+            />
             <p className="text-sm font-bold text-teal-700 animate-pulse tracking-widest">
               {locale === 'ja' ? 'Switching...' : '切替中...'}
             </p>
