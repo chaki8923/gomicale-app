@@ -144,8 +144,8 @@ export function LandingPage() {
     {
       id: 'cta',
       content: 'cta' as const,
-      bgImage: '/enjoy_mother.webp',
-      bgImageSp: '/enjoy_mother_sp.webp',
+      bgImage: isEn ? '/enjoy_mother_american.webp' : '/enjoy_mother.webp',
+      bgImageSp: isEn ? '/enjoy_mother_american_sp.webp' : '/enjoy_mother_sp.webp',
     },
   ] satisfies Array<{
     id: string
