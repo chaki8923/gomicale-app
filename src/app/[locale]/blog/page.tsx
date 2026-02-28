@@ -3,15 +3,30 @@ import { Link } from '@/i18n/navigation'
 import { getBlogList } from '@/lib/microcms'
 import { getTranslations } from 'next-intl/server'
 
-export const metadata: Metadata = {
-  title: 'ブログ',
-  description: 'PDFのGoogleカレンダー取り込みやゴミ出しカレンダーの活用方法など、役立つ情報をお届けするゴミカレ公式ブログ。',
+type Props = {
+  params: Promise<{ locale: string }>
+}
+
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { locale } = await params
+  return {
+    title: 'ブログ',
+    description: 'PDFのGoogleカレンダー取り込みやゴミ出しカレンダーの活用方法など、役立つ情報をお届けするゴミカレ公式ブログ。',
+    alternates: {
+      canonical: `/${locale}/blog`,
+      languages: {
+        ja: '/ja/blog',
+        en: '/en/blog',
+      },
+    },
+  }
 }
 
 export const revalidate = 3600
 
-export default async function BlogListPage() {
-  const tCommon = await getTranslations('common')
+export default async function BlogListPage({ params }: Props) {
+  const { locale } = await params
+  const tCommon = await getTranslations({ locale, namespace: 'common' })
 
   let posts = null
   let error = false

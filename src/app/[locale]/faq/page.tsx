@@ -3,14 +3,25 @@ import { getTranslations } from 'next-intl/server'
 import { Link } from '@/i18n/navigation'
 import { LanguageSwitcher } from '@/components/LanguageSwitcher'
 
-export const metadata: Metadata = {
-  title: 'よくある質問',
-  description: 'ゴミカレに関するよくある質問をまとめています。料金・対応PDF・セキュリティ・スマートフォン対応など。',
+export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
+  const { locale } = await params
+  return {
+    title: 'よくある質問',
+    description: 'ゴミカレに関するよくある質問をまとめています。料金・対応PDF・セキュリティ・スマートフォン対応など。',
+    alternates: {
+      canonical: `/${locale}/faq`,
+      languages: {
+        ja: '/ja/faq',
+        en: '/en/faq',
+      },
+    },
+  }
 }
 
-export default async function FaqPage() {
-  const t = await getTranslations('faq')
-  const tCommon = await getTranslations('common')
+export default async function FaqPage({ params }: { params: Promise<{ locale: string }> }) {
+  const { locale } = await params
+  const t = await getTranslations({ locale, namespace: 'faq' })
+  const tCommon = await getTranslations({ locale, namespace: 'common' })
   const items = t.raw('items') as Array<{ q: string; a: string }>
 
   const faqJsonLd = {
@@ -26,11 +37,34 @@ export default async function FaqPage() {
     })),
   }
 
+  const breadcrumbJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      {
+        '@type': 'ListItem',
+        position: 1,
+        name: tCommon('topPage'),
+        item: `https://gomicale.jp/${locale}`,
+      },
+      {
+        '@type': 'ListItem',
+        position: 2,
+        name: tCommon('faq'),
+        item: `https://gomicale.jp/${locale}/faq`,
+      },
+    ],
+  }
+
   return (
     <>
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
       />
     <div className="min-h-screen bg-gray-50">
       <header className="bg-white border-b">

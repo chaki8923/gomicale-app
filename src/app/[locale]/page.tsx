@@ -1,6 +1,24 @@
 import { redirect } from 'next/navigation'
+import type { Metadata } from 'next'
 import { getSupabaseServerClient } from '@/lib/supabase/server'
 import { LandingPage } from '@/components/LandingPage'
+
+type Props = {
+  params: Promise<{ locale: string }>
+}
+
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { locale } = await params
+  return {
+    alternates: {
+      canonical: `/${locale}`,
+      languages: {
+        ja: '/ja',
+        en: '/en',
+      },
+    },
+  }
+}
 
 const howToJsonLd = {
   '@context': 'https://schema.org',

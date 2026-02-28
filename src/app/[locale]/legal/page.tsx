@@ -1,6 +1,21 @@
+import type { Metadata } from 'next'
 import { getLocale } from 'next-intl/server'
 import { Link } from '@/i18n/navigation'
 import { LanguageSwitcher } from '@/components/LanguageSwitcher'
+
+export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
+  const { locale } = await params
+  return {
+    title: locale === 'en' ? 'Legal Notice' : '特定商取引法に基づく表記',
+    alternates: {
+      canonical: `/${locale}/legal`,
+      languages: {
+        ja: '/ja/legal',
+        en: '/en/legal',
+      },
+    },
+  }
+}
 
 export default async function LegalPage() {
   const locale = await getLocale()

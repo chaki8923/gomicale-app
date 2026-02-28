@@ -1,6 +1,21 @@
+import type { Metadata } from 'next'
 import { getLocale } from 'next-intl/server'
 import { Link } from '@/i18n/navigation'
 import { LanguageSwitcher } from '@/components/LanguageSwitcher'
+
+export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
+  const { locale } = await params
+  return {
+    title: locale === 'en' ? 'Terms of Service' : '利用規約',
+    alternates: {
+      canonical: `/${locale}/terms`,
+      languages: {
+        ja: '/ja/terms',
+        en: '/en/terms',
+      },
+    },
+  }
+}
 
 export default async function TermsPage() {
   const locale = await getLocale()

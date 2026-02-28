@@ -56,7 +56,6 @@ export const metadata: Metadata = {
       'max-snippet': -1,
     },
   },
-  alternates: { canonical: 'https://gomicale.jp' },
   other: { 'google-adsense-account': 'ca-pub-6348441325859182' },
 }
 

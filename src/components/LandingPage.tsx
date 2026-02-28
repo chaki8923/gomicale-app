@@ -305,6 +305,28 @@ function StaticContent() {
         </div>
       </section>
 
+      {/* 開発ストーリー / About */}
+      <section className="bg-teal-50 py-20">
+        <div className="mx-auto max-w-3xl px-6">
+          <div className="bg-white rounded-3xl p-8 sm:p-12 shadow-sm relative overflow-hidden">
+            <div className="absolute top-0 left-0 w-2 h-full bg-teal-500"></div>
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">{t('about.title')}</h2>
+            <p className="text-teal-600 font-semibold text-sm mb-8">{t('about.subtitle')}</p>
+            <div className="space-y-4 text-sm text-gray-700 leading-relaxed">
+              <p>{t('about.body1')}</p>
+              <p className="font-semibold text-gray-900 bg-gray-50 p-4 rounded-xl border-l-4 border-gray-300">
+                {t('about.body2')}
+              </p>
+              <p>{t('about.body3')}</p>
+            </div>
+            <div className="mt-8 flex items-center justify-end gap-3 text-xs text-gray-500">
+              <span className="w-8 h-[1px] bg-gray-300"></span>
+              {t('about.author')}
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* FAQ抜粋 */}
       <section className="bg-gray-50 py-20">
         <div className="mx-auto max-w-3xl px-6">
