@@ -98,9 +98,6 @@ export function GarbageClassifier() {
   return (
     <div className="rounded-2xl bg-white shadow-sm p-6">
       <div className="flex items-center gap-3 mb-4">
-        <span className="flex items-center justify-center w-10 h-10 rounded-full bg-teal-50 text-2xl">
-          🗑️
-        </span>
         <div>
           <h2 className="text-base font-bold text-gray-900">{t('title')}</h2>
           <p className="text-xs text-gray-500">{t('subtitle')}</p>

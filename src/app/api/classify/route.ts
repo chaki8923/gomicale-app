@@ -187,7 +187,11 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'no_garbage_calendar' }, { status: 404 })
   }
 
-  const events = parsedData.data.extracted_json as CalendarEvent[]
+  const extracted = parsedData.data.extracted_json as any
+  const events: CalendarEvent[] = Array.isArray(extracted)
+    ? extracted
+    : (extracted?.events || [])
+
   if (!events || events.length === 0) {
     return NextResponse.json({ error: 'no_garbage_calendar' }, { status: 404 })
   }
@@ -205,7 +209,7 @@ export async function POST(request: NextRequest) {
 
   const genAI = new GoogleGenerativeAI(apiKey)
   const model = genAI.getGenerativeModel({
-    model: process.env.GEMINI_CLASSIFY_MODEL ?? 'gemini-2.0-flash',
+    model: process.env.GEMINI_CLASSIFY_MODEL ?? 'gemini-3-flash-preview',
     generationConfig: {
       responseMimeType: 'application/json',
       temperature: 0,
