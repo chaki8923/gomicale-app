@@ -82,6 +82,9 @@ async function attemptInsert(
     return { kind: 'inserted' }
   } catch (err) {
     const code = (err as { code?: number })?.code
+    if (code === 403) {
+      throw new Error('Googleカレンダーへのアクセス権限がありません。一度ログアウトし、再ログイン時にカレンダーへのアクセスを許可してください。')
+    }
     if (code === 409) {
       return { kind: 'conflict', ev, eventId, displayTitle, descriptionText }
     }
