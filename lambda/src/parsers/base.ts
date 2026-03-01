@@ -1,4 +1,4 @@
-import type { CalendarEvent } from '../types'
+import type { ParseResult } from '../types'
 
 /**
  * PDF 解析の Strategy インターフェース
@@ -6,5 +6,5 @@ import type { CalendarEvent } from '../types'
  * このインターフェースを実装するだけでよい
  */
 export interface PdfParser {
-  parse(pdfBuffer: Buffer): Promise<CalendarEvent[]>
+  parse(pdfBuffer: Buffer): Promise<ParseResult>
 }

@@ -165,19 +165,35 @@ export function GarbageClassifier() {
         </button>
       </form>
 
-      {error === 'no_calendar' && (
+      {loading && (
+        <div className="mt-6 flex flex-col items-center justify-center space-y-3">
+          <Image
+            src="/oba_gif.png"
+            alt="loading"
+            width={100}
+            height={100}
+            unoptimized
+            className="rounded-full shadow-sm"
+          />
+          <p className="text-sm font-bold text-teal-600 animate-pulse">
+            {t('classifying')}
+          </p>
+        </div>
+      )}
+
+      {error === 'no_calendar' && !loading && (
         <div className="mt-4 rounded-xl bg-amber-50 border border-amber-100 px-4 py-3 text-sm text-amber-700">
           {t('noCalendarError')}
         </div>
       )}
 
-      {error === 'api_error' && (
+      {error === 'api_error' && !loading && (
         <div className="mt-4 rounded-xl bg-red-50 border border-red-100 px-4 py-3 text-sm text-red-600">
           {t('apiError')}
         </div>
       )}
 
-      {result && (
+      {result && !loading && (
         <div className="mt-4 rounded-xl bg-teal-50 border border-teal-100 p-4 space-y-3">
           <div className="flex items-start gap-2">
             <span className="text-xs font-bold text-teal-600 uppercase tracking-wide mt-1 whitespace-nowrap">{t('resultCategory')}</span>

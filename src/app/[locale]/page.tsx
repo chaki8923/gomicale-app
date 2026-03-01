@@ -24,7 +24,7 @@ const howToJsonLd = {
   '@context': 'https://schema.org',
   '@type': 'HowTo',
   name: 'PDFをGoogleカレンダーに自動登録する方法',
-  description: 'ゴミ出しカレンダーや予定表のPDFをアップロードするだけで、AIが解析してGoogleカレンダーに一括登録するサービスの使い方。',
+  description: 'ゴミ出しカレンダーや予定表のPDFをアップロードするだけで、Googleカレンダーに一括登録するサービスの使い方。',
   totalTime: 'PT1M',
   step: [
     {

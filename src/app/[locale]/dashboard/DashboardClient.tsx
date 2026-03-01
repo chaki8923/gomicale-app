@@ -24,6 +24,8 @@ export function DashboardClient({ userEmail, initialJobs }: DashboardClientProps
   const locale = useLocale()
   const [activeJobIds, setActiveJobIds] = useState<string[]>([])
 
+  const [isHistoryOpen, setIsHistoryOpen] = useState(false)
+
   const handleUploadComplete = useCallback((jobId: string) => {
     setActiveJobIds((prev) => [jobId, ...prev])
   }, [])
@@ -82,57 +84,88 @@ export function DashboardClient({ userEmail, initialJobs }: DashboardClientProps
 
         {initialJobs.length > 0 && (
           <section>
-            <h2 className="text-lg font-semibold text-gray-800 mb-3">{t('historyTitle')}</h2>
-            <div className="space-y-3">
-              {initialJobs
-                .filter((j) => !activeJobIds.includes(j.id))
-                .map((job) => (
-                  <div
-                    key={job.id}
-                    className="rounded-xl border border-gray-100 bg-white px-5 py-4 shadow-sm"
-                  >
-                    <div className="flex items-center justify-between">
-                      <div>
-                        {job.status === 'completed' && job.result_data && (() => {
-                          const rd = job.result_data as { calendar_event_count?: number; skipped_count?: number }
-                          const inserted = rd.calendar_event_count ?? 0
-                          const skipped = rd.skipped_count ?? 0
-                          return (
-                            <p className="text-sm text-gray-700">
-                              <span className="font-semibold text-teal-600">{inserted}</span>
-                              {' '}{t('registeredSuffix')}
-                              {skipped > 0 && (
-                                <span className="text-gray-400 text-xs ml-1">
-                                  {t('skipped', { count: skipped })}
-                                </span>
-                              )}
-                            </p>
-                          )
-                        })()}
-                        {job.status === 'error' && (
-                          <p className="text-sm text-red-400">{t('errorPrefix')}{job.error_message}</p>
-                        )}
-                        {(job.status === 'pending' || job.status === 'processing') && (
-                          <p className="text-sm text-blue-500">{t('processing')}</p>
-                        )}
-                        <p className="text-xs text-gray-300 mt-1">
-                          {new Date(job.created_at).toLocaleString(locale === 'en' ? 'en-US' : 'ja-JP', { timeZone: 'Asia/Tokyo' })}
-                        </p>
-                      </div>
-                      <span
-                        className={`text-xs px-2 py-1 rounded-full font-medium ${
-                          job.status === 'completed' ? 'bg-green-100 text-green-600' :
-                          job.status === 'error'     ? 'bg-red-100 text-red-500'    :
-                                                       'bg-gray-100 text-gray-500'
-                        }`}
-                      >
-                        {job.status === 'completed' ? t('statusCompleted') :
-                         job.status === 'error'     ? t('statusError')     : t('statusProcessing')}
-                      </span>
-                    </div>
-                  </div>
-                ))}
+            <div 
+              className="flex items-center justify-between cursor-pointer group mb-3"
+              onClick={() => setIsHistoryOpen(!isHistoryOpen)}
+            >
+              <h2 className="text-lg font-semibold text-gray-800 group-hover:text-teal-600 transition">
+                {t('historyTitle')}
+              </h2>
+              <div className="flex items-center gap-2 text-sm text-gray-500 group-hover:text-teal-600 transition">
+                <span>{isHistoryOpen ? t('toggleHistoryHide') : t('toggleHistoryShow')}</span>
+                <svg 
+                  className={`w-5 h-5 transition-transform duration-200 ${isHistoryOpen ? 'rotate-180' : ''}`} 
+                  fill="none" 
+                  viewBox="0 0 24 24" 
+                  stroke="currentColor" 
+                  strokeWidth={2}
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                </svg>
+              </div>
             </div>
+            
+            {isHistoryOpen && (
+              <div className="space-y-3 animate-in fade-in slide-in-from-top-2 duration-300">
+                {initialJobs
+                  .filter((j) => !activeJobIds.includes(j.id))
+                  .map((job) => (
+                    <div
+                      key={job.id}
+                      className="rounded-xl border border-gray-100 bg-white px-5 py-4 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+                    >
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="text-base font-bold text-gray-900 line-clamp-1" title={job.pdf_title || t('untitledPdf')}>
+                            {job.pdf_title || t('untitledPdf')}
+                          </span>
+                        </div>
+                        
+                        <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                          {job.status === 'completed' && job.result_data && (() => {
+                            const rd = job.result_data as { calendar_event_count?: number; skipped_count?: number }
+                            const inserted = rd.calendar_event_count ?? 0
+                            const skipped = rd.skipped_count ?? 0
+                            return (
+                              <p className="text-sm text-gray-700 flex items-center gap-1">
+                                <span className="font-semibold text-teal-600">{inserted}</span>
+                                <span>{t('registeredSuffix')}</span>
+                                {skipped > 0 && (
+                                  <span className="text-gray-400 text-xs">
+                                    {t('skipped', { count: skipped })}
+                                  </span>
+                                )}
+                              </p>
+                            )
+                          })()}
+                          {job.status === 'error' && (
+                            <p className="text-sm text-red-400">{t('errorPrefix')}{job.error_message}</p>
+                          )}
+                          {(job.status === 'pending' || job.status === 'processing') && (
+                            <p className="text-sm text-blue-500">{t('processing')}</p>
+                          )}
+                          <p className="text-xs text-gray-400">
+                            {new Date(job.created_at).toLocaleString(locale === 'en' ? 'en-US' : 'ja-JP', { timeZone: 'Asia/Tokyo' })}
+                          </p>
+                        </div>
+                      </div>
+                      
+                      <div className="shrink-0 flex sm:justify-end">
+                        <span
+                          className={`text-xs px-2.5 py-1 rounded-full font-medium ${
+                            job.status === 'completed' ? 'bg-green-100 text-green-700' :
+                            job.status === 'error'     ? 'bg-red-100 text-red-600'    :
+                                                         'bg-blue-100 text-blue-600'
+                          }`}
+                        >
+                          {job.status === 'completed' ? t('statusCompleted') :
+                           job.status === 'error'     ? t('statusError')     : t('statusProcessing')}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+              </div>
+            )}
           </section>
         )}
 

@@ -19,6 +19,6 @@ export interface CalendarEvent {
 export type GarbageEvent = CalendarEvent
 
 export interface ParseResult {
+  title?: string
   events: CalendarEvent[]
-  pdfHash: string
 }

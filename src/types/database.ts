@@ -21,6 +21,7 @@ export type Database = {
           id: string
           parser_mode: string | null
           pdf_hash: string | null
+          pdf_title: string | null
           r2_object_key: string
           result_data: Json | null
           status: Database["public"]["Enums"]["job_status"]
@@ -33,6 +34,7 @@ export type Database = {
           id?: string
           parser_mode?: string | null
           pdf_hash?: string | null
+          pdf_title?: string | null
           r2_object_key: string
           result_data?: Json | null
           status?: Database["public"]["Enums"]["job_status"]
@@ -45,6 +47,7 @@ export type Database = {
           id?: string
           parser_mode?: string | null
           pdf_hash?: string | null
+          pdf_title?: string | null
           r2_object_key?: string
           result_data?: Json | null
           status?: Database["public"]["Enums"]["job_status"]

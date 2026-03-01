@@ -2,7 +2,7 @@ import { S3Client, GetObjectCommand } from '@aws-sdk/client-s3'
 import { createClient } from '@supabase/supabase-js'
 import { createHash } from 'crypto'
 import { Resend } from 'resend'
-import type { LambdaPayload } from './types'
+import type { LambdaPayload, CalendarEvent } from './types'
 import { createPdfParser } from './parsers/factory'
 import { refreshAccessToken, batchInsertGarbageEvents } from './calendar/client'
 
@@ -129,7 +129,8 @@ export const handler = async (event: LambdaPayload): Promise<void> => {
     // ── 3. キャッシュチェック（再解析防止） ──────────────────────
     // 言語ごとに異なる解析結果になるため、キーに language を含める
     const cacheKey = `${pdfHash}_${language}`
-    let events
+    let events: CalendarEvent[]
+    let pdfTitle: string | undefined
     const { data: cached } = await supabase
       .from('parsed_pdfs')
       .select('extracted_json')
@@ -138,17 +139,27 @@ export const handler = async (event: LambdaPayload): Promise<void> => {
 
     if (cached) {
       console.info('[handler] cache hit, skip parsing')
-      events = cached.extracted_json
+      const parsedData = cached.extracted_json as { title?: string, events: CalendarEvent[] }
+      if (Array.isArray(parsedData)) {
+        // 古いキャッシュフォーマットへの後方互換
+        events = parsedData
+        pdfTitle = undefined
+      } else {
+        events = parsedData.events || []
+        pdfTitle = parsedData.title
+      }
     } else {
       // ── 4. LLM で PDF 解析（Strategy パターン） ──────────────────
       const parser = createPdfParser(event.parserMode ?? 'garbage', language)
-      events = await parser.parse(pdfBuffer)
-      console.info('[handler] parsed events count:', events.length)
+      const parseResult = await parser.parse(pdfBuffer)
+      events = parseResult.events
+      pdfTitle = parseResult.title
+      console.info('[handler] parsed events count:', events.length, 'title:', pdfTitle)
 
       // 解析結果をキャッシュに保存
       await supabase.from('parsed_pdfs').upsert({
         pdf_hash: cacheKey,
-        extracted_json: events,
+        extracted_json: { title: pdfTitle, events },
       })
     }
 
@@ -180,6 +191,7 @@ export const handler = async (event: LambdaPayload): Promise<void> => {
     await supabase.from('jobs').update({
       status: 'completed',
       pdf_hash: pdfHash,
+      pdf_title: pdfTitle,
       result_data: {
         calendar_event_count: inserted,
         skipped_count: skipped,
