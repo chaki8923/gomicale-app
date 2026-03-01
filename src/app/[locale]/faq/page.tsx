@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { getTranslations } from 'next-intl/server'
 import { Link } from '@/i18n/navigation'
+import Image from 'next/image'
 import { LanguageSwitcher } from '@/components/LanguageSwitcher'
 
 export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
@@ -69,8 +70,8 @@ export default async function FaqPage({ params }: { params: Promise<{ locale: st
     <div className="min-h-screen bg-gray-50">
       <header className="bg-white border-b">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <Link href="/" className="text-2xl font-bold text-teal-600">
-            {tCommon('appName')}
+          <Link href="/" className="flex items-center gap-2">
+            <Image src="/servise_logo.webp" alt={tCommon('appName')} width={300} height={80} className="h-16 w-auto object-contain" priority />
           </Link>
           <div className="flex items-center gap-4">
             <nav className="flex items-center gap-6 text-sm text-gray-500">

@@ -164,8 +164,7 @@ export function LandingPage() {
       {/* ナビゲーションヘッダー */}
       <header className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between bg-white/80 backdrop-blur-sm border-b border-gray-100 px-6 py-3">
         <Link href="/" className="flex items-center gap-2 text-lg font-bold text-teal-600">
-          <IconRecycle className="w-5 h-5" />
-          {tCommon('appName')}
+          <Image src="/servise_logo.webp" alt={tCommon('appName')} width={300} height={80} className="h-16 w-auto object-contain" priority />
         </Link>
         <nav className="flex items-center gap-4 text-sm text-gray-500">
           <Link href="/blog" className="hover:text-teal-600 transition hidden sm:block">{tCommon('blog')}</Link>

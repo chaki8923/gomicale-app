@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useCallback } from 'react'
+import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { useTranslations, useLocale } from 'next-intl'
 import { Link } from '@/i18n/navigation'
@@ -45,7 +46,9 @@ export function DashboardClient({ userEmail, initialJobs }: DashboardClientProps
       <header className="bg-white border-b border-gray-100 shadow-sm">
         <div className="max-w-2xl mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <span className="text-xl font-bold text-teal-600">{tCommon('appName')}</span>
+            <Link href="/" className="flex items-center gap-2">
+              <Image src="/servise_logo.webp" alt={tCommon('appName')} width={300} height={80} className="h-16 w-auto object-contain" priority />
+            </Link>
           </div>
           <div className="flex items-center gap-4">
             <LanguageSwitcher />

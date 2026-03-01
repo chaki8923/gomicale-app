@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { getLocale } from 'next-intl/server'
 import { Link } from '@/i18n/navigation'
+import Image from 'next/image'
 import { LanguageSwitcher } from '@/components/LanguageSwitcher'
 
 export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
@@ -25,8 +26,8 @@ export default async function TermsPage() {
     <div className="min-h-screen bg-gray-50">
       <header className="bg-white border-b">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <Link href="/" className="text-2xl font-bold text-teal-600">
-            {isEn ? 'GomiCale' : 'ゴミカレ'}
+          <Link href="/" className="flex items-center gap-2">
+            <Image src="/servise_logo.webp" alt={isEn ? 'GomiCale' : 'ゴミカレ'} width={300} height={80} className="h-16 w-auto object-contain" priority />
           </Link>
           <LanguageSwitcher />
         </div>
