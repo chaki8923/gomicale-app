@@ -16,7 +16,8 @@
     "header": {
       "faq": "よくある質問",
       "terms": "利用規約",
-      "login": "Googleでログイン"
+      "login": "Googleでログイン",
+      "loginNote": "Googleカレンダーに登録するためにGoogleでの認証が必要です"
     },
     "hero": {
       "subtitle": "PDFからGoogleカレンダーへ自動登録",
@@ -176,9 +177,10 @@
     "authError": "認証に失敗しました。もう一度お試しください。",
     "disclaimer": "ログインすることでGoogleカレンダーへのアクセスを許可します"
   },
-  "classifier": {
+    "classifier": {
     "title": "ゴミの分別を調べる",
     "subtitle": "テキストまたは写真でアイテムを入力すると、AIがゴミの種類と直近の収集日を教えます",
+    "recentDataNote": "※一番最近アップロードしたデータが分析対象です",
     "placeholder": "例：電池、ペットボトル、段ボール...",
     "uploadImage": "写真を追加",
     "classify": "判別する",

@@ -101,6 +101,7 @@ export function GarbageClassifier() {
         <div>
           <h2 className="text-base font-bold text-gray-900">{t('title')}</h2>
           <p className="text-xs text-gray-500">{t('subtitle')}</p>
+          <p className="text-xs text-gray-400 mt-1">{t('recentDataNote')}</p>
         </div>
       </div>
 

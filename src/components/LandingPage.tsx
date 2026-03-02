@@ -415,6 +415,7 @@ function HeroSlide() {
         className="flex items-center gap-3 rounded-2xl bg-teal-500 px-8 py-4 text-base font-semibold text-white shadow-lg transition hover:bg-teal-600 hover:shadow-xl active:scale-95"
         label={tCommon('login')}
       />
+      <p className="text-xs text-gray-500 -mt-4">{t('header.loginNote')}</p>
 
       <p className="text-xs font-bold text-teal-700 animate-bounce">
         {t('hero.scrollHint')}
@@ -460,6 +461,7 @@ function FeatureSlide({
 function CtaSlide({ onScrollDown }: { onScrollDown?: () => void }) {
   const t = useTranslations('landing.slides.cta')
   const tCommon = useTranslations('common')
+  const tLanding = useTranslations('landing')
 
   return (
     <div className="flex h-full w-full flex-col">
@@ -484,6 +486,7 @@ function CtaSlide({ onScrollDown }: { onScrollDown?: () => void }) {
         className="flex items-center gap-3 rounded-2xl bg-teal-500 px-8 py-4 text-base font-semibold text-white shadow-lg transition hover:bg-teal-600 hover:shadow-xl active:scale-95"
         label={tCommon('login')}
       />
+        <p className="text-xs text-gray-500 -mt-4 mb-4">{tLanding('header.loginNote')}</p>
 
         <div className="flex flex-col items-center gap-1 text-xs text-gray-400">
           <p>{t('free')}</p>

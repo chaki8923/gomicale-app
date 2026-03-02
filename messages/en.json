@@ -16,7 +16,8 @@
     "header": {
       "faq": "FAQ",
       "terms": "Terms",
-      "login": "Sign in with Google"
+      "login": "Sign in with Google",
+      "loginNote": "Google authentication is required to register to Google Calendar"
     },
     "hero": {
       "subtitle": "Auto-register PDF calendars to Google Calendar",
@@ -179,6 +180,7 @@
   "classifier": {
     "title": "Garbage Classification",
     "subtitle": "Enter text or a photo and AI will identify the garbage type and next collection dates",
+    "recentDataNote": "* Analysis is based on the most recently uploaded data",
     "placeholder": "e.g. battery, plastic bottle, cardboard...",
     "uploadImage": "Add photo",
     "classify": "Classify",
