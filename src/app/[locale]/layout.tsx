@@ -10,14 +10,14 @@ const geist = Geist({ subsets: ['latin'] })
 export const metadata: Metadata = {
   metadataBase: new URL('https://gomicale.jp'),
   title: {
-    default: 'ゴミカレ | PDFからGoogleカレンダーへ自動登録',
+    default: 'PDFの予定をGoogleカレンダーに自動登録・インポート | ゴミカレ',
     template: '%s | ゴミカレ',
   },
   description:
-    'PDFのゴミ出しカレンダーや予定表をAIが解析し、Googleカレンダーに一括自動登録。手入力の手間をゼロにする無料サービスです。「PDFからカレンダー登録」をたった1分で実現。',
+    'PDFのゴミ出しカレンダー、シフト表、行事予定表などをAIが解析し、Googleカレンダーに一括自動登録・インポート。手入力の手間をゼロにする無料スケジュール変換サービスです。',
   keywords: [
-    'PDF', 'Googleカレンダー', 'カレンダー登録', '自動登録',
-    'ゴミ出しカレンダー', '予定表', 'AI解析', '予定抽出',
+    'PDF', 'Googleカレンダー', 'カレンダー登録', '自動登録', 'インポート', '取り込み', '変換', 'スケジュール',
+    'ゴミ出しカレンダー', '予定表', 'シフト表', 'AI解析', '予定抽出',
   ],
   authors: [{ name: 'ゴミカレ' }],
   icons: { icon: '/favicon.ico' },
@@ -25,25 +25,25 @@ export const metadata: Metadata = {
     type: 'website',
     locale: 'ja_JP',
     url: 'https://gomicale.jp',
-    title: 'ゴミカレ | PDFからGoogleカレンダーへ自動登録',
+    title: 'PDFの予定をGoogleカレンダーに自動登録・インポート | ゴミカレ',
     description:
-      'PDFのゴミ出しカレンダーや予定表をAIが解析し、Googleカレンダーに一括自動登録。手入力の手間をゼロにする無料サービスです。',
+      'PDFのゴミ出しカレンダー、シフト表、行事予定表などをAIが解析し、Googleカレンダーに一括自動登録・インポート。手入力の手間をゼロにする無料スケジュール変換サービスです。',
     siteName: 'ゴミカレ',
     images: [
       {
-        url: 'https://gomicale.jp/og-image.png',
+        url: 'https://gomicale.jp/oba_loading.png',
         width: 1200,
         height: 630,
-        alt: 'ゴミカレ - PDFからGoogleカレンダーへ自動登録',
+        alt: 'PDFの予定をGoogleカレンダーに自動登録・インポート | ゴミカレ',
       },
     ],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'ゴミカレ | PDFからGoogleカレンダーへ自動登録',
+    title: 'PDFの予定をGoogleカレンダーに自動登録・インポート | ゴミカレ',
     description:
-      'PDFのゴミ出しカレンダーや予定表をAIが解析し、Googleカレンダーに一括自動登録。手入力の手間をゼロにする無料サービスです。',
-    images: ['https://gomicale.jp/og-image.png'],
+      'PDFのゴミ出しカレンダー、シフト表、行事予定表などをAIが解析し、Googleカレンダーに一括自動登録・インポート。手入力の手間をゼロにする無料スケジュール変換サービスです。',
+    images: ['https://gomicale.jp/oba_loading.png'],
   },
   robots: {
     index: true,
@@ -79,7 +79,7 @@ export default async function LocaleLayout({
     operatingSystem: 'Web',
     applicationCategory: 'ProductivityApplication',
     description:
-      'PDFのゴミ出しカレンダーや予定表をAIが解析し、Googleカレンダーに一括自動登録する無料サービス。',
+      'PDFのゴミ出しカレンダー、シフト表、行事予定表などをAIが解析し、Googleカレンダーに一括自動登録・インポートする無料スケジュール変換サービス。',
     url: 'https://gomicale.jp',
     offers: { '@type': 'Offer', price: '0', priceCurrency: 'JPY' },
   }

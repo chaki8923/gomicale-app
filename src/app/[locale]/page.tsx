@@ -23,27 +23,27 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 const howToJsonLd = {
   '@context': 'https://schema.org',
   '@type': 'HowTo',
-  name: 'PDFをGoogleカレンダーに自動登録する方法',
-  description: 'ゴミ出しカレンダーや予定表のPDFをアップロードするだけで、Googleカレンダーに一括登録するサービスの使い方。',
+  name: 'PDFの予定表をGoogleカレンダーに自動登録・インポートする方法',
+  description: 'ゴミ出しカレンダー、シフト表、行事予定表などのPDFをアップロードするだけで、AIがスケジュールを解析し、Googleカレンダーに一括登録・インポートする無料ツールの使い方。',
   totalTime: 'PT1M',
   step: [
     {
       '@type': 'HowToStep',
       position: 1,
-      name: 'PDFをアップロード',
-      text: 'Googleアカウントでログイン後、ゴミ出しカレンダーや予定表のPDFをドラッグ＆ドロップ、またはファイル選択でアップロードします。',
+      name: 'PDFをアップロードしてインポート開始',
+      text: 'Googleアカウントでログイン後、ゴミ出しカレンダーやシフト表などのPDFをドラッグ＆ドロップ、またはファイル選択でアップロードします。これでインポート準備が完了します。',
     },
     {
       '@type': 'HowToStep',
       position: 2,
-      name: 'AIが自動で解析',
-      text: 'AIがPDF内の日付と予定を自動で読み取ります。「第1・第3水曜はペットボトル」などの複雑なルールも正確に抽出します。',
+      name: 'AIがスケジュールとルールを自動解析・変換',
+      text: 'AIがPDF内の日付、曜日、予定を自動で読み取り、カレンダー形式に変換します。「第1・第3水曜はペットボトル」などの複雑なルールも正確に抽出してスケジュール化します。',
     },
     {
       '@type': 'HowToStep',
       position: 3,
-      name: 'Googleカレンダーに自動登録',
-      text: '解析した予定がGoogleカレンダーに一括で自動登録されます。ゴミ出し当日の朝にリマインダー通知も届きます。',
+      name: 'Googleカレンダーに一括自動登録',
+      text: '解析・変換された予定データがGoogleカレンダーに一括で自動登録されます。手入力の手間なく、スマートフォン等のカレンダーアプリで予定を確認できるようになります。',
     },
   ],
 }

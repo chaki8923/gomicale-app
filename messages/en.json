@@ -20,17 +20,17 @@
       "loginNote": "Google authentication is required to register to Google Calendar"
     },
     "hero": {
-      "subtitle": "Auto-register PDF calendars to Google Calendar",
-      "description": "Just upload your PDF garbage collection calendar or schedule. AI analyzes it and bulk-registers events to Google Calendar.",
+      "subtitle": "Auto-register & import PDF schedules to Google Calendar",
+      "description": "Just upload your PDF garbage collection calendar, shift schedule, or event list. AI analyzes the schedule and bulk-imports events to Google Calendar.",
       "check1": "Just upload a PDF",
       "check2": "AI extracts the schedule automatically",
-      "check3": "Bulk-register to Google Calendar",
+      "check3": "Bulk-import to Google Calendar",
       "scrollHint": "Scroll to learn more ↓"
     },
     "slides": {
       "upload": {
         "heading": "Upload your PDF — that's all it takes",
-        "body": "Drag and drop the garbage collection calendar or school schedule PDF distributed by your municipality. No matter how complex the layout, AI will read it automatically.",
+        "body": "Drag and drop the garbage collection calendar, school schedule, or shift roster PDF. No matter how complex the layout, AI will read the schedule automatically.",
         "note": "No more manual entry or copy mistakes"
       },
       "ai": {
@@ -39,8 +39,8 @@
         "note": "Zero missed collections, automatic reminders on collection day"
       },
       "calendar": {
-        "heading": "Automatically register PDF schedules to Google Calendar",
-        "body": "Extracted data is automatically bulk-registered to your Google Calendar. Any date and event written in the PDF can be registered.",
+        "heading": "Automatically import PDF schedules to Google Calendar",
+        "body": "Extracted data is automatically bulk-imported to your Google Calendar. Any date and schedule written in the PDF can be converted and registered.",
         "note": "Works with PDFs beyond just garbage collection calendars"
       },
       "cta": {
