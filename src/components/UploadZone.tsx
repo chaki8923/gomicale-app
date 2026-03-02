@@ -187,6 +187,8 @@ function uploadViaServer(
         }
       } else if (xhr.status === 401) {
         reject(new Error(t('errorPresign')))
+      } else if (xhr.status === 429) {
+        reject(new Error(t('errorLimitExceeded')))
       } else {
         reject(new Error(t('errorUploadFailed', { status: xhr.status })))
       }

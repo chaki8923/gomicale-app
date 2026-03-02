@@ -158,7 +158,8 @@
     "errorJobStart": "ジョブの開始に失敗しました",
     "errorNetwork": "ネットワークエラーが発生しました",
     "errorUnexpected": "予期しないエラーが発生しました",
-    "errorUploadFailed": "アップロード失敗 (HTTP {status})"
+    "errorUploadFailed": "アップロード失敗 (HTTP {status})",
+    "errorLimitExceeded": "1日のアップロード上限（5回）に達しました。明日またお試しください。"
   },
   "jobStatus": {
     "pending": "待機中",

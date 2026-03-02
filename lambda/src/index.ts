@@ -211,8 +211,15 @@ export const handler = async (event: LambdaPayload): Promise<void> => {
       console.warn('[handler] email notification failed:', emailErr)
     }
   } catch (err) {
-    const message = err instanceof Error ? err.message : String(err)
+    let message = err instanceof Error ? err.message : String(err)
     console.error('[handler] error:', message, err)
+
+    // Gemini APIの一時的なエラー（503やfetch failed）をユーザーフレンドリーなメッセージに書き換える
+    if (message.includes('503 Service Unavailable') || message.includes('high demand') || message.includes('fetch failed')) {
+      message = language === 'en'
+        ? 'AI server is currently experiencing high demand and is temporarily unavailable. Please wait a few minutes and try again.'
+        : '現在AIサーバーが混み合っており、一時的に利用できない状態です。数分〜数十分ほど時間を置いてから再度お試しください。'
+    }
 
     // ジョブを error に更新
     await supabase.from('jobs').update({

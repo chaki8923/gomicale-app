@@ -25,6 +25,22 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
+  // 1日のアップロード回数チェック（JST基準、エラー除く）
+  const nowJst = new Date(Date.now() + 9 * 60 * 60 * 1000)
+  const todayJstMidnight = new Date(
+    Date.UTC(nowJst.getUTCFullYear(), nowJst.getUTCMonth(), nowJst.getUTCDate()) - 9 * 60 * 60 * 1000,
+  )
+  const { count: uploadCount } = await supabase
+    .from('jobs')
+    .select('*', { count: 'exact', head: true })
+    .eq('user_id', user.id)
+    .neq('status', 'error')
+    .gte('created_at', todayJstMidnight.toISOString())
+
+  if ((uploadCount ?? 0) >= 5) {
+    return NextResponse.json({ error: 'limit_exceeded' }, { status: 429 })
+  }
+
   // multipart/form-data または application/pdf を受け付ける
   const contentType = request.headers.get('content-type') ?? ''
 

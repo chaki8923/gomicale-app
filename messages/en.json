@@ -158,7 +158,8 @@
     "errorJobStart": "Failed to start job",
     "errorNetwork": "A network error occurred",
     "errorUnexpected": "An unexpected error occurred",
-    "errorUploadFailed": "Upload failed (HTTP {status})"
+    "errorUploadFailed": "Upload failed (HTTP {status})",
+    "errorLimitExceeded": "Daily upload limit (5 times) exceeded. Please try again tomorrow."
   },
   "jobStatus": {
     "pending": "Queued",
