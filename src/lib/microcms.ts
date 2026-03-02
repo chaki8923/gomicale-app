@@ -1,9 +1,13 @@
 import { createClient } from 'microcms-js-sdk'
 
-export const microcmsClient = createClient({
-  serviceDomain: process.env.MICROCMS_SERVICE_DOMAIN!,
-  apiKey: process.env.MICROCMS_API_KEY!,
-})
+function getMicrocmsClient() {
+  const serviceDomain = process.env.MICROCMS_SERVICE_DOMAIN
+  const apiKey = process.env.MICROCMS_API_KEY
+  if (!serviceDomain || !apiKey) {
+    throw new Error('MicroCMS environment variables are not set')
+  }
+  return createClient({ serviceDomain, apiKey })
+}
 
 export type BlogCategory = {
   id: string
@@ -37,7 +41,7 @@ export async function getBlogList(options?: {
   limit?: number
   offset?: number
 }): Promise<BlogListResponse> {
-  return microcmsClient.get<BlogListResponse>({
+  return getMicrocmsClient().get<BlogListResponse>({
     endpoint: 'blog',
     queries: {
       limit: options?.limit ?? 10,
@@ -48,14 +52,14 @@ export async function getBlogList(options?: {
 }
 
 export async function getBlogPost(id: string): Promise<BlogPost> {
-  return microcmsClient.get<BlogPost>({
+  return getMicrocmsClient().get<BlogPost>({
     endpoint: 'blog',
     contentId: id,
   })
 }
 
 export async function getAllBlogIds(): Promise<string[]> {
-  const data = await microcmsClient.get<BlogListResponse>({
+  const data = await getMicrocmsClient().get<BlogListResponse>({
     endpoint: 'blog',
     queries: { limit: 100, fields: 'id' },
   })
