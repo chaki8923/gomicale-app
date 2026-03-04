@@ -113,9 +113,11 @@ export default async function FaqPage({ params }: { params: Promise<{ locale: st
       </div>
 
       <footer className="mt-16 border-t bg-white py-6 text-center text-xs text-gray-400">
-        <div className="flex justify-center gap-6 mb-3">
+        <div className="flex flex-wrap justify-center gap-6 px-4 mb-3">
           <Link href="/" className="hover:text-gray-600 transition">{tCommon('topPage')}</Link>
           <Link href="/faq" className="hover:text-gray-600 transition">{tCommon('faq')}</Link>
+          <Link href="/about" className="hover:text-gray-600 transition">{tCommon('about')}</Link>
+          <Link href="/contact" className="hover:text-gray-600 transition">{tCommon('contact')}</Link>
           <Link href="/terms" className="hover:text-gray-600 transition">{tCommon('terms')}</Link>
           <Link href="/privacy" className="hover:text-gray-600 transition">{tCommon('privacy')}</Link>
           <Link href="/legal" className="hover:text-gray-600 transition">{tCommon('legal')}</Link>

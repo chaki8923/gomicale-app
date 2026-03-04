@@ -96,10 +96,8 @@ export function LandingPage() {
   const t = useTranslations('landing')
   const tCommon = useTranslations('common')
   const locale = useLocale()
-  const staticContentRef = useRef<HTMLDivElement>(null)
-
   const scrollToStatic = useCallback(() => {
-    staticContentRef.current?.scrollIntoView({ behavior: 'smooth' })
+    document.getElementById('static-content')?.scrollIntoView({ behavior: 'smooth' })
   }, [])
 
   const isEn = locale === 'en'
@@ -160,7 +158,7 @@ export function LandingPage() {
   }>
 
   return (
-    <div className="min-h-screen w-screen">
+    <>
       {/* ナビゲーションヘッダー */}
       <header className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between bg-white/80 backdrop-blur-sm border-b border-gray-100 px-6 py-3">
         <Link href="/" className="flex items-center gap-2 text-lg font-bold text-teal-600">
@@ -235,12 +233,7 @@ export function LandingPage() {
           ))}
         </Swiper>
       </div>
-
-      {/* クローラー向け静的コンテンツ（Swiper外） */}
-      <div ref={staticContentRef}>
-        <StaticContent />
-      </div>
-    </div>
+    </>
   )
 }
 
@@ -513,9 +506,15 @@ function CtaSlide({ onScrollDown }: { onScrollDown?: () => void }) {
       </div>
 
       <footer className="w-full py-4 text-center text-xs text-teal-700/60">
-        <div className="flex justify-center gap-4">
+        <div className="flex flex-wrap justify-center gap-4 px-4">
           <Link href="/blog" className="hover:text-teal-700 hover:underline">
             {tCommon('blog')}
+          </Link>
+          <Link href="/about" className="hover:text-teal-700 hover:underline">
+            {tCommon('about')}
+          </Link>
+          <Link href="/contact" className="hover:text-teal-700 hover:underline">
+            {tCommon('contact')}
           </Link>
           <Link href="/terms" className="hover:text-teal-700 hover:underline">
             {tCommon('terms')}

@@ -2,6 +2,8 @@
   "common": {
     "appName": "GomiCale",
     "faq": "FAQ",
+    "about": "About Us",
+    "contact": "Contact",
     "terms": "Terms of Service",
     "privacy": "Privacy Policy",
     "legal": "Legal Notice",
@@ -114,6 +116,21 @@
         "body2": "'I wish AI could just read the PDF and put it in my calendar automatically.'",
         "body3": "We created GomiCale to solve this personal frustration. We made it freely available in the hope that it will help others who, like us, waste time every year manually entering their calendars.",
         "author": "GomiCale Creator"
+      },
+      "benefits": {
+        "title": "Benefits of Automated PDF Calendar Registration",
+        "point1": {
+          "title": "Zero Manual Data Entry",
+          "body": "Many people are used to looking at PDF calendars distributed by schools or municipalities and manually typing each event into their smartphone calendars. With GomiCale, simply uploading a PDF file allows our advanced AI to read the schedule and batch register everything to Google Calendar in seconds."
+        },
+        "point2": {
+          "title": "Effortless Family Schedule Sharing",
+          "body": "Events registered in Google Calendar can be easily shared with family members and partners. Everyone can access the latest information on their smartphones regarding garbage duties, school events, or local activities, preventing miscommunications."
+        },
+        "point3": {
+          "title": "AI Accurately Decodes Complex Rules",
+          "body": "Rules that are confusing for humans, such as 'recyclables on the 1st and 3rd Thursdays' or 'oversized garbage on the last Friday of the month,' are accurately transcribed by AI without oversight. Even with unique table layouts or custom formatting, high-precision text recognition converts the PDF into proper schedule data."
+        }
       },
       "footer": {
         "faq": "FAQ",

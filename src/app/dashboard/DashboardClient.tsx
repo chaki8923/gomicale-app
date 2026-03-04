@@ -154,6 +154,8 @@ export function DashboardClient({ userEmail, initialJobs }: DashboardClientProps
       {/* フッター */}
       <footer className="mt-12 py-6 border-t border-gray-100 bg-white">
         <div className="max-w-2xl mx-auto px-4 flex flex-wrap justify-center gap-4 text-xs text-gray-400">
+          <a href="/about" className="hover:text-gray-600 transition">運営者情報</a>
+          <a href="/contact" className="hover:text-gray-600 transition">お問い合わせ</a>
           <a href="/terms" className="hover:text-gray-600 transition">利用規約</a>
           <a href="/privacy" className="hover:text-gray-600 transition">プライバシーポリシー</a>
           <a href="/legal" className="hover:text-gray-600 transition">特定商取引法に基づく表記</a>

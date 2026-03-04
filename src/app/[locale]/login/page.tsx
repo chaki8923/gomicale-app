@@ -42,9 +42,15 @@ function LoginContent() {
       </div>
 
       <footer className="mt-12 text-center text-xs text-teal-700/60">
-        <div className="flex flex-wrap justify-center gap-x-4 gap-y-2">
+        <div className="flex flex-wrap justify-center gap-x-4 gap-y-2 px-4">
           <Link href="/blog" className="hover:text-teal-700 hover:underline">
             {tCommon('blog')}
+          </Link>
+          <Link href="/about" className="hover:text-teal-700 hover:underline">
+            {tCommon('about')}
+          </Link>
+          <Link href="/contact" className="hover:text-teal-700 hover:underline">
+            {tCommon('contact')}
           </Link>
           <Link href="/terms" className="hover:text-teal-700 hover:underline">
             {tCommon('terms')}

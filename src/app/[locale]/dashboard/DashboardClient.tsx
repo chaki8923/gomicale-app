@@ -191,6 +191,8 @@ export function DashboardClient({ userEmail, initialJobs }: DashboardClientProps
 
       <footer className="mt-12 py-6 border-t border-gray-100 bg-white">
         <div className="max-w-2xl mx-auto px-4 flex flex-wrap justify-center gap-4 text-xs text-gray-400">
+          <Link href="/about" className="hover:text-gray-600 transition">{tCommon('about')}</Link>
+          <Link href="/contact" className="hover:text-gray-600 transition">{tCommon('contact')}</Link>
           <Link href="/terms" className="hover:text-gray-600 transition">{tCommon('terms')}</Link>
           <Link href="/privacy" className="hover:text-gray-600 transition">{tCommon('privacy')}</Link>
           <Link href="/legal" className="hover:text-gray-600 transition">{tCommon('legal')}</Link>

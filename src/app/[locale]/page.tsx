@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation'
 import type { Metadata } from 'next'
 import { getSupabaseServerClient } from '@/lib/supabase/server'
 import { LandingPage } from '@/components/LandingPage'
+import { LandingPageStaticContent } from '@/components/LandingPageStaticContent'
 
 type Props = {
   params: Promise<{ locale: string }>
@@ -68,6 +69,7 @@ export default async function RootPage({
         dangerouslySetInnerHTML={{ __html: JSON.stringify(howToJsonLd) }}
       />
       <LandingPage />
+      <LandingPageStaticContent />
     </>
   )
 }
