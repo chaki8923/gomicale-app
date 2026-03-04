@@ -83,8 +83,14 @@ export default async function AboutPage() {
                 </div>
                 <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
                   <span className="font-medium text-gray-900">{isEn ? 'Email' : '連絡先'}</span>
-                  <span className="col-span-2 sm:col-span-3">
-                    <a href="mailto:contact@gomicale.jp" className="text-teal-600 hover:underline">contact@gomicale.jp</a>
+                  <span className="col-span-2 sm:col-span-3 flex flex-col gap-1">
+                    <a href="mailto:gomicalecontact@gmail.com" className="text-teal-600 hover:underline">gomicalecontact@gmail.com</a>
+                    <span className="text-xs text-gray-500">
+                      {isEn ? 'or via ' : 'または '}
+                      <Link href="/contact" className="text-teal-600 hover:underline">
+                        {isEn ? 'Contact Form' : 'お問い合わせフォーム'}
+                      </Link>
+                    </span>
                   </span>
                 </div>
                 <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">

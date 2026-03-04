@@ -1,8 +1,9 @@
 import type { Metadata } from 'next'
-import { getLocale } from 'next-intl/server'
+import { getLocale, getTranslations } from 'next-intl/server'
 import { Link } from '@/i18n/navigation'
 import Image from 'next/image'
 import { LanguageSwitcher } from '@/components/LanguageSwitcher'
+import { ContactForm } from '@/components/ContactForm'
 
 export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
   const { locale } = await params
@@ -20,6 +21,7 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: s
 
 export default async function ContactPage() {
   const locale = await getLocale()
+  const t = await getTranslations({ locale, namespace: 'contact' })
   const isEn = locale === 'en'
 
   return (
@@ -35,35 +37,15 @@ export default async function ContactPage() {
 
       <div className="container mx-auto px-4 py-12 max-w-3xl">
         <h1 className="text-4xl font-bold text-gray-900 mb-8 text-center">
-          {isEn ? 'Contact Us' : 'お問い合わせ'}
+          {t('title')}
         </h1>
 
-        <div className="bg-white rounded-2xl shadow-sm p-8 text-center space-y-6">
+        <div className="bg-white rounded-2xl shadow-sm p-8 text-center space-y-8">
           <p className="text-gray-600">
-            {isEn 
-              ? 'If you have any questions or feedback about the service, please contact us.'
-              : 'サービスに関するご質問、ご意見、ご要望等がございましたら、お気軽にお問い合わせください。'
-            }
+            {t('description')}
           </p>
 
-          <div className="py-8">
-            <a 
-              href="mailto:contact@gomicale.jp" 
-              className="inline-flex items-center justify-center gap-2 rounded-xl bg-teal-500 px-8 py-4 text-base font-semibold text-white shadow-sm transition hover:bg-teal-600"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-              </svg>
-              {isEn ? 'Send an Email' : 'メールで問い合わせる'}
-            </a>
-          </div>
-
-          <p className="text-sm text-gray-500">
-            {isEn 
-              ? 'Depending on the nature of your inquiry, it may take some time for us to reply.'
-              : 'お問い合わせの内容によっては、返信までにお時間をいただく場合がございます。あらかじめご了承ください。'
-            }
-          </p>
+          <ContactForm />
         </div>
 
         <div className="mt-8 text-center">
