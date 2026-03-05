@@ -1,6 +1,7 @@
-import { useTranslations } from 'next-intl'
+import { useTranslations, useLocale } from 'next-intl'
 import { Link } from '@/i18n/navigation'
 import { AdBanner } from './AdBanner'
+import type { BlogPost } from '@/lib/microcms'
 
 // ─── SVG アイコン ───────────────────────────────────────────
 function IconFileText({ className = 'w-8 h-8' }: { className?: string }) {
@@ -48,9 +49,14 @@ function IconCalendar({ className = 'w-8 h-8' }: { className?: string }) {
   )
 }
 
-export function LandingPageStaticContent() {
+type Props = {
+  blogPosts?: BlogPost[]
+}
+
+export function LandingPageStaticContent({ blogPosts = [] }: Props) {
   const t = useTranslations('landing.static')
   const tCommon = useTranslations('common')
+  const locale = useLocale()
   const faqItems = t.raw('faqSection.items') as Array<{ q: string; a: string }>
 
   return (
@@ -88,6 +94,9 @@ export function LandingPageStaticContent() {
             <p className="text-sm text-gray-600 leading-relaxed">{t('whatIs.step3Body')}</p>
           </div>
         </div>
+        <div className="mt-10 rounded-xl bg-white/80 p-6 text-center">
+          <p className="text-sm text-gray-600 leading-relaxed">{t('whatIs.technicalNote')}</p>
+        </div>
       </section>
 
       {/* 利用シーン */}
@@ -107,6 +116,67 @@ export function LandingPageStaticContent() {
         </div>
       </section>
 
+      {/* ブログ記事一覧 */}
+      {blogPosts.length > 0 && (
+        <section className="bg-white py-20">
+          <div className="mx-auto max-w-3xl px-6">
+            <h2 className="text-2xl font-bold text-gray-900 mb-2 text-center">{t('blogSection.title')}</h2>
+            <p className="text-center text-gray-500 text-sm mb-12">{t('blogSection.subtitle')}</p>
+            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+              {blogPosts.map((post) => (
+                <Link
+                  key={post.id}
+                  href={`/blog/${post.id}`}
+                  className="block bg-gray-50 rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition group"
+                >
+                  {post.eyecatch ? (
+                    <div className="aspect-video relative overflow-hidden">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={post.eyecatch.url}
+                        alt=""
+                        width={post.eyecatch.width}
+                        height={post.eyecatch.height}
+                        className="w-full h-full object-cover group-hover:scale-105 transition duration-300"
+                      />
+                    </div>
+                  ) : (
+                    <div className="aspect-video bg-teal-100 flex items-center justify-center">
+                      <span className="text-4xl text-teal-300">📄</span>
+                    </div>
+                  )}
+                  <div className="p-5">
+                    <time className="text-xs text-gray-400">
+                      {new Date(post.publishedAt).toLocaleDateString(locale === 'en' ? 'en-US' : 'ja-JP', {
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric',
+                      })}
+                    </time>
+                    <h3 className="mt-2 font-bold text-gray-800 group-hover:text-teal-600 transition line-clamp-2">
+                      {post.title}
+                    </h3>
+                    {post.content && (
+                      <p className="mt-2 text-sm text-gray-500 line-clamp-2">
+                        {post.content.replace(/<[^>]+>/g, '').slice(0, 80)}…
+                      </p>
+                    )}
+                  </div>
+                </Link>
+              ))}
+            </div>
+            <div className="mt-8 text-center">
+              <Link
+                href="/blog"
+                className="inline-block rounded-xl border border-teal-500 px-6 py-3 text-sm font-semibold text-teal-600 hover:bg-teal-50 transition"
+              >
+                {t('blogSection.viewAll')}
+              </Link>
+            </div>
+          </div>
+        </section>
+      )}
+
       {/* メリット */}
       <section className="bg-gray-50 py-20">
         <div className="mx-auto max-w-3xl px-6">
@@ -115,14 +185,17 @@ export function LandingPageStaticContent() {
             <div className="bg-white p-8 rounded-2xl shadow-sm border border-gray-100">
               <h3 className="text-lg font-bold text-teal-600 mb-3">{t('benefits.point1.title')}</h3>
               <p className="text-sm text-gray-700 leading-relaxed">{t('benefits.point1.body')}</p>
+              <p className="mt-4 text-sm text-gray-600 leading-relaxed">{t('benefits.point1.extend')}</p>
             </div>
             <div className="bg-white p-8 rounded-2xl shadow-sm border border-gray-100">
               <h3 className="text-lg font-bold text-teal-600 mb-3">{t('benefits.point2.title')}</h3>
               <p className="text-sm text-gray-700 leading-relaxed">{t('benefits.point2.body')}</p>
+              <p className="mt-4 text-sm text-gray-600 leading-relaxed">{t('benefits.point2.extend')}</p>
             </div>
             <div className="bg-white p-8 rounded-2xl shadow-sm border border-gray-100">
               <h3 className="text-lg font-bold text-teal-600 mb-3">{t('benefits.point3.title')}</h3>
               <p className="text-sm text-gray-700 leading-relaxed">{t('benefits.point3.body')}</p>
+              <p className="mt-4 text-sm text-gray-600 leading-relaxed">{t('benefits.point3.extend')}</p>
             </div>
           </div>
         </div>
@@ -141,6 +214,7 @@ export function LandingPageStaticContent() {
                 {t('about.body2')}
               </p>
               <p>{t('about.body3')}</p>
+              <p>{t('about.body4')}</p>
             </div>
             <div className="mt-8 flex items-center justify-end gap-3 text-xs text-gray-500">
               <span className="w-8 h-[1px] bg-gray-300"></span>

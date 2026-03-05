@@ -66,7 +66,7 @@ function PrivacyJa() {
           <p>当社は、本サービスの提供にあたり、以下の情報を取得します。</p>
           <ul className="list-decimal list-inside space-y-2 ml-4">
             <li><strong>Googleアカウント情報</strong>：メールアドレス、アクセストークン・リフレッシュトークン</li>
-            <li><strong>アップロードされたPDFデータ</strong>：PDFファイルおよびから解析されたイベント情報</li>
+            <li><strong>アップロードされたPDFデータ</strong>：PDFファイルおよびそこから解析されたイベント情報</li>
             <li><strong>利用情報</strong>：ジョブの処理履歴、サービス利用ログ</li>
             <li><strong>アクセス情報</strong>：IPアドレス、アクセス日時、ブラウザ情報</li>
           </ul>
@@ -128,15 +128,27 @@ function PrivacyJa() {
         </div>
       </section>
       <section>
-        <h2 className="text-2xl font-semibold text-gray-900 mb-4">第10条（お問い合わせ窓口）</h2>
+        <h2 className="text-2xl font-semibold text-gray-900 mb-4">第8条（広告配信とCookie）</h2>
+        <div className="text-gray-700 space-y-3">
+          <p>本サービスでは、第三者配信事業者（Googleを含む）がCookieを使用して、ユーザーが当サイトおよび他のウェブサイトにアクセスした際の履歴情報に基づいて広告を配信しています。</p>
+          <p>ユーザーは、パーソナライズ広告に使用されるCookieを無効にすることができます。以下の方法で設定いただけます。</p>
+          <ul className="list-disc list-inside space-y-2 ml-4">
+            <li>Googleの<a href="https://adssettings.google.com/" target="_blank" rel="noopener noreferrer" className="text-teal-600 hover:underline">広告設定ページ</a>にアクセスし、パーソナライズ広告を無効にする</li>
+            <li><a href="https://www.aboutads.info/choices/" target="_blank" rel="noopener noreferrer" className="text-teal-600 hover:underline">www.aboutads.info</a> などの業界標準のオプトアウトページにアクセスし、第三者配信事業者のCookieを無効にする</li>
+          </ul>
+          <p>広告配信の過程では、デバイス情報（OS、ブラウザの種類など）や位置情報が収集される場合があります。Googleが当社のサービスを使用するサイトから収集した情報の取扱いについては、<a href="https://policies.google.com/technologies/partner-sites" target="_blank" rel="noopener noreferrer" className="text-teal-600 hover:underline">Googleのポリシーページ</a>をご参照ください。</p>
+        </div>
+      </section>
+      <section>
+        <h2 className="text-2xl font-semibold text-gray-900 mb-4">第9条（お問い合わせ窓口）</h2>
         <div className="text-gray-700 space-y-3">
           <p>本ポリシーに関するお問い合わせは、以下の窓口までお願いいたします。</p>
           <div className="bg-gray-50 p-4 rounded-lg mt-4">
             <p className="font-semibold">ゴミカレ 運営事務局</p>
             <p className="mt-2">
-              <a href="https://forms.gle/6HJHWBrcjTPm2KrL7" target="_blank" rel="noopener noreferrer" className="text-teal-600 hover:underline">
+              <Link href="/contact" className="text-teal-600 hover:underline">
                 お問い合わせフォーム
-              </a>
+              </Link>
             </p>
           </div>
         </div>
@@ -207,14 +219,26 @@ function PrivacyEn() {
         <p className="text-gray-700">We protect personal information through SSL/TLS encryption, secure token management, and access control and logging.</p>
       </section>
       <section>
-        <h2 className="text-2xl font-semibold text-gray-900 mb-4">Article 10 (Contact)</h2>
+        <h2 className="text-2xl font-semibold text-gray-900 mb-4">Article 8 (Advertising and Cookies)</h2>
+        <div className="text-gray-700 space-y-3">
+          <p>This Service uses cookies by third-party ad networks (including Google) to serve ads based on users&apos; browsing history on this site and other websites.</p>
+          <p>Users may disable cookies used for personalized advertising through the following methods:</p>
+          <ul className="list-disc list-inside space-y-2 ml-4">
+            <li>Visit Google&apos;s <a href="https://adssettings.google.com/" target="_blank" rel="noopener noreferrer" className="text-teal-600 hover:underline">Ad Settings page</a> to disable personalized ads</li>
+            <li>Visit industry-standard opt-out pages such as <a href="https://www.aboutads.info/choices/" target="_blank" rel="noopener noreferrer" className="text-teal-600 hover:underline">www.aboutads.info</a> to disable third-party ad network cookies</li>
+          </ul>
+          <p>Device information (OS, browser type, etc.) and location data may be collected during ad delivery. For how Google uses information collected from sites and apps that use our services, please see <a href="https://policies.google.com/technologies/partner-sites" target="_blank" rel="noopener noreferrer" className="text-teal-600 hover:underline">Google&apos;s policy page</a>.</p>
+        </div>
+      </section>
+      <section>
+        <h2 className="text-2xl font-semibold text-gray-900 mb-4">Article 9 (Contact)</h2>
         <div className="text-gray-700 space-y-3">
           <div className="bg-gray-50 p-4 rounded-lg mt-4">
             <p className="font-semibold">GomiCale Support</p>
             <p className="mt-2">
-              <a href="https://forms.gle/6HJHWBrcjTPm2KrL7" target="_blank" rel="noopener noreferrer" className="text-teal-600 hover:underline">
+              <Link href="/contact" className="text-teal-600 hover:underline">
                 Contact Form
-              </a>
+              </Link>
             </p>
           </div>
         </div>

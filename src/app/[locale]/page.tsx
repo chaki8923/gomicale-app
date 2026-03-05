@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation'
 import type { Metadata } from 'next'
 import { getSupabaseServerClient } from '@/lib/supabase/server'
+import { getBlogList } from '@/lib/microcms'
 import { LandingPage } from '@/components/LandingPage'
 import { LandingPageStaticContent } from '@/components/LandingPageStaticContent'
 
@@ -62,6 +63,14 @@ export default async function RootPage({
     redirect(`/${locale}/dashboard`)
   }
 
+  let blogPosts: Awaited<ReturnType<typeof getBlogList>>['contents'] = []
+  try {
+    const data = await getBlogList({ limit: 6 })
+    blogPosts = data.contents
+  } catch {
+    // MicroCMS not configured or error — blog section will be hidden
+  }
+
   return (
     <>
       <script
@@ -69,7 +78,7 @@ export default async function RootPage({
         dangerouslySetInnerHTML={{ __html: JSON.stringify(howToJsonLd) }}
       />
       <LandingPage />
-      <LandingPageStaticContent />
+      <LandingPageStaticContent blogPosts={blogPosts} />
     </>
   )
 }

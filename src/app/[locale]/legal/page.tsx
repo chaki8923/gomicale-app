@@ -59,7 +59,7 @@ export default async function LegalPage() {
                   <h3 className="text-lg font-semibold text-gray-900 mb-2">Contact</h3>
                   <p className="text-gray-700">
                     Contact Form:{' '}
-                    <a href="https://forms.gle/6HJHWBrcjTPm2KrL7" target="_blank" rel="noopener noreferrer" className="text-teal-600 hover:underline">here</a>
+                    <Link href="/contact" className="text-teal-600 hover:underline">here</Link>
                     <br />Phone: 050-1809-1062
                   </p>
                   <p className="text-sm text-gray-500 mt-2">※ Business hours: Weekdays 10:00–18:00 (excluding holidays)</p>
@@ -108,7 +108,7 @@ export default async function LegalPage() {
                   <h3 className="text-lg font-semibold text-gray-900 mb-2">お問い合わせ</h3>
                   <p className="text-gray-700">
                     お問い合わせフォーム：
-                    <a href="https://forms.gle/6HJHWBrcjTPm2KrL7" target="_blank" rel="noopener noreferrer" className="text-teal-600 hover:underline">こちら</a>
+                    <Link href="/contact" className="text-teal-600 hover:underline">こちら</Link>
                     <br />電話番号：050-1809-1062
                   </p>
                   <p className="text-sm text-gray-500 mt-2">※営業時間：平日 10:00〜18:00（土日祝日を除く）</p>
