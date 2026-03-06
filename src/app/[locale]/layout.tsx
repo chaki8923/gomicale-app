@@ -21,7 +21,12 @@ export const metadata: Metadata = {
     'ゴミ出しカレンダー', '予定表', 'シフト表', 'AI解析', '予定抽出',
   ],
   authors: [{ name: 'ゴミカレ' }],
-  icons: { icon: '/favicon.ico' },
+  icons: {
+    icon: [
+      { url: '/icon.png', sizes: '144x144', type: 'image/png' },
+      { url: '/favicon.ico', sizes: '48x48', type: 'image/x-icon' },
+    ],
+  },
   openGraph: {
     type: 'website',
     locale: 'ja_JP',
