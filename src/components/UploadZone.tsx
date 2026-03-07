@@ -11,6 +11,12 @@ interface UploadZoneProps {
 
 type UploadState = 'idle' | 'uploading' | 'starting' | 'done' | 'error'
 
+const TIME_OPTIONS = Array.from({ length: 48 }, (_, i) => {
+  const h = String(Math.floor(i / 2)).padStart(2, '0')
+  const m = i % 2 === 0 ? '00' : '30'
+  return `${h}:${m}`
+})
+
 export function UploadZone({ onUploadComplete }: UploadZoneProps) {
   const t = useTranslations('upload')
   const locale = useLocale()
@@ -112,18 +118,24 @@ export function UploadZone({ onUploadComplete }: UploadZoneProps) {
           {t('timeLabel')}
         </label>
         <div className="flex items-center gap-3">
-          <input
+          <select
             id="eventTime"
-            type="time"
             value={eventTime}
             onChange={(e) => setEventTime(e.target.value)}
             disabled={isLoading}
             className={`
-              block w-32 rounded-lg border-gray-300 shadow-sm
+              block w-48 rounded-lg border-gray-300 shadow-sm
               focus:border-teal-500 focus:ring-teal-500 sm:text-sm
               ${isLoading ? 'bg-gray-100 opacity-60' : 'bg-white'}
             `}
-          />
+          >
+            <option value="">{t('timeNoSpec')}</option>
+            {TIME_OPTIONS.map((time) => (
+              <option key={time} value={time}>
+                {time}
+              </option>
+            ))}
+          </select>
           <span className="text-xs text-gray-400">{t('timeHint')}</span>
         </div>
       </div>

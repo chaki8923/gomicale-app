@@ -178,6 +178,7 @@
     "dropzoneHint": "PDF形式・最大20MB",
     "timeLabel": "登録時間（任意）",
     "timeHint": "空白の場合は終日イベントとして登録されます",
+    "timeNoSpec": "時間指定なし（終日）",
     "presigning": "アップロード準備中...",
     "uploading": "アップロード中... {progress}%",
     "starting": "解析を開始中...",

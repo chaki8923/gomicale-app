@@ -178,6 +178,7 @@
     "dropzoneHint": "PDF format · Max 20MB",
     "timeLabel": "Event time (optional)",
     "timeHint": "Leave blank to register as all-day events",
+    "timeNoSpec": "No time (all-day)",
     "presigning": "Preparing upload...",
     "uploading": "Uploading... {progress}%",
     "starting": "Starting analysis...",

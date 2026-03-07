@@ -119,8 +119,8 @@ async function attemptInsert(
 }
 
 /**
- * Phase 2: 409 だったイベントを get で状態確認し、
- * cancelled なら patch で再アクティブ化、confirmed なら skip
+ * Phase 2: 409 だったイベントは常に patch で時刻などを最新状態に更新する。
+ * （cancelled イベントも status: 'confirmed' となることで再アクティブ化される）
  */
 async function handleConflict(
   calendar: ReturnType<typeof createCalendarClient>,
@@ -132,26 +132,21 @@ async function handleConflict(
   timezone?: string,
 ): Promise<ConflictOutcome> {
   try {
-    const existing = await calendar.events.get({ calendarId: CALENDAR_ID, eventId })
-    if (existing.data.status === 'cancelled') {
-      // delete は不可（410 Gone）なので patch で再アクティブ化
-      await calendar.events.patch({
-        calendarId: CALENDAR_ID,
-        eventId,
-        requestBody: {
-          status:      'confirmed',
-          summary:     displayTitle,
-          ...buildEventDateTime(ev.date, eventTime, timezone),
-          description: descriptionText,
-          reminders: {
-            useDefault: false,
-            overrides: [{ method: 'popup', minutes: 720 }],
-          },
+    await calendar.events.patch({
+      calendarId: CALENDAR_ID,
+      eventId,
+      requestBody: {
+        status:      'confirmed',
+        summary:     displayTitle,
+        ...buildEventDateTime(ev.date, eventTime, timezone),
+        description: descriptionText,
+        reminders: {
+          useDefault: false,
+          overrides: [{ method: 'popup', minutes: 720 }],
         },
-      })
-      return 'inserted'
-    }
-    return 'skipped' // アクティブな真の重複
+      },
+    })
+    return 'inserted'
   } catch (err) {
     console.error('[calendar] conflict handler error:', err)
     return 'error'
