@@ -176,6 +176,8 @@
     "generalDesc": "スケジュール表・行事予定表など、日付と予定が記載されたPDFを解析して登録します。",
     "dropzone": "PDFをドラッグ&ドロップ、またはクリックして選択",
     "dropzoneHint": "PDF形式・最大20MB",
+    "timeLabel": "登録時間（任意）",
+    "timeHint": "空白の場合は終日イベントとして登録されます",
     "presigning": "アップロード準備中...",
     "uploading": "アップロード中... {progress}%",
     "starting": "解析を開始中...",

@@ -19,6 +19,7 @@ export function UploadZone({ onUploadComplete }: UploadZoneProps) {
   const [error, setError] = useState<string | null>(null)
   const [isDragOver, setIsDragOver] = useState(false)
   const [parserMode, setParserMode] = useState<ParserMode>('garbage')
+  const [eventTime, setEventTime] = useState<string>('')
 
   const modeConfig: Record<ParserMode, { label: string; description: string }> = {
     garbage: { label: t('garbageLabel'), description: t('garbageDesc') },
@@ -47,10 +48,11 @@ export function UploadZone({ onUploadComplete }: UploadZoneProps) {
 
       // ── 2. Lambda を非同期で起動 ─────────────────────────────
       setState('starting')
+      const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone
       const startRes = await fetch('/api/jobs/start', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ jobId, parserMode, language: locale }),
+        body: JSON.stringify({ jobId, parserMode, language: locale, eventTime, timezone }),
       })
       if (!startRes.ok) throw new Error(t('errorJobStart'))
 
@@ -103,6 +105,28 @@ export function UploadZone({ onUploadComplete }: UploadZoneProps) {
       </div>
 
       <p className="text-xs text-gray-400 px-1">{modeConfig[parserMode].description}</p>
+
+      {/* 時間指定 */}
+      <div className="flex flex-col gap-1.5 px-1 py-1">
+        <label htmlFor="eventTime" className="text-sm font-medium text-gray-700">
+          {t('timeLabel')}
+        </label>
+        <div className="flex items-center gap-3">
+          <input
+            id="eventTime"
+            type="time"
+            value={eventTime}
+            onChange={(e) => setEventTime(e.target.value)}
+            disabled={isLoading}
+            className={`
+              block w-32 rounded-lg border-gray-300 shadow-sm
+              focus:border-teal-500 focus:ring-teal-500 sm:text-sm
+              ${isLoading ? 'bg-gray-100 opacity-60' : 'bg-white'}
+            `}
+          />
+          <span className="text-xs text-gray-400">{t('timeHint')}</span>
+        </div>
+      </div>
 
       {/* アップロードゾーン */}
       <label

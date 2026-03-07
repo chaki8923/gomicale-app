@@ -25,7 +25,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  const body = await request.json() as { jobId: string; parserMode?: string; language?: string }
+  const body = await request.json() as { jobId: string; parserMode?: string; language?: string; eventTime?: string; timezone?: string }
   if (!body.jobId) {
     return NextResponse.json({ error: 'jobId is required' }, { status: 400 })
   }
@@ -65,6 +65,8 @@ export async function POST(request: NextRequest) {
     r2ObjectKey: job.r2_object_key,
     parserMode:  body.parserMode ?? 'garbage',
     language,
+    eventTime:   body.eventTime,
+    timezone:    body.timezone,
   })
 
   await lambdaClient.send(

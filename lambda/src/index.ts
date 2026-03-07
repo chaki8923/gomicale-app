@@ -106,8 +106,8 @@ const supabase = createClient(
 )
 
 export const handler = async (event: LambdaPayload): Promise<void> => {
-  const { jobId, userId, r2ObjectKey, language = 'ja' } = event
-  console.info('[handler] start', { jobId, userId, r2ObjectKey, language })
+  const { jobId, userId, r2ObjectKey, language = 'ja', eventTime, timezone } = event
+  console.info('[handler] start', { jobId, userId, r2ObjectKey, language, eventTime, timezone })
 
   try {
     // ── 1. R2 から PDF をダウンロード ──────────────────────────────
@@ -184,6 +184,8 @@ export const handler = async (event: LambdaPayload): Promise<void> => {
       accessToken,
       events,
       pdfHash,
+      eventTime,
+      timezone,
     )
     console.info('[handler] calendar insert result:', { inserted, skipped })
 

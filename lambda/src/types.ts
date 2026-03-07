@@ -7,6 +7,8 @@ export interface LambdaPayload {
   r2ObjectKey: string
   parserMode?: ParserMode
   language?: Language
+  eventTime?: string
+  timezone?: string
 }
 
 export interface CalendarEvent {

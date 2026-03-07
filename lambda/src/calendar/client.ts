@@ -25,6 +25,30 @@ type ConflictOutcome = 'inserted' | 'skipped' | 'error'
 
 const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms))
 
+function buildEventDateTime(date: string, eventTime?: string, timezone?: string) {
+  if (eventTime) {
+    const tz = timezone ?? 'Asia/Tokyo'
+    const [hours, minutes] = eventTime.split(':').map(Number)
+    let endHours = hours + 1
+    let endMinutes = minutes
+    if (endHours >= 24) {
+      endHours = 23
+      endMinutes = 59
+    }
+    const endHoursStr = endHours.toString().padStart(2, '0')
+    const endMinutesStr = endMinutes.toString().padStart(2, '0')
+    const endTime = `${endHoursStr}:${endMinutesStr}`
+    return {
+      start: { dateTime: `${date}T${eventTime}:00`, timeZone: tz },
+      end:   { dateTime: `${date}T${endTime}:00`,   timeZone: tz },
+    }
+  }
+  return {
+    start: { date },
+    end:   { date },
+  }
+}
+
 /**
  * Google Calendar API クライアントを生成する
  */
@@ -63,6 +87,8 @@ async function attemptInsert(
   eventId: string,
   displayTitle: string,
   descriptionText: string,
+  eventTime?: string,
+  timezone?: string,
 ): Promise<InsertOutcome> {
   try {
     await calendar.events.insert({
@@ -70,8 +96,7 @@ async function attemptInsert(
       requestBody: {
         id:      eventId,
         summary: displayTitle,
-        start:   { date: ev.date },
-        end:     { date: ev.date },
+        ...buildEventDateTime(ev.date, eventTime, timezone),
         description: descriptionText,
         reminders: {
           useDefault: false,
@@ -103,6 +128,8 @@ async function handleConflict(
   eventId: string,
   displayTitle: string,
   descriptionText: string,
+  eventTime?: string,
+  timezone?: string,
 ): Promise<ConflictOutcome> {
   try {
     const existing = await calendar.events.get({ calendarId: CALENDAR_ID, eventId })
@@ -114,8 +141,7 @@ async function handleConflict(
         requestBody: {
           status:      'confirmed',
           summary:     displayTitle,
-          start:       { date: ev.date },
-          end:         { date: ev.date },
+          ...buildEventDateTime(ev.date, eventTime, timezone),
           description: descriptionText,
           reminders: {
             useDefault: false,
@@ -145,6 +171,8 @@ export async function batchInsertGarbageEvents(
   accessToken: string,
   events: CalendarEvent[],
   pdfHash: string,
+  eventTime?: string,
+  timezone?: string,
 ): Promise<BatchInsertResult> {
   const calendar = createCalendarClient(accessToken)
 
@@ -166,7 +194,7 @@ export async function batchInsertGarbageEvents(
   for (let i = 0; i < items.length; i++) {
     const item    = items[i]
     const outcome = await attemptInsert(
-      calendar, item.ev, item.eventId, item.displayTitle, item.descriptionText,
+      calendar, item.ev, item.eventId, item.displayTitle, item.descriptionText, eventTime, timezone
     )
     if (outcome.kind === 'inserted') {
       inserted++
@@ -187,7 +215,7 @@ export async function batchInsertGarbageEvents(
   for (let i = 0; i < conflicts.length; i++) {
     const item    = conflicts[i]
     const outcome = await handleConflict(
-      calendar, item.ev, item.eventId, item.displayTitle, item.descriptionText,
+      calendar, item.ev, item.eventId, item.displayTitle, item.descriptionText, eventTime, timezone
     )
     if (outcome === 'inserted') inserted++
     else skipped++

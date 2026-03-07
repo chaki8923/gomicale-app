@@ -176,6 +176,8 @@
     "generalDesc": "Analyzes schedule tables, event calendars, and other PDFs with dates and events.",
     "dropzone": "Drag & drop PDF here, or click to select",
     "dropzoneHint": "PDF format · Max 20MB",
+    "timeLabel": "Event time (optional)",
+    "timeHint": "Leave blank to register as all-day events",
     "presigning": "Preparing upload...",
     "uploading": "Uploading... {progress}%",
     "starting": "Starting analysis...",
