@@ -132,7 +132,9 @@ async function handleConflict(
   timezone?: string,
 ): Promise<ConflictOutcome> {
   try {
-    await calendar.events.patch({
+    // PATCH ではなく UPDATE (PUT) を使うことで、既存イベントの start.date フィールドを
+    // 完全に置き換える。PATCH だと旧 date フィールドが残り "Invalid start time" になる。
+    await calendar.events.update({
       calendarId: CALENDAR_ID,
       eventId,
       requestBody: {
