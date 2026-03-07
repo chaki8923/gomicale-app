@@ -1,4 +1,4 @@
-import type { Metadata } from 'next'
+import type { Metadata, Viewport } from 'next'
 import { Geist } from 'next/font/google'
 import Script from 'next/script'
 import { NextIntlClientProvider, hasLocale } from 'next-intl'
@@ -8,8 +8,21 @@ import { Analytics } from '@vercel/analytics/next'
 
 const geist = Geist({ subsets: ['latin'] })
 
+export const viewport: Viewport = {
+  themeColor: [
+    { media: '(prefers-color-scheme: light)', color: '#ffffff' },
+    { media: '(prefers-color-scheme: dark)', color: '#0a0a0a' },
+  ],
+}
+
 export const metadata: Metadata = {
   metadataBase: new URL('https://gomicale.jp'),
+  manifest: '/manifest.webmanifest',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'default',
+    title: 'ゴミカレ',
+  },
   title: {
     default: 'PDFの予定をGoogleカレンダーに自動登録・インポート | ゴミカレ',
     template: '%s | ゴミカレ',
