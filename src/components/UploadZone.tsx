@@ -68,8 +68,7 @@ export function UploadZone({ onUploadComplete }: UploadZoneProps) {
       setState('error')
       setError(err instanceof Error ? err.message : t('errorUnexpected'))
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [onUploadComplete, parserMode, locale, t])
+  }, [onUploadComplete, parserMode, locale, t, eventTime])
 
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault()
