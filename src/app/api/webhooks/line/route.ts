@@ -67,6 +67,22 @@ async function replyText(replyToken: string, text: string): Promise<void> {
   })
 }
 
+// ============================================================
+// ユーティリティ関数
+// ============================================================
+
+const RICH_MENU_COMMANDS = {
+  TODAY: '今日のゴミ',
+  TOMORROW: '明日のゴミ',
+} as const
+
+function getCollectionsByDate(events: CalendarEvent[], dateStr: string, label: string): string {
+  const items = events.filter((ev) => ev.date === dateStr)
+  if (items.length === 0) return `${label}（${dateStr}）は収集はありません。`
+  const lines = items.map((ev) => `・${ev.title}${ev.description ? `（${ev.description}）` : ''}`).join('\n')
+  return `${label}（${dateStr}）の収集:\n${lines}`
+}
+
 /**
  * LINE Content API から画像バイナリを取得し base64 に変換する
  */
@@ -225,7 +241,7 @@ async function handleMessageEvent(event: LineMessageEvent) {
   }
 
   // ============================================================
-  // 2. ゴミ分類
+  // 2. カレンダーデータ取得（リッチメニュー・ゴミ分類共通）
   // ============================================================
 
   // LINE ユーザーIDからゴミカレのユーザーを特定
@@ -293,6 +309,34 @@ async function handleMessageEvent(event: LineMessageEvent) {
     await replyText(event.replyToken, 'カレンダーにデータが見つかりませんでした。')
     return
   }
+
+  // ============================================================
+  // 3. リッチメニュー（今日のゴミ / 明日のゴミ）
+  // ============================================================
+  if (event.message.type === 'text') {
+    const text = event.message.text.trim()
+
+    if (text === RICH_MENU_COMMANDS.TODAY || text === RICH_MENU_COMMANDS.TOMORROW) {
+      const targetDate = new Date()
+      // JSTの現在時刻を取得
+      targetDate.setHours(targetDate.getHours() + 9)
+
+      if (text === RICH_MENU_COMMANDS.TOMORROW) {
+        targetDate.setDate(targetDate.getDate() + 1)
+      }
+
+      const dateStr = targetDate.toISOString().slice(0, 10)
+      const label = text === RICH_MENU_COMMANDS.TODAY ? '今日' : '明日'
+
+      const replyMessage = getCollectionsByDate(events_data, dateStr, label)
+      await replyText(event.replyToken, replyMessage)
+      return
+    }
+  }
+
+  // ============================================================
+  // 4. ゴミ分類 (Gemini)
+  // ============================================================
 
   let query = ''
   let imageBase64: string | undefined
