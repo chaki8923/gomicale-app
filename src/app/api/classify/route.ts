@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { GoogleGenerativeAI } from '@google/generative-ai'
 import { getSupabaseServerClient, getSupabaseServiceClient } from '@/lib/supabase/server'
-import { hashApiKey, extractBearerToken } from '@/lib/apiKey'
 
 type CalendarEvent = {
   date: string
@@ -107,52 +106,13 @@ ${scheduleText}
 }`
 }
 
-/**
- * Bearer APIキーからユーザーIDを解決する。
- * 認証済みの場合はキーの last_used_at を更新する。
- */
-async function resolveUserIdFromApiKey(apiKey: string): Promise<string | null> {
-  const keyHash = hashApiKey(apiKey)
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const serviceClient = getSupabaseServiceClient() as any
-
-  const { data } = await serviceClient
-    .from('api_keys')
-    .select('id, user_id')
-    .eq('key_hash', keyHash)
-    .single()
-
-  if (!data) return null
-
-  // last_used_at を非同期で更新（失敗しても続行）
-  serviceClient
-    .from('api_keys')
-    .update({ last_used_at: new Date().toISOString() })
-    .eq('id', (data as { id: string }).id)
-    .then(() => {})
-
-  return (data as { user_id: string }).user_id
-}
-
 export async function POST(request: NextRequest) {
-  let userId: string | null = null
-
-  // 1. Bearer APIキー認証を優先チェック
-  const bearerToken = extractBearerToken(request.headers.get('authorization'))
-  if (bearerToken) {
-    userId = await resolveUserIdFromApiKey(bearerToken)
-    if (!userId) {
-      return NextResponse.json({ error: 'Invalid API key' }, { status: 401 })
-    }
-  } else {
-    // 2. セッション Cookie 認証（既存動作）
-    const supabase = await getSupabaseServerClient()
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-    userId = user.id
+  const supabase = await getSupabaseServerClient()
+  const { data: { user }, error: authError } = await supabase.auth.getUser()
+  if (authError || !user) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
+  const userId = user.id
 
   // multipart/form-data でテキストと任意の画像を受け取る
   let query = ''

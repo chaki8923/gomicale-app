@@ -11,7 +11,6 @@ import { JobStatusCard } from '@/components/JobStatusCard'
 import { AdBanner } from '@/components/AdBanner'
 import { LanguageSwitcher } from '@/components/LanguageSwitcher'
 import { GarbageClassifier } from './GarbageClassifier'
-import { ApiKeyManager } from './ApiKeyManager'
 import { LineLinkManager } from './LineLinkManager'
 import type { Job } from '@/types/database'
 
@@ -188,10 +187,6 @@ export function DashboardClient({ userEmail, initialJobs }: DashboardClientProps
 
         <section>
           <LineLinkManager />
-        </section>
-
-        <section>
-          <ApiKeyManager />
         </section>
 
         <div className="pt-4">
