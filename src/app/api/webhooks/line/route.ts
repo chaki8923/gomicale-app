@@ -100,7 +100,7 @@ function buildPrompt(events: CalendarEvent[], query: string, today: string): str
     .join('\n')
 
   return `あなたはゴミ分別の専門家です。
-以下のゴミ収集カレンダーをもとに、ユーザーが入力したアイテムが何のゴミに分類されるかと、直近の収集日を2件教えてください。
+以下のゴミ収集カレンダーをもとに、ユーザーが入力したアイテム（または画像）が何のゴミに分類されるかと、直近の収集日を2件教えてください。
 
 ## このカレンダーに登録されているゴミの種別
 ${categories}
@@ -112,12 +112,14 @@ ${scheduleText}
 「${query}」
 
 ## 回答ルール
+- 画像が添付されている場合は、AIが画像を解析して「何であるか（対象物の一般的な名称）」を \`itemName\` に記載すること。テキストのみの場合でも判別できた名称を記載すること。
 - 上記カレンダーに存在する収集種別の中から最も適切な1つを選ぶこと
 - カレンダーに該当する種別がない場合や、自動車・大型家電などの粗大ごみ・収集不可なアイテムの場合は、categoryに「判定不可（お住まいの自治体にお問い合わせください）」、nextDatesを空配列にしてください。
 - 直近の収集日はカレンダーから「今日（${today}）以降」で最も近い2件を選ぶこと
 - 以下のJSON形式のみで返すこと（説明文不要）
 
 {
+  "itemName": "画像または質問から判別した対象物の名前",
   "category": "収集種別名",
   "nextDates": [
     { "date": "YYYY-MM-DD", "title": "収集種別名" },
@@ -131,7 +133,7 @@ async function classifyWithGemini(
   query: string,
   imageBase64?: string,
   imageMimeType?: string
-): Promise<{ category: string; nextDates: { date: string; title: string }[] } | null> {
+): Promise<{ itemName?: string; category: string; nextDates: { date: string; title: string }[] } | null> {
   const apiKey = process.env.GEMINI_API_KEY
   if (!apiKey) return null
 
@@ -313,9 +315,14 @@ async function handleMessageEvent(event: LineMessageEvent) {
     return
   }
 
-  const { category, nextDates } = classifyResult
+  const { itemName, category, nextDates } = classifyResult
 
-  let replyMessage = `🗑️ 分類：${category}`
+  let replyMessage = ''
+  if (itemName) {
+    replyMessage += `📦 対象物：${itemName}\n`
+  }
+  replyMessage += `🗑️ 分類：${category}`
+
   if (nextDates && nextDates.length > 0) {
     const dateLines = nextDates
       .map((d) => {
