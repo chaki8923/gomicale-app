@@ -111,7 +111,7 @@ export function LineLinkManager() {
               <li>表示された6桁のコードをコピーする</li>
               <li>
                 <a
-                  href="https://line.me/R/ti/p/@gomicale"
+                  href="https://lin.ee/4F3CioD"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-teal-600 underline"
