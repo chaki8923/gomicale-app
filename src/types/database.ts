@@ -41,6 +41,27 @@ export type Database = {
         }
         Relationships: []
       }
+      line_links: {
+        Row: {
+          id: string
+          user_id: string
+          line_source_id: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          line_source_id: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          line_source_id?: string
+          created_at?: string
+        }
+        Relationships: []
+      }
       jobs: {
         Row: {
           created_at: string

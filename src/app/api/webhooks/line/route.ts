@@ -7,7 +7,12 @@ import { GoogleGenerativeAI } from '@google/generative-ai'
 // 型定義
 // ============================================================
 
-type LineEventSource = { type: string; userId?: string }
+type LineEventSource = {
+  type: string
+  userId?: string
+  groupId?: string
+  roomId?: string
+}
 
 type LineTextMessage = {
   type: 'text'
@@ -191,9 +196,15 @@ async function classifyWithGemini(
 // イベントハンドラ
 // ============================================================
 
+function getSourceId(source: LineEventSource): string | undefined {
+  if (source.type === 'group' && source.groupId) return source.groupId
+  if (source.type === 'room' && source.roomId) return source.roomId
+  return source.userId
+}
+
 async function handleMessageEvent(event: LineMessageEvent) {
-  const lineUserId = event.source.userId
-  if (!lineUserId || !event.replyToken) return
+  const lineSourceId = getSourceId(event.source)
+  if (!lineSourceId || !event.replyToken) return
 
   const serviceClient = getSupabaseServiceClient()
 
@@ -224,10 +235,18 @@ async function handleMessageEvent(event: LineMessageEvent) {
         return
       }
 
-      // user_integrations に line_user_id を保存（upsert）
+      // line_links に line_source_id を保存（すでに他のユーザーに紐づいている場合はエラーにするか上書きするか）
+      // 今回は upsert で「このトークルームを新しいユーザーに紐付け直す」挙動にする
       await serviceClient
-        .from('user_integrations')
-        .upsert({ user_id: linkCode.user_id, line_user_id: lineUserId }, { onConflict: 'user_id' })
+        .from('line_links')
+        .upsert({ user_id: linkCode.user_id, line_source_id: lineSourceId }, { onConflict: 'line_source_id' })
+
+      // （後方互換性のため、個人の場合は user_integrations にも保存しておく）
+      if (event.source.type === 'user' && event.source.userId) {
+        await serviceClient
+          .from('user_integrations')
+          .upsert({ user_id: linkCode.user_id, line_user_id: event.source.userId }, { onConflict: 'user_id' })
+      }
 
       // コードを使用済みにする
       await serviceClient
@@ -244,22 +263,39 @@ async function handleMessageEvent(event: LineMessageEvent) {
   // 2. カレンダーデータ取得（リッチメニュー・ゴミ分類共通）
   // ============================================================
 
-  // LINE ユーザーIDからゴミカレのユーザーを特定
-  const { data: integration } = await serviceClient
-    .from('user_integrations')
+  // LINE 送信元IDからゴミカレのユーザーを特定
+  const { data: lineLink } = await serviceClient
+    .from('line_links')
     .select('user_id')
-    .eq('line_user_id', lineUserId)
+    .eq('line_source_id', lineSourceId)
     .single()
 
-  if (!integration) {
-    await replyText(
-      event.replyToken,
-      'まだゴミカレと連携されていません。\nゴミカレのダッシュボード（https://gomicale.jp/dashboard）にアクセスし、「LINEと連携」から6桁のコードを取得して送信してください。'
-    )
-    return
-  }
+  let userId: string
 
-  const userId = integration.user_id
+  if (lineLink) {
+    userId = lineLink.user_id
+  } else {
+    // line_links にない場合、後方互換性のため user_integrations をフォールバックとして探す
+    const { data: integration } = await serviceClient
+      .from('user_integrations')
+      .select('user_id')
+      .eq('line_user_id', lineSourceId)
+      .single()
+
+    if (integration) {
+      userId = integration.user_id
+      // ついでに line_links にマイグレーションしておく
+      await serviceClient
+        .from('line_links')
+        .upsert({ user_id: userId, line_source_id: lineSourceId }, { onConflict: 'line_source_id' })
+    } else {
+      await replyText(
+        event.replyToken,
+        'まだゴミカレと連携されていません。\nゴミカレのダッシュボード（https://gomicale.jp/dashboard）にアクセスし、「LINEと連携」から6桁のコードを取得して送信してください。'
+      )
+      return
+    }
+  }
 
   // ユーザーの最新ゴミカレジョブを取得
   const { data: job } = await serviceClient
