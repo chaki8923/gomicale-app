@@ -374,6 +374,26 @@ async function handleMessageEvent(event: LineMessageEvent) {
   // 4. ゴミ分類 (Gemini)
   // ============================================================
 
+  // Gemini 利用制限の確認 (1ユーザーにつき1日5回まで)
+  const today = new Date().toISOString().slice(0, 10) // YYYY-MM-DD
+  const { data: usageLimit, error: usageError } = await serviceClient
+    .from('gemini_usage_limits')
+    .select('count')
+    .eq('user_id', userId)
+    .eq('date', today)
+    .single()
+
+  // usageLimit が取得できない場合はエラー（レコードが存在しない場合は0回として扱うので、後で新規作成する）
+  const currentCount = usageLimit ? usageLimit.count : 0
+
+  if (currentCount >= 5) {
+    await replyText(
+      event.replyToken,
+      '⚠️ 本日のAI画像判別機能の利用上限（5回）に達しました。\n\n「今日のゴミ」「明日のゴミ」などの検索機能は引き続きご利用いただけます。\nAI判別機能は明日またご利用ください。'
+    )
+    return
+  }
+
   let query = ''
   let imageBase64: string | undefined
   let imageMimeType: string | undefined
@@ -394,6 +414,11 @@ async function handleMessageEvent(event: LineMessageEvent) {
     await replyText(event.replyToken, 'ゴミの分類に失敗しました。もう一度お試しください。')
     return
   }
+
+  // Gemini呼び出し成功時、利用回数をインクリメント
+  await serviceClient
+    .from('gemini_usage_limits')
+    .upsert({ user_id: userId, date: today, count: currentCount + 1 }, { onConflict: 'user_id, date' })
 
   const { itemName, category, nextDates } = classifyResult
 
