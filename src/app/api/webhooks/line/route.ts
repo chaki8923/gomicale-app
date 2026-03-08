@@ -20,16 +20,20 @@ type LineImageMessage = {
   id: string
 }
 
-type LineEvent = {
+type LineMessageEvent = {
   type: 'message'
   replyToken: string
   source: LineEventSource
   message: LineTextMessage | LineImageMessage
-} | {
-  type: string
+}
+
+type LineOtherEvent = {
+  type: Exclude<string, 'message'>
   replyToken?: string
   source: LineEventSource
 }
+
+type LineEvent = LineMessageEvent | LineOtherEvent
 
 type LineWebhookBody = {
   events: LineEvent[]
@@ -169,7 +173,7 @@ async function classifyWithGemini(
 // イベントハンドラ
 // ============================================================
 
-async function handleMessageEvent(event: LineEvent & { type: 'message' }) {
+async function handleMessageEvent(event: LineMessageEvent) {
   const lineUserId = event.source.userId
   if (!lineUserId || !event.replyToken) return
 
@@ -358,7 +362,7 @@ export async function POST(request: NextRequest) {
     body.events.map(async (event) => {
       try {
         if (event.type === 'message') {
-          await handleMessageEvent(event as LineEvent & { type: 'message' })
+          await handleMessageEvent(event as LineMessageEvent)
         }
       } catch (err) {
         console.error('LINE webhook event error:', err)
