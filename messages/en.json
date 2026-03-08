@@ -27,6 +27,7 @@
       "check1": "Just upload a PDF",
       "check2": "AI extracts the schedule automatically",
       "check3": "Bulk-import to Google Calendar",
+      "check4": "Instant garbage sorting via LINE with a photo",
       "scrollHint": "Scroll to learn more ↓"
     },
     "slides": {
@@ -86,29 +87,38 @@
           {
             "q": "Can I use it from my smartphone?",
             "a": "Yes, it works in mobile browsers including Safari on iPhone and Chrome on Android."
+          },
+          {
+            "q": "What is the LINE Bot feature?",
+            "a": "By linking with the LINE Bot via a code from the dashboard, you can simply send a photo on LINE and instantly get the garbage category and next collection date."
           }
         ]
       },
       "useCases": {
         "title": "Use Cases",
         "subtitle": "Works with any PDF schedule — not just garbage collection calendars.",
-        "cases": [
-          {
-            "icon": "🗑️",
-            "title": "Garbage Collection Calendars",
-            "body": "The annual garbage collection calendar PDF distributed by your municipality. Register each category — burnable waste, plastics, bulky items — to Google Calendar with morning reminders on collection day."
-          },
-          {
-            "icon": "🏫",
-            "title": "School & PTA Event Schedules",
-            "body": "Annual event schedule PDFs from schools — ceremonies, sports days, parent meetings. Bulk-register to the family Google Calendar to easily share schedules between partners."
-          },
-          {
-            "icon": "📋",
-            "title": "Community & Building Events",
-            "body": "Town council calendars, condominium cleaning and inspection schedules, and more. Just upload the PDF you received and every event lands on your smartphone."
-          }
-        ]
+    "cases": [
+      {
+        "icon": "🗑️",
+        "title": "Garbage Collection Calendars",
+        "body": "The annual garbage collection calendar PDF distributed by your municipality. Register each category — burnable waste, plastics, bulky items — to Google Calendar with morning reminders on collection day."
+      },
+      {
+        "icon": "🏫",
+        "title": "School & PTA Event Schedules",
+        "body": "Annual event schedule PDFs from schools — ceremonies, sports days, parent meetings. Bulk-register to the family Google Calendar to easily share schedules between partners."
+      },
+      {
+        "icon": "📋",
+        "title": "Community & Building Events",
+        "body": "Town council calendars, condominium cleaning and inspection schedules, and more. Just upload the PDF you received and every event lands on your smartphone."
+      },
+      {
+        "icon": "📱",
+        "title": "Easy Sorting via LINE Bot",
+        "body": "By linking with the GomiCale LINE Bot, you can simply text 'batteries' or send a photo of the garbage to immediately find out the category and next collection date. You don't even need to open the app."
+      }
+    ]
       },
       "about": {
         "title": "Our Story",
@@ -251,6 +261,8 @@
       { "q": "I'm worried about Google Calendar access permissions.", "a": "GomiCale uses Google's official OAuth authentication and only requests the minimum permissions needed to add events to Google Calendar. We never obtain your password, and you can revoke access at any time from your Google Account settings under Security > Third-party apps and services." },
       { "q": "Will events duplicate with existing Google Calendar events?", "a": "GomiCale adds events extracted from the PDF as new entries to Google Calendar. We perform duplicate checking and skip events with the same date, time, and title that already exist. You can check the number of skipped events in the registration history on the dashboard." },
       { "q": "Can I use it from my smartphone?", "a": "Yes, it works in mobile browsers including Safari on iPhone and Chrome on Android. PDF files can be selected from your phone's Photos app or Files app to upload." },
+      { "q": "What is the LINE Bot feature?", "a": "By sending a 6-digit code generated on the GomiCale dashboard to the LINE Bot, you can link your account. Once linked, simply send a text like 'batteries' or a photo of your garbage via LINE, and AI will analyze it to instantly tell you the category and the next collection dates." },
+      { "q": "Are the photos I send via LINE saved or used for AI training?", "a": "No, the images and text data you send are only temporarily transmitted to the AI for classification purposes. We use settings that prohibit the data from being used to train AI models (opt-out). Your data will never be published or shared with third parties, so you can use it with peace of mind." },
       { "q": "Are there any unsupported municipalities?", "a": "GomiCale is not limited to specific municipalities and supports any PDF calendar format from any municipality in Japan. However, accuracy may vary depending on how each municipality formats and distributes their PDF calendars." },
       { "q": "Can I delete my account?", "a": "Yes, you can request account and data deletion by contacting us. Deletion will remove your registration history and Google account integration information. Note that events already registered to Google Calendar will not be deleted — please remove those from Google Calendar if needed." }
     ]

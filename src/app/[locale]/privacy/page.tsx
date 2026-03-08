@@ -66,7 +66,8 @@ function PrivacyJa() {
           <p>当社は、本サービスの提供にあたり、以下の情報を取得します。</p>
           <ul className="list-decimal list-inside space-y-2 ml-4">
             <li><strong>Googleアカウント情報</strong>：メールアドレス、アクセストークン・リフレッシュトークン</li>
-            <li><strong>アップロードされたPDFデータ</strong>：PDFファイルおよびそこから解析されたイベント情報</li>
+            <li><strong>LINE連携情報</strong>：LINEのユーザー識別子、およびLINE経由で送信されたテキストメッセージ・画像データ</li>
+            <li><strong>アップロードされたデータ</strong>：PDFファイル等の画像・ドキュメントデータ、およびそこから解析されたイベント情報</li>
             <li><strong>利用情報</strong>：ジョブの処理履歴、サービス利用ログ</li>
             <li><strong>アクセス情報</strong>：IPアドレス、アクセス日時、ブラウザ情報</li>
           </ul>
@@ -110,9 +111,16 @@ function PrivacyJa() {
         </div>
       </section>
       <section>
-        <h2 className="text-2xl font-semibold text-gray-900 mb-4">第5条（外部サービスの利用）</h2>
+        <h2 className="text-2xl font-semibold text-gray-900 mb-4">第5条（外部サービスへのデータ送信と利用制限）</h2>
         <div className="text-gray-700 space-y-3">
-          <p>本サービスでは、Supabase（認証・DB）、Cloudflare R2（PDF一時保存）、Google Gemini API（AI解析）、Google Calendar API（カレンダー登録）、AWS Lambda（処理実行）を利用しています。</p>
+          <p>本サービスでは、機能提供の目的で以下の外部サービスを利用しており、必要な範囲でデータを送信します。</p>
+          <ul className="list-disc list-inside space-y-2 ml-4">
+            <li><strong>インフラストラクチャ</strong>：Supabase、Cloudflare R2、AWS Lambda</li>
+            <li><strong>AI解析・判定</strong>：Google Gemini API
+              <p className="ml-5 mt-1 text-sm text-gray-600">※アップロードされたPDFデータや、LINE経由で送信されたテキスト・画像データが送信されます。これらのデータは当社からAIモデルの学習に利用されない設定（オプトアウト）で送信しており、ユーザーのプライバシー保護に努めています。</p>
+            </li>
+            <li><strong>API連携</strong>：Google Calendar API（カレンダー登録）、LINE Messaging API（LINE Bot）</li>
+          </ul>
         </div>
       </section>
       <section>
@@ -155,6 +163,7 @@ function PrivacyJa() {
       </section>
       <div className="pt-8 mt-8 border-t border-gray-200">
         <p className="text-sm text-gray-600">制定日：2026年2月23日</p>
+        <p className="text-sm text-gray-600 mt-1">改定日：2026年3月7日</p>
         <p className="text-sm text-gray-600 mt-2">運営者：茶木 涼</p>
       </div>
     </>
@@ -175,7 +184,8 @@ function PrivacyEn() {
           <p>We collect the following information in providing the Service:</p>
           <ul className="list-decimal list-inside space-y-2 ml-4">
             <li><strong>Google Account Information</strong>: Email address, access tokens, and refresh tokens</li>
-            <li><strong>Uploaded PDF Data</strong>: PDF files and event information extracted from them</li>
+            <li><strong>LINE Integration Information</strong>: LINE user identifiers, and text messages/images sent via LINE</li>
+            <li><strong>Uploaded Data</strong>: PDF files, images, documents, and event information extracted from them</li>
             <li><strong>Usage Information</strong>: Job processing history, service usage logs</li>
             <li><strong>Access Information</strong>: IP address, access date/time, browser information</li>
           </ul>
@@ -207,8 +217,17 @@ function PrivacyEn() {
         <p className="text-gray-700">We will not provide personal information to third parties without user consent, except as required by law, to protect life or property, or to cooperate with government agencies.</p>
       </section>
       <section>
-        <h2 className="text-2xl font-semibold text-gray-900 mb-4">Article 5 (Third-Party Services)</h2>
-        <p className="text-gray-700">The Service uses Supabase (authentication/database), Cloudflare R2 (temporary PDF storage), Google Gemini API (AI analysis), Google Calendar API (calendar registration), and AWS Lambda (processing).</p>
+        <h2 className="text-2xl font-semibold text-gray-900 mb-4">Article 5 (Data Transmission to External Services)</h2>
+        <div className="text-gray-700 space-y-3">
+          <p>We use the following external services to provide our functionality and transmit data only to the necessary extent:</p>
+          <ul className="list-disc list-inside space-y-2 ml-4">
+            <li><strong>Infrastructure</strong>: Supabase, Cloudflare R2, AWS Lambda</li>
+            <li><strong>AI Analysis</strong>: Google Gemini API
+              <p className="ml-5 mt-1 text-sm text-gray-600">* Uploaded PDFs, and texts/images sent via LINE are transmitted. To protect user privacy, we transmit these data using settings that prohibit their use in training AI models (opt-out).</p>
+            </li>
+            <li><strong>API Integration</strong>: Google Calendar API (for calendar registration), LINE Messaging API (for LINE Bot)</li>
+          </ul>
+        </div>
       </section>
       <section>
         <h2 className="text-2xl font-semibold text-gray-900 mb-4">Article 6 (Disclosure, Correction, Deletion)</h2>
@@ -245,6 +264,7 @@ function PrivacyEn() {
       </section>
       <div className="pt-8 mt-8 border-t border-gray-200">
         <p className="text-sm text-gray-600">Established: February 23, 2026</p>
+        <p className="text-sm text-gray-600 mt-1">Revised: March 7, 2026</p>
         <p className="text-sm text-gray-600 mt-2">Operator: Ryo Chaki</p>
       </div>
     </>

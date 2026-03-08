@@ -333,7 +333,7 @@ async function handleMessageEvent(event: LineMessageEvent) {
           weekday: 'short',
           timeZone: 'Asia/Tokyo',
         })
-        return `📅 ${formatted}（${d.title}）`
+        return `・${formatted}（${d.title}）`
       })
       .join('\n')
     replyMessage += `\n\n直近の収集日：\n${dateLines}`

@@ -102,7 +102,15 @@ function TermsJa() {
         </div>
       </section>
       <section>
-        <h2 className="text-2xl font-semibold text-gray-900 mb-4">第6条（禁止事項）</h2>
+        <h2 className="text-2xl font-semibold text-gray-900 mb-4">第6条（外部サービスおよびAI技術の利用）</h2>
+        <div className="text-gray-700 space-y-3">
+          <p>ユーザーは、LINEなどの外部アカウントと本サービスを連携させて利用することができます。外部連携の利用にあたっては、当該外部サービスが定める利用規約を遵守するものとします。</p>
+          <p>本サービスは、ユーザーがLINE等の外部サービスを通じて送信したテキストや画像データ、およびアップロードしたPDFデータを、機能提供（ゴミ分別判定など）の目的で外部のAIサービス（Google Generative AIなど）に送信し処理します。ユーザーはこれに同意するものとします。</p>
+          <p>前項のデータ送信において、当社はユーザーのプライバシーに配慮し、送信されたデータがAIモデルの学習に利用されない設定（オプトアウト等）で外部AIサービスを利用します。</p>
+        </div>
+      </section>
+      <section>
+        <h2 className="text-2xl font-semibold text-gray-900 mb-4">第7条（禁止事項）</h2>
         <div className="text-gray-700 space-y-3">
           <p>ユーザーは、本サービスの利用にあたり、以下の行為をしてはなりません。</p>
           <ul className="list-decimal list-inside space-y-2 ml-4">
@@ -119,7 +127,7 @@ function TermsJa() {
         </div>
       </section>
       <section>
-        <h2 className="text-2xl font-semibold text-gray-900 mb-4">第7条（本サービスの停止等）</h2>
+        <h2 className="text-2xl font-semibold text-gray-900 mb-4">第8条（本サービスの停止等）</h2>
         <div className="text-gray-700 space-y-3">
           <p>当社は、以下のいずれかに該当する場合には、ユーザーに事前に通知することなく、本サービスの全部または一部の提供を停止または中断することができるものとします。</p>
           <ul className="list-decimal list-inside space-y-2 ml-4">
@@ -131,7 +139,7 @@ function TermsJa() {
         </div>
       </section>
       <section>
-        <h2 className="text-2xl font-semibold text-gray-900 mb-4">第8条（免責事項）</h2>
+        <h2 className="text-2xl font-semibold text-gray-900 mb-4">第9条（免責事項）</h2>
         <div className="text-gray-700 space-y-3">
           <p>当社は、本サービスによるAI解析結果（日付・予定タイトル等）の正確性、完全性を保証しません。ユーザーは、登録された予定の内容をご自身で確認のうえ利用するものとします。</p>
           <p>当社は、本サービスの利用または利用不能により生じたいかなる損害についても、当社に故意または重大な過失がある場合を除き、責任を負いません。</p>
@@ -139,18 +147,19 @@ function TermsJa() {
         </div>
       </section>
       <section>
-        <h2 className="text-2xl font-semibold text-gray-900 mb-4">第9条（準拠法および管轄裁判所）</h2>
+        <h2 className="text-2xl font-semibold text-gray-900 mb-4">第10条（準拠法および管轄裁判所）</h2>
         <div className="text-gray-700 space-y-3">
           <p>本規約の解釈にあたっては、日本法を準拠法とします。</p>
           <p>本サービスに関して紛争が生じた場合には、当社の所在地を管轄する裁判所を専属的合意管轄とします。</p>
         </div>
       </section>
       <section>
-        <h2 className="text-2xl font-semibold text-gray-900 mb-4">第10条（規約の変更）</h2>
+        <h2 className="text-2xl font-semibold text-gray-900 mb-4">第11条（規約の変更）</h2>
         <p className="text-gray-700">当社は、ユーザーの承諾を得ることなく、いつでも本規約の内容を変更することができるものとします。変更後の本規約は、本サービス上に表示した時点より効力を生じるものとします。</p>
       </section>
       <div className="pt-8 mt-8 border-t border-gray-200">
         <p className="text-sm text-gray-600">制定日：2026年2月23日</p>
+        <p className="text-sm text-gray-600 mt-1">改定日：2026年3月7日</p>
         <p className="text-sm text-gray-600 mt-2">運営者：茶木 涼</p>
       </div>
     </>
@@ -204,7 +213,15 @@ function TermsEn() {
         </div>
       </section>
       <section>
-        <h2 className="text-2xl font-semibold text-gray-900 mb-4">Article 6 (Prohibited Actions)</h2>
+        <h2 className="text-2xl font-semibold text-gray-900 mb-4">Article 6 (Use of External Services and AI Technology)</h2>
+        <div className="text-gray-700 space-y-3">
+          <p>Users may link external accounts (such as LINE) to use the Service. When using external integrations, users must comply with the terms of service set by the respective external services.</p>
+          <p>The Service transmits and processes text and image data sent via external services (e.g., LINE) or uploaded PDF data to external AI services (such as Google Generative AI) for the purpose of providing functionality (e.g., garbage classification). Users consent to this transmission and processing.</p>
+          <p>In the aforementioned data transmission, we prioritize user privacy and use external AI services with settings that prohibit the data from being used to train AI models (opt-out).</p>
+        </div>
+      </section>
+      <section>
+        <h2 className="text-2xl font-semibold text-gray-900 mb-4">Article 7 (Prohibited Actions)</h2>
         <div className="text-gray-700 space-y-3">
           <p>Users must not engage in any of the following when using the Service:</p>
           <ul className="list-decimal list-inside space-y-2 ml-4">
@@ -220,7 +237,7 @@ function TermsEn() {
         </div>
       </section>
       <section>
-        <h2 className="text-2xl font-semibold text-gray-900 mb-4">Article 7 (Service Suspension)</h2>
+        <h2 className="text-2xl font-semibold text-gray-900 mb-4">Article 8 (Service Suspension)</h2>
         <div className="text-gray-700 space-y-3">
           <p>We may suspend or interrupt all or part of the Service without prior notice to users in any of the following cases:</p>
           <ul className="list-decimal list-inside space-y-2 ml-4">
@@ -232,7 +249,7 @@ function TermsEn() {
         </div>
       </section>
       <section>
-        <h2 className="text-2xl font-semibold text-gray-900 mb-4">Article 8 (Disclaimer)</h2>
+        <h2 className="text-2xl font-semibold text-gray-900 mb-4">Article 9 (Disclaimer)</h2>
         <div className="text-gray-700 space-y-3">
           <p>We do not guarantee the accuracy or completeness of AI analysis results (dates, event titles, etc.) from the Service. Users must verify registered event content themselves.</p>
           <p>We are not liable for any damages arising from use or inability to use the Service, except in cases of intentional misconduct or gross negligence.</p>
@@ -240,18 +257,19 @@ function TermsEn() {
         </div>
       </section>
       <section>
-        <h2 className="text-2xl font-semibold text-gray-900 mb-4">Article 9 (Governing Law and Jurisdiction)</h2>
+        <h2 className="text-2xl font-semibold text-gray-900 mb-4">Article 10 (Governing Law and Jurisdiction)</h2>
         <div className="text-gray-700 space-y-3">
           <p>These Terms shall be governed by and construed in accordance with Japanese law.</p>
           <p>Any disputes related to the Service shall be subject to the exclusive jurisdiction of the court having jurisdiction over our location.</p>
         </div>
       </section>
       <section>
-        <h2 className="text-2xl font-semibold text-gray-900 mb-4">Article 10 (Changes to Terms)</h2>
+        <h2 className="text-2xl font-semibold text-gray-900 mb-4">Article 11 (Changes to Terms)</h2>
         <p className="text-gray-700">We may change the content of these Terms at any time without user consent. Changes take effect when displayed on the Service.</p>
       </section>
       <div className="pt-8 mt-8 border-t border-gray-200">
         <p className="text-sm text-gray-600">Established: February 23, 2026</p>
+        <p className="text-sm text-gray-600 mt-1">Revised: March 7, 2026</p>
         <p className="text-sm text-gray-600 mt-2">Operator: Ryo Chaki</p>
       </div>
     </>
