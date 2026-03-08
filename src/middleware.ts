@@ -1,12 +1,17 @@
 import createMiddleware from 'next-intl/middleware'
 import { routing } from './i18n/routing'
 import { updateSession } from './lib/supabase/middleware'
-import type { NextRequest } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 
 const intlMiddleware = createMiddleware(routing)
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
+
+  // External webhooks: bypass Supabase session update entirely
+  if (pathname.startsWith('/api/webhooks')) {
+    return NextResponse.next()
+  }
 
   // API routes and auth callback don't need locale routing
   if (pathname.startsWith('/api') || pathname.startsWith('/auth')) {

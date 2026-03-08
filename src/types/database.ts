@@ -14,6 +14,60 @@ export type Database = {
   }
   public: {
     Tables: {
+      api_keys: {
+        Row: {
+          id: string
+          user_id: string
+          key_hash: string
+          name: string | null
+          last_used_at: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          key_hash: string
+          name?: string | null
+          last_used_at?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          key_hash?: string
+          name?: string | null
+          last_used_at?: string | null
+          created_at?: string
+        }
+        Relationships: []
+      }
+      line_link_codes: {
+        Row: {
+          id: string
+          user_id: string
+          code: string
+          expires_at: string
+          used_at: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          code: string
+          expires_at: string
+          used_at?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          code?: string
+          expires_at?: string
+          used_at?: string | null
+          created_at?: string
+        }
+        Relationships: []
+      }
       jobs: {
         Row: {
           created_at: string
@@ -80,6 +134,7 @@ export type Database = {
           google_access_token_enc: string | null
           google_refresh_token_enc: string | null
           id: string
+          line_user_id: string | null
           token_expires_at: string | null
           updated_at: string
           user_id: string
@@ -89,6 +144,7 @@ export type Database = {
           google_access_token_enc?: string | null
           google_refresh_token_enc?: string | null
           id?: string
+          line_user_id?: string | null
           token_expires_at?: string | null
           updated_at?: string
           user_id: string
@@ -98,6 +154,7 @@ export type Database = {
           google_access_token_enc?: string | null
           google_refresh_token_enc?: string | null
           id?: string
+          line_user_id?: string | null
           token_expires_at?: string | null
           updated_at?: string
           user_id?: string
@@ -250,6 +307,8 @@ export type JobStatus = Database["public"]["Enums"]["job_status"]
 export type Job = Database["public"]["Tables"]["jobs"]["Row"]
 export type UserIntegration = Database["public"]["Tables"]["user_integrations"]["Row"]
 export type ParsedPdf = Database["public"]["Tables"]["parsed_pdfs"]["Row"]
+export type ApiKey = Database["public"]["Tables"]["api_keys"]["Row"]
+export type LineLinkCode = Database["public"]["Tables"]["line_link_codes"]["Row"]
 export type GarbageEvent = {
   date: string
   garbage_type: string
