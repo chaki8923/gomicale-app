@@ -11,6 +11,7 @@ import { JobStatusCard } from '@/components/JobStatusCard'
 import { AdBanner } from '@/components/AdBanner'
 import { LanguageSwitcher } from '@/components/LanguageSwitcher'
 import { GarbageClassifier } from './GarbageClassifier'
+import { LineLinkManager } from './LineLinkManager'
 import type { Job } from '@/types/database'
 
 interface DashboardClientProps {
@@ -182,6 +183,10 @@ export function DashboardClient({ userEmail, initialJobs }: DashboardClientProps
 
         <section>
           <GarbageClassifier />
+        </section>
+
+        <section>
+          <LineLinkManager />
         </section>
 
         <div className="pt-4">

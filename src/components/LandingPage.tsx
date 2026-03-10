@@ -402,6 +402,12 @@ function HeroSlide() {
           </span>
           {t('hero.check3')}
         </p>
+        <p className="flex items-center gap-2">
+          <span className="flex items-center justify-center w-5 h-5 rounded-full bg-teal-500 text-white shrink-0">
+            <IconCheck className="w-3 h-3" />
+          </span>
+          {t('hero.check4')}
+        </p>
       </div>
 
       <GoogleLoginButton

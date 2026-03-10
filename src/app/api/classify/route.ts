@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { GoogleGenerativeAI } from '@google/generative-ai'
-import { getSupabaseServerClient } from '@/lib/supabase/server'
+import { getSupabaseServerClient, getSupabaseServiceClient } from '@/lib/supabase/server'
 
 type CalendarEvent = {
   date: string
@@ -108,11 +108,11 @@ ${scheduleText}
 
 export async function POST(request: NextRequest) {
   const supabase = await getSupabaseServerClient()
-
   const { data: { user }, error: authError } = await supabase.auth.getUser()
   if (authError || !user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
+  const userId = user.id
 
   // multipart/form-data でテキストと任意の画像を受け取る
   let query = ''
@@ -142,10 +142,11 @@ export async function POST(request: NextRequest) {
   }
 
   // ユーザーの最新のゴミカレンダーjob（完了済み）を取得
-  const { data: job } = await supabase
+  const serviceClient = getSupabaseServiceClient()
+  const { data: job } = await serviceClient
     .from('jobs')
     .select('pdf_hash, parser_mode')
-    .eq('user_id', user.id)
+    .eq('user_id', userId)
     .eq('status', 'completed')
     .or('parser_mode.eq.garbage,parser_mode.is.null')
     .order('created_at', { ascending: false })
@@ -160,14 +161,14 @@ export async function POST(request: NextRequest) {
   const hashWithLang = `${job.pdf_hash}_${locale}`
   const hashFallback = `${job.pdf_hash}_${locale === 'ja' ? 'en' : 'ja'}`
 
-  let parsedData = await supabase
+  let parsedData = await serviceClient
     .from('parsed_pdfs')
     .select('extracted_json')
     .eq('pdf_hash', hashWithLang)
     .single()
 
   if (!parsedData.data) {
-    parsedData = await supabase
+    parsedData = await serviceClient
       .from('parsed_pdfs')
       .select('extracted_json')
       .eq('pdf_hash', hashFallback)
@@ -176,7 +177,7 @@ export async function POST(request: NextRequest) {
 
   // hash にサフィックスがないパターンにも対応
   if (!parsedData.data) {
-    parsedData = await supabase
+    parsedData = await serviceClient
       .from('parsed_pdfs')
       .select('extracted_json')
       .eq('pdf_hash', job.pdf_hash)
