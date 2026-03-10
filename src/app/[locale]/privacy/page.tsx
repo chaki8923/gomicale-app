@@ -222,31 +222,16 @@ function PrivacyEn() {
         <p className="text-gray-700">We will not provide personal information to third parties without user consent, except as required by law, to protect life or property, or to cooperate with government agencies.</p>
       </section>
       <section>
-<<<<<<< HEAD
         <h2 className="text-2xl font-semibold text-gray-900 mb-4">Article 5 (Third-Party Services and Data Handling)</h2>
         <div className="text-gray-700 space-y-3">
-          <p>The Service uses the following third-party services to provide its functionality:</p>
+          <p>The Service uses the following third-party services to provide its functionality and transmit data only to the necessary extent:</p>
           <ul className="list-disc list-inside space-y-2 ml-4">
-            <li>Supabase (authentication/database)</li>
-            <li>Cloudflare R2 (temporary PDF storage)</li>
-            <li>Google Gemini API (AI analysis)</li>
-            <li>Google Calendar API (calendar registration)</li>
-            <li>AWS Lambda (processing)</li>
-          </ul>
-          <p className="mt-3 font-semibold text-gray-900">[Regarding AI Analysis and PDF Data Protection]</p>
-          <p>PDF data uploaded by users is temporarily stored for analysis processing and is promptly deleted upon completion. Furthermore, the data sent for analysis is strictly prohibited from being used for AI model training or any other secondary purposes.</p>
-=======
-        <h2 className="text-2xl font-semibold text-gray-900 mb-4">Article 5 (Data Transmission to External Services)</h2>
-        <div className="text-gray-700 space-y-3">
-          <p>We use the following external services to provide our functionality and transmit data only to the necessary extent:</p>
-          <ul className="list-disc list-inside space-y-2 ml-4">
-            <li><strong>Infrastructure</strong>: Supabase, Cloudflare R2, AWS Lambda</li>
+            <li><strong>Infrastructure</strong>: Supabase (authentication/database), Cloudflare R2 (temporary PDF storage), AWS Lambda</li>
             <li><strong>AI Analysis</strong>: Google Gemini API
-              <p className="ml-5 mt-1 text-sm text-gray-600">* Uploaded PDFs, and texts/images sent via LINE are transmitted. To protect user privacy, we transmit these data using settings that prohibit their use in training AI models (opt-out).</p>
+              <p className="ml-5 mt-1 text-sm text-gray-600">* Uploaded PDFs, and texts/images sent via LINE are transmitted for analysis processing. These data are promptly deleted upon completion. To protect user privacy, we transmit these data using settings that strictly prohibit their use in training AI models (opt-out).</p>
             </li>
             <li><strong>API Integration</strong>: Google Calendar API (for calendar registration), LINE Messaging API (for LINE Bot)</li>
           </ul>
->>>>>>> origin/main
         </div>
       </section>
       <section>
