@@ -99,6 +99,34 @@ export default async function AboutPage() {
                     <a href="https://gomicale.jp" className="text-teal-600 hover:underline">https://gomicale.jp</a>
                   </span>
                 </div>
+                <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 pt-4">
+                  <span className="font-medium text-gray-900">{isEn ? 'Profile' : '経歴・プロフィール'}</span>
+                  <span className="col-span-2 sm:col-span-3">
+                    {isEn ? (
+                      <>
+                        4 years of experience as a software engineer.<br/>
+                        Transitioned from a pachinko parlor employee to an engineer due to future anxieties triggered by the COVID-19 pandemic. Currently working at an in-house development company, creating useful tools for daily life.
+                      </>
+                    ) : (
+                      <>
+                        エンジニア歴4年。<br/>
+                        前職はパチンコ店勤務。コロナ禍をきっかけに将来への不安を感じ、「手に職をつけたい」と一念発起してエンジニアへ転身。現在は自社開発企業でバックエンド・フロントエンドの開発に携わりつつ、生活の課題を解決する個人開発を行っています。
+                      </>
+                    )}
+                  </span>
+                </div>
+                <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                  <span className="font-medium text-gray-900">GitHub</span>
+                  <span className="col-span-2 sm:col-span-3">
+                    <a href="https://github.com/chakiryou" target="_blank" rel="noopener noreferrer" className="text-teal-600 hover:underline">https://github.com/chakiryou</a>
+                  </span>
+                </div>
+                <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                  <span className="font-medium text-gray-900">Qiita</span>
+                  <span className="col-span-2 sm:col-span-3">
+                    <a href="https://qiita.com/chakiryou" target="_blank" rel="noopener noreferrer" className="text-teal-600 hover:underline">https://qiita.com/chakiryou</a>
+                  </span>
+                </div>
               </div>
             </div>
           </div>

@@ -91,10 +91,10 @@ function PrivacyJa() {
         <div className="text-gray-700 space-y-3">
           <p>本サービスがGoogleアカウントから取得する情報の利用は、以下の目的に限定されます。</p>
           <ul className="list-disc list-inside space-y-2 ml-4">
-            <li>ユーザーのGoogleカレンダーへの予定の登録・確認</li>
-            <li>ユーザーの認証・識別</li>
+            <li>ユーザーのGoogleカレンダーへの予定の登録・確認（OAuth認証による最小限のスコープ <code>https://www.googleapis.com/auth/calendar.events</code> の利用）</li>
+            <li>ユーザーの認証・識別（<code>email</code>, <code>profile</code>, <code>openid</code>）</li>
           </ul>
-          <p className="mt-3">取得したGoogleアカウント情報は、上記以外の目的には利用せず、第三者への提供も行いません。</p>
+          <p className="mt-3">取得したGoogleアカウント情報は、上記以外の目的には利用せず、第三者への提供も行いません。また、OAuth認証によって取得したアクセストークン等の認証情報は、通信の暗号化や厳格なアクセス制御によって安全に保護・管理されます。</p>
           <p>本サービスのGoogleAPIの利用は、
             <a href="https://developers.google.com/terms/api-services-user-data-policy" target="_blank" rel="noopener noreferrer" className="text-teal-600 hover:underline">
               Googleのユーザーデータポリシー
@@ -110,9 +110,18 @@ function PrivacyJa() {
         </div>
       </section>
       <section>
-        <h2 className="text-2xl font-semibold text-gray-900 mb-4">第5条（外部サービスの利用）</h2>
+        <h2 className="text-2xl font-semibold text-gray-900 mb-4">第5条（外部サービスの利用とデータ取り扱い）</h2>
         <div className="text-gray-700 space-y-3">
-          <p>本サービスでは、Supabase（認証・DB）、Cloudflare R2（PDF一時保存）、Google Gemini API（AI解析）、Google Calendar API（カレンダー登録）、AWS Lambda（処理実行）を利用しています。</p>
+          <p>本サービスでは、機能提供のために以下の外部サービスを利用しています。</p>
+          <ul className="list-disc list-inside space-y-2 ml-4">
+            <li>Supabase（認証・DB）</li>
+            <li>Cloudflare R2（PDF一時保存）</li>
+            <li>Google Gemini API（AI解析）</li>
+            <li>Google Calendar API（カレンダー登録）</li>
+            <li>AWS Lambda（処理実行）</li>
+          </ul>
+          <p className="mt-3 font-semibold text-gray-900">【AI解析とPDFデータの保護について】</p>
+          <p>ユーザーがアップロードしたPDFデータは、解析処理のために一時的に保存され、処理完了後は速やかに削除されます。また、解析のために送信されるデータがAIモデルの学習（二次利用）に利用されることは一切ありません。</p>
         </div>
       </section>
       <section>
@@ -198,7 +207,12 @@ function PrivacyEn() {
       <section>
         <h2 className="text-2xl font-semibold text-gray-900 mb-4">Article 3 (Google User Data)</h2>
         <div className="text-gray-700 space-y-3">
-          <p>Use of information obtained from Google accounts is limited to: registering and reviewing events in users' Google Calendar, and user authentication.</p>
+          <p>Use of information obtained from Google accounts is strictly limited to the following purposes:</p>
+          <ul className="list-disc list-inside space-y-2 ml-4">
+            <li>Registering and reviewing events in users' Google Calendar (utilizing the minimum required OAuth scope: <code>https://www.googleapis.com/auth/calendar.events</code>)</li>
+            <li>User authentication and identity verification (<code>email</code>, <code>profile</code>, <code>openid</code>)</li>
+          </ul>
+          <p className="mt-3">The obtained Google account information will not be used for any purposes other than the above, nor will it be provided to any third parties. Furthermore, authentication credentials such as access tokens obtained through OAuth are securely protected and managed using encrypted communication and strict access controls.</p>
           <p>Our use of Google APIs complies with the <a href="https://developers.google.com/terms/api-services-user-data-policy" target="_blank" rel="noopener noreferrer" className="text-teal-600 hover:underline">Google API Services User Data Policy</a>.</p>
         </div>
       </section>
@@ -207,8 +221,19 @@ function PrivacyEn() {
         <p className="text-gray-700">We will not provide personal information to third parties without user consent, except as required by law, to protect life or property, or to cooperate with government agencies.</p>
       </section>
       <section>
-        <h2 className="text-2xl font-semibold text-gray-900 mb-4">Article 5 (Third-Party Services)</h2>
-        <p className="text-gray-700">The Service uses Supabase (authentication/database), Cloudflare R2 (temporary PDF storage), Google Gemini API (AI analysis), Google Calendar API (calendar registration), and AWS Lambda (processing).</p>
+        <h2 className="text-2xl font-semibold text-gray-900 mb-4">Article 5 (Third-Party Services and Data Handling)</h2>
+        <div className="text-gray-700 space-y-3">
+          <p>The Service uses the following third-party services to provide its functionality:</p>
+          <ul className="list-disc list-inside space-y-2 ml-4">
+            <li>Supabase (authentication/database)</li>
+            <li>Cloudflare R2 (temporary PDF storage)</li>
+            <li>Google Gemini API (AI analysis)</li>
+            <li>Google Calendar API (calendar registration)</li>
+            <li>AWS Lambda (processing)</li>
+          </ul>
+          <p className="mt-3 font-semibold text-gray-900">[Regarding AI Analysis and PDF Data Protection]</p>
+          <p>PDF data uploaded by users is temporarily stored for analysis processing and is promptly deleted upon completion. Furthermore, the data sent for analysis is strictly prohibited from being used for AI model training or any other secondary purposes.</p>
+        </div>
       </section>
       <section>
         <h2 className="text-2xl font-semibold text-gray-900 mb-4">Article 6 (Disclosure, Correction, Deletion)</h2>

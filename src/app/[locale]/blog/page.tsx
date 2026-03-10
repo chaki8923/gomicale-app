@@ -113,6 +113,7 @@ export default async function BlogListPage({ params }: Props) {
           <Link href="/contact" className="hover:text-gray-600 transition">{tCommon('contact')}</Link>
           <Link href="/terms" className="hover:text-gray-600 transition">{tCommon('terms')}</Link>
           <Link href="/privacy" className="hover:text-gray-600 transition">{tCommon('privacy')}</Link>
+          <Link href="/sitemap" className="hover:text-gray-600 transition">サイトマップ</Link>
         </div>
         <p>{tCommon('copyright', { year: new Date().getFullYear() })}</p>
       </footer>

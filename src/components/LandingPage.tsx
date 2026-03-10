@@ -343,7 +343,7 @@ function StaticContent() {
           </div>
 
           <div className="mx-auto max-w-3xl pt-8 pb-4">
-            <AdBanner slot="3248117735" format="horizontal" height={90} />
+            {/* <AdBanner slot="3248117735" format="horizontal" height={90} /> */}
           </div>
         </div>
       </section>
@@ -356,6 +356,7 @@ function StaticContent() {
           <Link href="/terms" className="hover:text-gray-600 transition">{t('footer.terms')}</Link>
           <Link href="/privacy" className="hover:text-gray-600 transition">{t('footer.privacy')}</Link>
           <Link href="/legal" className="hover:text-gray-600 transition">{t('footer.legal')}</Link>
+          <Link href="/sitemap" className="hover:text-gray-600 transition">サイトマップ</Link>
         </div>
         <p>{tCommon('copyright', { year: new Date().getFullYear() })}</p>
       </footer>
@@ -501,7 +502,7 @@ function CtaSlide({ onScrollDown }: { onScrollDown?: () => void }) {
       </div>
 
       <div className="w-full px-4 pb-2">
-        <AdBanner slot="3248117735" format="horizontal" height={90} />
+        {/* <AdBanner slot="3248117735" format="horizontal" height={90} /> */}
       </div>
 
       <footer className="w-full py-4 text-center text-xs text-teal-700/60">
@@ -523,6 +524,9 @@ function CtaSlide({ onScrollDown }: { onScrollDown?: () => void }) {
           </Link>
           <Link href="/legal" className="hover:text-teal-700 hover:underline">
             {tCommon('legal')}
+          </Link>
+          <Link href="/sitemap" className="hover:text-teal-700 hover:underline">
+            サイトマップ
           </Link>
         </div>
         <p className="mt-4">{tCommon('copyright', { year: new Date().getFullYear() })}</p>

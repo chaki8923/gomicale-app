@@ -248,7 +248,7 @@ export function LandingPageStaticContent({ blogPosts = [] }: Props) {
           </div>
 
           <div className="mx-auto max-w-3xl pt-8 pb-4">
-            <AdBanner slot="3248117735" format="horizontal" height={90} />
+            {/* <AdBanner slot="3248117735" format="horizontal" height={90} /> */}
           </div>
         </div>
       </section>
@@ -263,6 +263,7 @@ export function LandingPageStaticContent({ blogPosts = [] }: Props) {
           <Link href="/terms" className="hover:text-gray-600 transition">{tCommon('terms')}</Link>
           <Link href="/privacy" className="hover:text-gray-600 transition">{tCommon('privacy')}</Link>
           <Link href="/legal" className="hover:text-gray-600 transition">{tCommon('legal')}</Link>
+          <Link href="/sitemap" className="hover:text-gray-600 transition">サイトマップ</Link>
         </div>
         <p>{tCommon('copyright', { year: new Date().getFullYear() })}</p>
       </footer>
