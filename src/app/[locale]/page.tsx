@@ -65,7 +65,7 @@ export default async function RootPage({
 
   let blogPosts: Awaited<ReturnType<typeof getBlogList>>['contents'] = []
   try {
-    const data = await getBlogList({ limit: 6 })
+    const data = await getBlogList({ limit: 9 })
     blogPosts = data.contents
   } catch {
     // MicroCMS not configured or error — blog section will be hidden
