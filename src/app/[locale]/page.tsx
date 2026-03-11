@@ -4,6 +4,7 @@ import { getSupabaseServerClient } from '@/lib/supabase/server'
 import { getBlogList } from '@/lib/microcms'
 import { LandingPage } from '@/components/LandingPage'
 import { LandingPageStaticContent } from '@/components/LandingPageStaticContent'
+import { JsonLd } from '@/components/JsonLd'
 
 type Props = {
   params: Promise<{ locale: string }>
@@ -50,6 +51,36 @@ const howToJsonLd = {
   ],
 }
 
+const websiteJsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'WebSite',
+  name: 'ゴミカレ',
+  url: 'https://gomicale.jp',
+  description: 'PDFのゴミ出しカレンダー、シフト表、行事予定表などをAIが解析し、Googleカレンダーに一括自動登録・インポートする無料スケジュール変換サービス。',
+  potentialAction: {
+    '@type': 'SearchAction',
+    target: {
+      '@type': 'EntryPoint',
+      urlTemplate: 'https://gomicale.jp/ja/blog?q={search_term_string}',
+    },
+    'query-input': 'required name=search_term_string',
+  },
+}
+
+const organizationJsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'Organization',
+  name: 'ゴミカレ',
+  url: 'https://gomicale.jp',
+  logo: {
+    '@type': 'ImageObject',
+    url: 'https://gomicale.jp/icon.png',
+    width: 144,
+    height: 144,
+  },
+  sameAs: [],
+}
+
 export default async function RootPage({
   params,
 }: {
@@ -77,6 +108,8 @@ export default async function RootPage({
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(howToJsonLd) }}
       />
+      <JsonLd data={websiteJsonLd} />
+      <JsonLd data={organizationJsonLd} />
       <LandingPage />
       <LandingPageStaticContent blogPosts={blogPosts} />
     </>

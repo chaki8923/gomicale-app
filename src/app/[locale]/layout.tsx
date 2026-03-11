@@ -5,6 +5,7 @@ import { NextIntlClientProvider, hasLocale } from 'next-intl'
 import { notFound } from 'next/navigation'
 import { routing } from '@/i18n/routing'
 import { Analytics } from '@vercel/analytics/next'
+import { SoftwareApplicationJsonLd } from '@/components/JsonLd'
 
 const geist = Geist({ subsets: ['latin'] })
 
@@ -95,25 +96,10 @@ export default async function LocaleLayout({
     notFound()
   }
 
-  const jsonLd = {
-    '@context': 'https://schema.org',
-    '@type': 'SoftwareApplication',
-    name: 'ゴミカレ',
-    operatingSystem: 'Web',
-    applicationCategory: 'ProductivityApplication',
-    description:
-      'PDFのゴミ出しカレンダー、シフト表、行事予定表などをAIが解析し、Googleカレンダーに一括自動登録・インポートする無料スケジュール変換サービス。',
-    url: 'https://gomicale.jp',
-    offers: { '@type': 'Offer', price: '0', priceCurrency: 'JPY' },
-  }
-
   return (
     <html lang={locale}>
       <head>
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
-        />
+        <SoftwareApplicationJsonLd />
       </head>
       <body className={`${geist.className} bg-gray-50 text-gray-900 antialiased`}>
         <NextIntlClientProvider>

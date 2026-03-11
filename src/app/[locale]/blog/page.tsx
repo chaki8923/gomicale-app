@@ -3,6 +3,7 @@ import { Link } from '@/i18n/navigation'
 import Image from 'next/image'
 import { getBlogList } from '@/lib/microcms'
 import { getTranslations } from 'next-intl/server'
+import { BlogListJsonLd, BreadcrumbJsonLd } from '@/components/JsonLd'
 
 type Props = {
   params: Promise<{ locale: string }>
@@ -40,6 +41,16 @@ export default async function BlogListPage({ params }: Props) {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      <BlogListJsonLd
+        posts={(posts ?? []).map((p) => ({ id: p.id, title: p.title, locale }))}
+        locale={locale}
+      />
+      <BreadcrumbJsonLd
+        items={[
+          { name: tCommon('topPage'), item: `https://gomicale.jp/${locale}` },
+          { name: 'ブログ', item: `https://gomicale.jp/${locale}/blog` },
+        ]}
+      />
       <header className="bg-white border-b">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2">

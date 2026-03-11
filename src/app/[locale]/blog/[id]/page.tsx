@@ -4,6 +4,7 @@ import { Link } from '@/i18n/navigation'
 import Image from 'next/image'
 import { getBlogPost } from '@/lib/microcms'
 import { getTranslations } from 'next-intl/server'
+import { ArticleJsonLd, BreadcrumbJsonLd, FaqJsonLd } from '@/components/JsonLd'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 3600
@@ -56,58 +57,33 @@ export default async function BlogPostPage({ params }: Props) {
 
   const description = post.content.replace(/<[^>]+>/g, '').slice(0, 120)
 
-  const articleJsonLd = {
-    '@context': 'https://schema.org',
-    '@type': 'Article',
-    headline: post.title,
-    description,
-    datePublished: post.publishedAt,
-    dateModified: post.revisedAt,
-    author: { '@type': 'Organization', name: 'ゴミカレ' },
-    publisher: {
-      '@type': 'Organization',
-      name: 'ゴミカレ',
-      logo: { '@type': 'ImageObject', url: 'https://gomicale.jp/favicon.ico' },
-    },
-    mainEntityOfPage: { '@type': 'WebPage', '@id': `https://gomicale.jp/blog/${id}` },
-    ...(post.eyecatch && { image: post.eyecatch.url }),
-  }
-
-  const breadcrumbJsonLd = {
-    '@context': 'https://schema.org',
-    '@type': 'BreadcrumbList',
-    itemListElement: [
-      {
-        '@type': 'ListItem',
-        position: 1,
-        name: tCommon('topPage'),
-        item: `https://gomicale.jp/${locale}`,
-      },
-      {
-        '@type': 'ListItem',
-        position: 2,
-        name: 'ブログ',
-        item: `https://gomicale.jp/${locale}/blog`,
-      },
-      {
-        '@type': 'ListItem',
-        position: 3,
-        name: post.title,
-        item: `https://gomicale.jp/${locale}/blog/${id}`,
-      },
-    ],
-  }
+  // 記事コンテンツ内のQ&AブロックをFAQスキーマとして抽出
+  // MicroCMSで「Q.〜」「A.〜」形式で書かれたFAQセクションを構造化データ化
+  const faqMatches = [...post.content.matchAll(/<strong>Q\.(.*?)<\/strong>.*?<p[^>]*>(.*?)<\/p>/gs)]
+  const faqItems = faqMatches.map((m) => ({
+    question: m[1].replace(/<[^>]+>/g, '').trim(),
+    answer: m[2].replace(/<[^>]+>/g, '').trim(),
+  })).filter((item) => item.question && item.answer)
 
   return (
     <>
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(articleJsonLd) }}
+      <ArticleJsonLd
+        headline={post.title}
+        description={description}
+        datePublished={post.publishedAt}
+        dateModified={post.revisedAt}
+        imageUrl={post.eyecatch?.url}
+        articleId={id}
+        locale={locale}
       />
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
+      <BreadcrumbJsonLd
+        items={[
+          { name: tCommon('topPage'), item: `https://gomicale.jp/${locale}` },
+          { name: 'ブログ', item: `https://gomicale.jp/${locale}/blog` },
+          { name: post.title, item: `https://gomicale.jp/${locale}/blog/${id}` },
+        ]}
       />
+      {faqItems.length > 0 && <FaqJsonLd items={faqItems} />}
       <div className="min-h-screen bg-gray-50">
         <header className="bg-white border-b">
           <div className="container mx-auto px-4 py-4 flex items-center justify-between">
