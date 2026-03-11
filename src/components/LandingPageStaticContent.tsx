@@ -264,7 +264,7 @@ export function LandingPageStaticContent({ blogPosts = [] }: Props) {
           <Link href="/terms" className="hover:text-gray-600 transition">{tCommon('terms')}</Link>
           <Link href="/privacy" className="hover:text-gray-600 transition">{tCommon('privacy')}</Link>
           <Link href="/legal" className="hover:text-gray-600 transition">{tCommon('legal')}</Link>
-          <Link href="/sitemap" className="hover:text-gray-600 transition">サイトマップ</Link>
+          <Link href="/sitemap" className="hover:text-gray-600 transition">{tCommon('sitemap')}</Link>
         </div>
         <p>{tCommon('copyright', { year: new Date().getFullYear() })}</p>
       </footer>

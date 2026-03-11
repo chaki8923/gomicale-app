@@ -62,7 +62,7 @@ function LoginContent() {
             {tCommon('legal')}
           </Link>
           <Link href="/sitemap" className="hover:text-teal-700 hover:underline">
-            サイトマップ
+            {tCommon('sitemap')}
           </Link>
         </div>
         <p className="mt-4">{tCommon('copyright', { year: new Date().getFullYear() })}</p>
