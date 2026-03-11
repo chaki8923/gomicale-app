@@ -383,7 +383,7 @@ function HeroSlide() {
         </p>
       </div>
 
-      <div className="flex flex-col items-center gap-3 text-sm text-gray-500 font-medium">
+      <div className="flex flex-col items-left gap-3 text-sm text-gray-500 font-medium">
         <p className="flex items-center gap-2">
           <span className="flex items-center justify-center w-5 h-5 rounded-full bg-teal-500 text-white shrink-0">
             <IconCheck className="w-3 h-3" />
