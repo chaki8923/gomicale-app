@@ -4,10 +4,17 @@ import {
   HarmBlockThreshold,
 } from '@google/generative-ai'
 import type { PdfParser } from './base'
+import { NotACalendarError } from './base'
 import type { CalendarEvent, Language, ParseResult } from '../types'
 
 const GARBAGE_PROMPT = `
 あなたはゴミ出しカレンダーのデータ抽出AIです。
+
+## 事前チェック
+添付のPDFがゴミ収集カレンダー・スケジュール表・予定表のいずれでもない場合（例: 契約書、請求書、マニュアル、写真集など）は、
+他の処理を行わず以下のJSONのみを返してください：
+{ "isCalendar": false }
+
 添付の PDF は自治体が配布するゴミ収集カレンダーです。
 
 ## 最重要指示
@@ -50,6 +57,12 @@ PDF全体を表すタイトルと、日付ごとの予定一覧を含む以下�
 
 const GENERAL_PROMPT = `
 あなたはPDFから予定を抽出するAIです。
+
+## 事前チェック
+添付のPDFがスケジュール表・予定表・カレンダーのいずれでもない場合（例: 契約書、請求書、マニュアル、写真集など）は、
+他の処理を行わず以下のJSONのみを返してください：
+{ "isCalendar": false }
+
 添付のPDFに記載されている「日付」と「予定タイトル」をすべて抽出し、
 PDF全体のタイトルと共に以下のJSON形式のみで返してください。説明文は不要です。
 
@@ -108,7 +121,11 @@ async function parseWithPrompt(prompt: string, pdfBuffer: Buffer): Promise<Parse
     throw new Error(`Gemini returned unexpected format: ${text.slice(0, 200)}`)
   }
 
-  const raw = JSON.parse(match[0]) as { title?: string, events: Array<Record<string, string>> }
+  const raw = JSON.parse(match[0]) as { isCalendar?: boolean; title?: string; events: Array<Record<string, string>> }
+
+  if ('isCalendar' in raw && raw.isCalendar === false) {
+    throw new NotACalendarError()
+  }
 
   const events: CalendarEvent[] = (raw.events || [])
     .map((item) => {
@@ -132,6 +149,12 @@ async function parseWithPrompt(prompt: string, pdfBuffer: Buffer): Promise<Parse
 
 const GARBAGE_PROMPT_EN = `
 You are an AI for extracting data from garbage collection calendars.
+
+## Pre-check
+If the attached PDF is NOT a garbage collection calendar, schedule, or event table
+(e.g., a contract, invoice, manual, or photo book), return ONLY the following JSON without any other processing:
+{ "isCalendar": false }
+
 The attached PDF is a garbage collection calendar distributed by a municipality.
 
 ## Critical Instructions
@@ -173,6 +196,12 @@ Return ONLY a JSON object containing the overall calendar title and an array of 
 
 const GENERAL_PROMPT_EN = `
 You are an AI that extracts schedule information from PDFs.
+
+## Pre-check
+If the attached PDF is NOT a schedule, calendar, or event table
+(e.g., a contract, invoice, manual, or photo book), return ONLY the following JSON without any other processing:
+{ "isCalendar": false }
+
 Extract the overall title and all "dates" and "event titles" listed in the attached PDF.
 Return them ONLY in the following JSON format. No explanatory text needed.
 

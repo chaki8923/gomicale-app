@@ -8,3 +8,13 @@ import type { ParseResult } from '../types'
 export interface PdfParser {
   parse(pdfBuffer: Buffer): Promise<ParseResult>
 }
+
+/**
+ * アップロードされた PDF がカレンダー・スケジュール表でない場合にスローされるエラー
+ */
+export class NotACalendarError extends Error {
+  constructor() {
+    super('NOT_A_CALENDAR')
+    this.name = 'NotACalendarError'
+  }
+}
