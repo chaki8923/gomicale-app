@@ -105,9 +105,8 @@ export function LandingPageStaticContent({ blogPosts = [] }: Props) {
           <h2 className="text-2xl font-bold text-gray-900 mb-2 text-center">{t('useCases.title')}</h2>
           <p className="text-center text-gray-500 text-sm mb-12">{t('useCases.subtitle')}</p>
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-            {(t.raw('useCases.cases') as Array<{ icon: string; title: string; body: string }>).map((c, i) => (
+            {(t.raw('useCases.cases') as Array<{title: string; body: string }>).map((c, i) => (
               <div key={i} className="rounded-2xl border border-gray-100 bg-gray-50 p-6 flex flex-col gap-2">
-                <div className="text-3xl mb-1">{c.icon}</div>
                 <h3 className="font-bold text-gray-800 text-sm">{c.title}</h3>
                 <p className="text-xs text-gray-600 leading-relaxed">{c.body}</p>
               </div>
