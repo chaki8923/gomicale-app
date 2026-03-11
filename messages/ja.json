@@ -174,7 +174,32 @@
     "processing": "処理中...",
     "statusCompleted": "完了",
     "statusError": "エラー",
-    "statusProcessing": "処理中"
+    "statusProcessing": "処理中",
+    "lineLink": {
+      "title": "LINE 連携",
+      "subtitle": "LINE でゴミ名や写真を送るだけで分別結果が届きます",
+      "loading": "読み込み中...",
+      "lockedTitle": "PDFのアップロードが必要です",
+      "lockedDescription": "ゴミ収集カレンダーのPDFをアップロードして登録が完了すると、LINE連携が利用できるようになります。",
+      "linkedBadge": "LINE と連携済みです",
+      "linkedDescription": "LINE Bot にゴミの名前（例: 「ペットボトル」）や写真を送信すると、分別結果と直近の収集日をお知らせします。",
+      "unlinking": "解除中...",
+      "unlink": "LINE 連携を解除する",
+      "unlinkConfirm": "LINEとの連携を解除しますか？",
+      "stepsTitle": "連携手順",
+      "step1": "下の「コードを発行する」ボタンを押す",
+      "step2": "表示された6桁のコードをコピーする",
+      "step3Before": "",
+      "step3BotName": "ゴミカレ LINE Bot",
+      "step3After": "を友だち追加する",
+      "step4": "LINE Bot にコードを送信する（有効時間: 10分）",
+      "expiry": "有効期限: {time}（約10分）",
+      "copy": "コピー",
+      "copied": "コピー済",
+      "reissue": "コードを再発行する",
+      "issue": "コードを発行する",
+      "issuing": "コードを発行中..."
+    }
   },
   "upload": {
     "garbageLabel": "ゴミ出しカレンダー",

@@ -174,7 +174,32 @@
     "processing": "Processing...",
     "statusCompleted": "Completed",
     "statusError": "Error",
-    "statusProcessing": "Processing"
+    "statusProcessing": "Processing",
+    "lineLink": {
+      "title": "LINE Integration",
+      "subtitle": "Send garbage names or photos via LINE to get sorting results instantly",
+      "loading": "Loading...",
+      "lockedTitle": "PDF upload required",
+      "lockedDescription": "Upload and register a garbage collection calendar PDF to unlock LINE integration.",
+      "linkedBadge": "Connected to LINE",
+      "linkedDescription": "Send a garbage name (e.g. \"plastic bottle\") or a photo to the LINE Bot to receive sorting results and the nearest collection date.",
+      "unlinking": "Disconnecting...",
+      "unlink": "Disconnect LINE",
+      "unlinkConfirm": "Are you sure you want to disconnect LINE?",
+      "stepsTitle": "How to connect",
+      "step1": "Press the \"Issue Code\" button below",
+      "step2": "Copy the displayed 6-digit code",
+      "step3Before": "Add ",
+      "step3BotName": "GomiCale LINE Bot",
+      "step3After": " as a friend",
+      "step4": "Send the code to the LINE Bot (valid for 10 minutes)",
+      "expiry": "Expires at: {time} (approx. 10 min)",
+      "copy": "Copy",
+      "copied": "Copied",
+      "reissue": "Reissue code",
+      "issue": "Issue Code",
+      "issuing": "Issuing code..."
+    }
   },
   "upload": {
     "garbageLabel": "Garbage Calendar",

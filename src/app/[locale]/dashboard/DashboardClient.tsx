@@ -186,7 +186,7 @@ export function DashboardClient({ userEmail, initialJobs }: DashboardClientProps
         </section>
 
         <section>
-          <LineLinkManager />
+          <LineLinkManager hasCompletedJob={initialJobs.some((j) => j.status === 'completed')} />
         </section>
 
         <div className="pt-4">

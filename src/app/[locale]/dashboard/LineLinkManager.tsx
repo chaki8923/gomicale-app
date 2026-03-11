@@ -1,8 +1,14 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { useTranslations } from 'next-intl'
 
-export function LineLinkManager() {
+interface LineLinkManagerProps {
+  hasCompletedJob: boolean
+}
+
+export function LineLinkManager({ hasCompletedJob }: LineLinkManagerProps) {
+  const t = useTranslations('dashboard.lineLink')
   const [linked, setLinked] = useState<boolean | null>(null)
   const [code, setCode] = useState<string | null>(null)
   const [expiresAt, setExpiresAt] = useState<string | null>(null)
@@ -36,7 +42,7 @@ export function LineLinkManager() {
   }
 
   const handleUnlink = async () => {
-    if (!confirm('LINEとの連携を解除しますか？')) return
+    if (!confirm(t('unlinkConfirm'))) return
     setUnlinking(true)
     await fetch('/api/line-link', { method: 'DELETE' })
     setLinked(false)
@@ -63,7 +69,31 @@ export function LineLinkManager() {
   if (loading) {
     return (
       <div className="rounded-2xl bg-white shadow-sm p-6">
-        <p className="text-sm text-gray-400">読み込み中...</p>
+        <p className="text-sm text-gray-400">{t('loading')}</p>
+      </div>
+    )
+  }
+
+  if (!hasCompletedJob) {
+    return (
+      <div className="rounded-2xl bg-white shadow-sm p-6 space-y-4 opacity-60">
+        <div className="flex items-start gap-3">
+          <div className="w-10 h-10 rounded-xl bg-gray-200 flex items-center justify-center shrink-0">
+            <svg viewBox="0 0 40 40" className="w-6 h-6 fill-gray-400">
+              <path d="M20 4C11.163 4 4 10.268 4 18c0 5.285 3.284 9.88 8.235 12.485-.364 1.352-1.318 4.89-1.507 5.643-.235.937.343 1.003.72.73.296-.21 3.964-2.694 5.576-3.796.94.133 1.91.202 2.976.202 8.837 0 16-6.268 16-14s-7.163-14-16-14z"/>
+            </svg>
+          </div>
+          <div>
+            <h2 className="text-base font-bold text-gray-400">{t('title')}</h2>
+            <p className="text-xs text-gray-400 mt-1">{t('subtitle')}</p>
+          </div>
+        </div>
+        <div className="rounded-xl border border-gray-100 bg-gray-50 p-4 flex items-center gap-3">
+          <div>
+            <p className="text-sm font-semibold text-gray-500">{t('lockedTitle')}</p>
+            <p className="text-xs text-gray-400 mt-0.5">{t('lockedDescription')}</p>
+          </div>
+        </div>
       </div>
     )
   }
@@ -78,10 +108,8 @@ export function LineLinkManager() {
           </svg>
         </div>
         <div>
-          <h2 className="text-base font-bold text-gray-900">LINE 連携</h2>
-          <p className="text-xs text-gray-500 mt-1">
-            LINE でゴミ名や写真を送るだけで分別結果が届きます
-          </p>
+          <h2 className="text-base font-bold text-gray-900">{t('title')}</h2>
+          <p className="text-xs text-gray-500 mt-1">{t('subtitle')}</p>
         </div>
       </div>
 
@@ -89,45 +117,44 @@ export function LineLinkManager() {
         <div className="space-y-3">
           <div className="flex items-center gap-2 rounded-xl bg-green-50 border border-green-100 px-4 py-3">
             <span className="text-green-600 text-lg">✅</span>
-            <p className="text-sm font-semibold text-green-700">LINE と連携済みです</p>
+            <p className="text-sm font-semibold text-green-700">{t('linkedBadge')}</p>
           </div>
-          <p className="text-xs text-gray-500">
-            LINE Bot にゴミの名前（例: 「ペットボトル」）や写真を送信すると、分別結果と直近の収集日をお知らせします。
-          </p>
+          <p className="text-xs text-gray-500">{t('linkedDescription')}</p>
           <button
             onClick={handleUnlink}
             disabled={unlinking}
             className="text-xs text-red-400 hover:text-red-600 transition disabled:opacity-40"
           >
-            {unlinking ? '解除中...' : 'LINE 連携を解除する'}
+            {unlinking ? t('unlinking') : t('unlink')}
           </button>
         </div>
       ) : (
         <div className="space-y-4">
           <div className="rounded-xl bg-gray-50 border border-gray-100 p-4 space-y-2">
-            <p className="text-sm font-semibold text-gray-800">連携手順</p>
+            <p className="text-sm font-semibold text-gray-800">{t('stepsTitle')}</p>
             <ol className="text-xs text-gray-600 space-y-1 list-decimal list-inside">
-              <li>下の「コードを発行する」ボタンを押す</li>
-              <li>表示された6桁のコードをコピーする</li>
+              <li>{t('step1')}</li>
+              <li>{t('step2')}</li>
               <li>
+                {t('step3Before')}
                 <a
                   href="https://lin.ee/4F3CioD"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-teal-600 underline"
                 >
-                  ゴミカレ LINE Bot
+                  {t('step3BotName')}
                 </a>
-                を友だち追加する
+                {t('step3After')}
               </li>
-              <li>LINE Bot にコードを送信する（有効時間: 10分）</li>
+              <li>{t('step4')}</li>
             </ol>
           </div>
 
           {code ? (
             <div className="space-y-2">
               <p className="text-xs text-gray-500">
-                有効期限: {expiresAt ? formatExpiry(expiresAt) : '—'}（約10分）
+                {t('expiry', { time: expiresAt ? formatExpiry(expiresAt) : '—' })}
               </p>
               <div className="flex items-center gap-3">
                 <div className="flex-1 rounded-xl border-2 border-teal-300 bg-teal-50 px-4 py-3 text-center">
@@ -137,7 +164,7 @@ export function LineLinkManager() {
                   onClick={handleCopy}
                   className="shrink-0 rounded-xl bg-teal-500 px-4 py-3 text-sm font-semibold text-white hover:bg-teal-600 transition"
                 >
-                  {copied ? 'コピー済' : 'コピー'}
+                  {copied ? t('copied') : t('copy')}
                 </button>
               </div>
               <button
@@ -145,7 +172,7 @@ export function LineLinkManager() {
                 disabled={generating}
                 className="text-xs text-gray-400 hover:text-gray-600 transition"
               >
-                コードを再発行する
+                {t('reissue')}
               </button>
             </div>
           ) : (
@@ -154,7 +181,7 @@ export function LineLinkManager() {
               disabled={generating}
               className="w-full rounded-xl bg-[#06C755] py-3 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-40 transition"
             >
-              {generating ? 'コードを発行中...' : 'コードを発行する'}
+              {generating ? t('issuing') : t('issue')}
             </button>
           )}
         </div>
