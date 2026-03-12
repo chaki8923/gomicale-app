@@ -248,7 +248,7 @@ export function LandingPageStaticContent({ blogPosts = [] }: Props) {
           </div>
 
           <div className="mx-auto max-w-3xl pt-8 pb-4">
-            {/* <AdBanner slot="3248117735" format="horizontal" height={90} /> */}
+            <AdBanner id="gomicale_468x60" />
           </div>
         </div>
       </section>

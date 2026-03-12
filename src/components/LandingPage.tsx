@@ -343,7 +343,7 @@ function StaticContent() {
           </div>
 
           <div className="mx-auto max-w-3xl pt-8 pb-4">
-            {/* <AdBanner slot="3248117735" format="horizontal" height={90} /> */}
+            <AdBanner id="gomicale_468x60" />
           </div>
         </div>
       </section>
@@ -508,7 +508,7 @@ function CtaSlide({ onScrollDown }: { onScrollDown?: () => void }) {
       </div>
 
       <div className="w-full px-4 pb-2">
-        {/* <AdBanner slot="3248117735" format="horizontal" height={90} /> */}
+        <AdBanner id="gomicale_468x60" />
       </div>
 
       <footer className="w-full py-4 text-center text-xs text-teal-700/60">

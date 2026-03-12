@@ -1,41 +1,28 @@
-'use client'
+import { ADS, AdId } from '@/lib/ads'
 
-import { useEffect } from 'react'
-
-declare global {
-  interface Window {
-    adsbygoogle: unknown[]
-  }
-}
-
-interface AdBannerProps {
-  slot: string
-  format?: 'auto' | 'horizontal' | 'rectangle'
-  height?: number
-}
-
-export function AdBanner({ slot, format = 'auto', height }: AdBannerProps) {
-  useEffect(() => {
-    try {
-      ;(window.adsbygoogle = window.adsbygoogle || []).push({})
-    } catch {
-      // AdSense が読み込まれていない場合は無視
-    }
-  }, [])
-
-  const insStyle: React.CSSProperties = {
-    display: 'block',
-    ...(height ? { height: `${height}px` } : {}),
-  }
-
+export function AdBanner({ id }: { id: AdId }) {
+  const ad = ADS[id]
   return (
-    <ins
-      className="adsbygoogle"
-      style={insStyle}
-      data-ad-client="ca-pub-6348441325859182"
-      data-ad-slot={slot}
-      data-ad-format={height ? undefined : format}
-      {...(!height && { 'data-full-width-responsive': 'true' })}
-    />
+    <div className="flex justify-center">
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <a href={ad.href} rel="nofollow">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          width={ad.image.width}
+          height={ad.image.height}
+          alt=""
+          src={ad.image.src}
+          style={{ border: 0 }}
+        />
+      </a>
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        width={1}
+        height={1}
+        src={ad.tracking.src}
+        alt=""
+        style={{ border: 0 }}
+      />
+    </div>
   )
 }

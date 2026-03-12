@@ -1,6 +1,5 @@
 import type { Metadata, Viewport } from 'next'
 import { Geist } from 'next/font/google'
-import Script from 'next/script'
 import { NextIntlClientProvider, hasLocale } from 'next-intl'
 import { notFound } from 'next/navigation'
 import { routing } from '@/i18n/routing'
@@ -80,7 +79,6 @@ export const metadata: Metadata = {
       'max-snippet': -1,
     },
   },
-  other: { 'google-adsense-account': 'ca-pub-6348441325859182' },
 }
 
 export default async function LocaleLayout({
@@ -105,12 +103,6 @@ export default async function LocaleLayout({
         <NextIntlClientProvider>
           {children}
         </NextIntlClientProvider>
-        <Script
-          async
-          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6348441325859182"
-          crossOrigin="anonymous"
-          strategy="afterInteractive"
-        />
         <Analytics />
       </body>
     </html>

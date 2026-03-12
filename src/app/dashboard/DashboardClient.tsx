@@ -147,7 +147,7 @@ export function DashboardClient({ userEmail, initialJobs }: DashboardClientProps
         )}
 
         <div className="pt-4">
-          {/* <AdBanner slot="3248117735" /> */}
+          <AdBanner id="gomicale_468x60" />
         </div>
       </main>
 
