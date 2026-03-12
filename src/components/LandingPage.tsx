@@ -245,6 +245,15 @@ function StaticContent() {
 
   return (
     <div className="bg-gray-50">
+      <div className="flex">
+        {/* 左側 sticky 広告（PC のみ表示） */}
+        <aside className="hidden xl:block w-[140px] shrink-0">
+          <div className="sticky top-20 flex justify-center pt-20">
+            <AdBanner id="tall_120x600" />
+          </div>
+        </aside>
+
+        <div className="flex-1 min-w-0">
       {/* サービス詳細説明 */}
       <section className="mx-auto max-w-3xl px-6 py-20">
         <h2 className="text-2xl font-bold text-gray-900 mb-2 text-center">{t('whatIs.title')}</h2>
@@ -360,6 +369,8 @@ function StaticContent() {
         </div>
         <p>{tCommon('copyright', { year: new Date().getFullYear() })}</p>
       </footer>
+      </div>
+      </div>
     </div>
   )
 }
