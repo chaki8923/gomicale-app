@@ -25,6 +25,17 @@ export const ADS = {
       src: 'https://www18.a8.net/0.gif?a8mat=4AZES3+G53376+2VIY+626XT',
     },
   },
+  tall_120x600: {
+    href: 'https://px.a8.net/svt/ejp?a8mat=4AZES4+CKHGJ6+36X8+15RK35',
+    image: {
+      src: 'https://www23.a8.net/svt/bgt?aid=260312980760&wid=001&eno=01&mid=s00000014894007015000&mc=1',
+      width: 120,
+      height: 600,
+    },
+    tracking: {
+      src: 'https://www16.a8.net/0.gif?a8mat=4AZES4+CKHGJ6+36X8+15RK35',
+    },
+  },
 } as const
 
 export type AdId = keyof typeof ADS
