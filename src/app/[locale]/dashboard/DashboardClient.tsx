@@ -189,8 +189,8 @@ export function DashboardClient({ userEmail, initialJobs }: DashboardClientProps
           <LineLinkManager hasCompletedJob={initialJobs.some((j) => j.status === 'completed')} />
         </section>
 
-        <div className="pt-4">
-          <AdBanner id="gomicale_468x60" />
+        <div className="pt-4 flex flex-col items-center gap-4">
+          <AdBanner id="new_300x250" />
         </div>
       </main>
 

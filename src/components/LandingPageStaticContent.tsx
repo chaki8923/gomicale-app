@@ -247,8 +247,8 @@ export function LandingPageStaticContent({ blogPosts = [] }: Props) {
             </Link>
           </div>
 
-          <div className="mx-auto max-w-3xl pt-8 pb-4">
-            <AdBanner id="gomicale_468x60" />
+          <div className="mx-auto max-w-3xl pt-8 pb-4 flex flex-col items-center gap-4">
+            <AdBanner id="new_300x250" />
           </div>
         </div>
       </section>

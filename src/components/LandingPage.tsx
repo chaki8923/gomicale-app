@@ -342,8 +342,8 @@ function StaticContent() {
             </Link>
           </div>
 
-          <div className="mx-auto max-w-3xl pt-8 pb-4">
-            <AdBanner id="gomicale_468x60" />
+          <div className="mx-auto max-w-3xl pt-8 pb-4 flex flex-col items-center gap-4">
+            <AdBanner id="new_300x250" />
           </div>
         </div>
       </section>
@@ -507,8 +507,8 @@ function CtaSlide({ onScrollDown }: { onScrollDown?: () => void }) {
         )}
       </div>
 
-      <div className="w-full px-4 pb-2">
-        <AdBanner id="gomicale_468x60" />
+      <div className="w-full px-4 pb-2 flex flex-col items-center gap-4">
+        <AdBanner id="new_300x250" />
       </div>
 
       <footer className="w-full py-4 text-center text-xs text-teal-700/60">
