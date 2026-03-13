@@ -60,11 +60,16 @@ export function UploadZone({ onUploadComplete }: UploadZoneProps) {
     setProgress(0)
 
     try {
-      // ── 1. サーバー経由で R2 にアップロード ──────────────────
-      // XHR を使って進捗を表示しつつ /api/upload/file に直接 POST
-      // （ブラウザ→R2 の直接アップロードは CORS の問題があるためサーバー経由にする）
+      // ── 1. presigned URL と jobId を取得 ─────────────────────
+      const presignRes = await fetch('/api/upload/presign', { method: 'POST' })
+      if (presignRes.status === 401) throw new Error(t('errorPresign'))
+      if (presignRes.status === 429) throw new Error(t('errorLimitExceeded'))
+      if (!presignRes.ok) throw new Error(t('errorUnexpected'))
+      const { uploadUrl, jobId } = await presignRes.json() as { uploadUrl: string; jobId: string }
+
+      // ── 2. ブラウザ → R2 へ直接アップロード（XHR で進捗取得）──
       setState('uploading')
-      const jobId = await uploadViaServer(file, setProgress, t)
+      await uploadToR2(uploadUrl, file, setProgress, t)
 
       // ── 2. Lambda を非同期で起動 ─────────────────────────────
       setState('starting')
@@ -286,16 +291,16 @@ export function UploadZone({ onUploadComplete }: UploadZoneProps) {
   )
 }
 
-// XHR で /api/upload/file に PDF を送信し、jobId を返す
-// XHR を使うことでアップロード進捗を取得できる
-function uploadViaServer(
+// XHR で R2 の presigned URL に PDF を直接 PUT し、アップロード進捗を返す
+function uploadToR2(
+  uploadUrl: string,
   file: File,
   onProgress: (n: number) => void,
   t: (key: string, values?: TranslationValues) => string,
-): Promise<string> {
+): Promise<void> {
   return new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest()
-    xhr.open('POST', '/api/upload/file')
+    xhr.open('PUT', uploadUrl)
     xhr.setRequestHeader('Content-Type', 'application/pdf')
 
     xhr.upload.onprogress = (e) => {
@@ -306,16 +311,7 @@ function uploadViaServer(
 
     xhr.onload = () => {
       if (xhr.status >= 200 && xhr.status < 300) {
-        try {
-          const data = JSON.parse(xhr.responseText) as { jobId: string }
-          resolve(data.jobId)
-        } catch {
-          reject(new Error(t('errorUnexpected')))
-        }
-      } else if (xhr.status === 401) {
-        reject(new Error(t('errorPresign')))
-      } else if (xhr.status === 429) {
-        reject(new Error(t('errorLimitExceeded')))
+        resolve()
       } else {
         reject(new Error(t('errorUploadFailed', { status: xhr.status })))
       }
