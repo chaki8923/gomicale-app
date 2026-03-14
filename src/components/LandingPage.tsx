@@ -507,13 +507,15 @@ function CtaSlide({ onScrollDown }: { onScrollDown?: () => void }) {
         {onScrollDown && (
           <button
             onClick={onScrollDown}
-            className="flex flex-col items-center gap-1 text-xs text-gray-400 hover:text-teal-500 transition"
+            className="group mt-4 flex flex-col items-center gap-2"
             aria-label={t('moreAbout')}
           >
-            <span>{t('moreAbout')}</span>
-            <svg className="w-5 h-5 animate-bounce" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M12 5v14M5 12l7 7 7-7"/>
-            </svg>
+            <span className="flex items-center gap-2 rounded-full border border-teal-200 bg-teal-50 px-5 py-2.5 text-sm font-bold text-teal-600 shadow-sm transition-all group-hover:bg-teal-100 group-hover:shadow group-active:scale-95">
+              {t('moreAbout')}
+              <svg className="w-4 h-4 animate-bounce" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M12 5v14M5 12l7 7 7-7"/>
+              </svg>
+            </span>
           </button>
         )}
       </div>
