@@ -456,7 +456,7 @@ function FeatureSlide({
         <span className="text-xs font-bold tracking-widest text-gray-400">
           STEP {step}
         </span>
-        <h2 className="text-2xl font-bold text-gray-800 sm:text-3xl">
+        <h2 className="text-2xl font-bold text-gray-800 sm:text-3xl break-keep w-full">
           {heading}
         </h2>
         <p className="text-base leading-relaxed text-gray-600">{body}</p>
@@ -482,7 +482,7 @@ function CtaSlide({ onScrollDown }: { onScrollDown?: () => void }) {
               <IconSparkles className="w-8 h-8" />
             </span>
           </div>
-          <h2 className="text-3xl font-bold text-gray-800 sm:text-4xl">
+          <h2 className="text-3xl font-bold text-gray-800 sm:text-4xl break-keep w-full">
             {t('heading')}
           </h2>
           <p className="text-lg text-gray-500">
