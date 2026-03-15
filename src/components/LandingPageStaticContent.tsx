@@ -111,7 +111,7 @@ export function LandingPageStaticContent({ blogPosts = [] }: Props) {
 
       {/* 利用シーン */}
       <section className="bg-white py-20">
-        <div className="mx-auto max-w-3xl px-6">
+        <div className="mx-auto max-w-5xl px-6">
           <h2 className="text-2xl font-bold text-gray-900 mb-2 text-center">{t('useCases.title')}</h2>
           <p className="text-center text-gray-500 text-sm mb-12">{t('useCases.subtitle')}</p>
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
@@ -236,27 +236,19 @@ export function LandingPageStaticContent({ blogPosts = [] }: Props) {
             <div className="absolute top-0 left-0 w-2 h-full bg-teal-500"></div>
             <h2 className="text-2xl font-bold text-gray-900 mb-2">{t('about.title')}</h2>
             <p className="text-teal-600 font-semibold text-sm mb-8">{t('about.subtitle')}</p>
-            <div className="flex flex-col sm:flex-row gap-8 items-start">
-              <div className="space-y-4 text-sm text-gray-700 leading-relaxed flex-1">
-                <p>{t('about.body1')}</p>
-                <p className="font-semibold text-gray-900 bg-gray-50 p-4 rounded-xl border-l-4 border-gray-300">
-                  {t('about.body2')}
-                </p>
-                <p>{t('about.body3')}</p>
-                <p>{t('about.body4')}</p>
-                <div className="mt-8 flex items-center justify-end gap-3 text-xs text-gray-500">
-                  <span className="w-8 h-[1px] bg-gray-300"></span>
-                  {t('about.author')}
+            <div className="space-y-4 text-sm text-gray-700 leading-relaxed">
+              <p>{t('about.body1')}</p>
+              <p className="font-semibold text-gray-900 bg-gray-50 p-4 rounded-xl border-l-4 border-gray-300">
+                {t('about.body2')}
+              </p>
+              <p>{t('about.body3')}</p>
+              <p>{t('about.body4')}</p>
+              <div className="mt-8 flex items-center justify-end gap-3 text-xs text-gray-500">
+                <span className="w-8 h-[1px] bg-gray-300"></span>
+                {t('about.author')}
+                <div className="w-10 h-10 relative rounded-full overflow-hidden border-2 border-teal-100 shadow-sm shrink-0">
+                  <Image src="/developer.png" alt="Developer Avatar" fill sizes="40px" className="object-cover" />
                 </div>
-              </div>
-              <div className="shrink-0 mx-auto sm:mx-0 w-32 h-32 relative rounded-full overflow-hidden border-4 border-teal-50 shadow-sm mt-4 sm:mt-0">
-                <Image
-                  src="/developer.png"
-                  alt="Developer Avatar"
-                  fill
-                  sizes="128px"
-                  className="object-cover"
-                />
               </div>
             </div>
           </div>
