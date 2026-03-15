@@ -179,7 +179,7 @@ export function LineLinkManager({ hasCompletedJob }: LineLinkManagerProps) {
             <button
               onClick={handleGenerateCode}
               disabled={generating}
-              className="w-full rounded-xl bg-[#06C755] py-3 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-40 transition"
+              className="w-full rounded-xl bg-[#06C755] py-3 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-40 transition cursor-pointer"
             >
               {generating ? t('issuing') : t('issue')}
             </button>

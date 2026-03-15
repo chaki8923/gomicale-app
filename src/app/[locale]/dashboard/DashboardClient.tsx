@@ -42,6 +42,9 @@ export function DashboardClient({ userEmail, initialJobs }: DashboardClientProps
     router.push(`/${locale}`)
   }
 
+  const historyJobs = initialJobs.filter((j) => !activeJobIds.includes(j.id))
+  const showToggle = historyJobs.length > 3
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 to-teal-50">
       <header className="bg-white border-b border-gray-100 shadow-sm">
@@ -56,7 +59,7 @@ export function DashboardClient({ userEmail, initialJobs }: DashboardClientProps
             <span className="text-sm text-gray-500 hidden sm:block">{userEmail}</span>
             <button
               onClick={handleLogout}
-              className="text-sm text-gray-400 hover:text-gray-600 transition"
+              className="text-sm text-gray-400 hover:text-gray-600 transition cursor-pointer"
             >
               {tCommon('logout')}
             </button>
@@ -94,34 +97,34 @@ export function DashboardClient({ userEmail, initialJobs }: DashboardClientProps
           </section>
         )}
 
-        {initialJobs.length > 0 && (
+        {historyJobs.length > 0 && (
           <section>
             <div 
-              className="flex items-center justify-between cursor-pointer group mb-3"
-              onClick={() => setIsHistoryOpen(!isHistoryOpen)}
+              className={`flex items-center justify-between mb-3 ${showToggle ? 'cursor-pointer group' : ''}`}
+              onClick={() => showToggle && setIsHistoryOpen(!isHistoryOpen)}
             >
-              <h2 className="text-lg font-semibold text-gray-800 group-hover:text-teal-600 transition">
+              <h2 className={`text-lg font-semibold text-gray-800 ${showToggle ? 'group-hover:text-teal-600 transition' : ''}`}>
                 {t('historyTitle')}
               </h2>
-              <div className="flex items-center gap-2 text-sm text-gray-500 group-hover:text-teal-600 transition">
-                <span>{isHistoryOpen ? t('toggleHistoryHide') : t('toggleHistoryShow')}</span>
-                <svg 
-                  className={`w-5 h-5 transition-transform duration-200 ${isHistoryOpen ? 'rotate-180' : ''}`} 
-                  fill="none" 
-                  viewBox="0 0 24 24" 
-                  stroke="currentColor" 
-                  strokeWidth={2}
-                >
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-                </svg>
-              </div>
+              {showToggle && (
+                <div className="flex items-center gap-2 text-sm text-gray-500 group-hover:text-teal-600 transition">
+                  <span>{isHistoryOpen ? t('toggleHistoryHide') : t('toggleHistoryShow')}</span>
+                  <svg 
+                    className={`w-5 h-5 transition-transform duration-200 ${isHistoryOpen ? 'rotate-180' : ''}`} 
+                    fill="none" 
+                    viewBox="0 0 24 24" 
+                    stroke="currentColor" 
+                    strokeWidth={2}
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                  </svg>
+                </div>
+              )}
             </div>
             
-            {isHistoryOpen && (
+            {(!showToggle || isHistoryOpen) && (
               <div className="space-y-3 animate-in fade-in slide-in-from-top-2 duration-300">
-                {initialJobs
-                  .filter((j) => !activeJobIds.includes(j.id))
-                  .map((job) => (
+                {historyJobs.map((job) => (
                     <div
                       key={job.id}
                       className="rounded-xl border border-gray-100 bg-white px-5 py-4 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3"

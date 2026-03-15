@@ -170,7 +170,7 @@ export function LandingPage() {
           <Link href="/terms" className="hover:text-teal-600 transition hidden sm:block">{t('header.terms')}</Link>
           <LanguageSwitcher />
           <GoogleLoginButton
-            className="flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 shadow-sm transition hover:bg-gray-50 hover:shadow-md"
+            className="flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 shadow-sm transition hover:bg-gray-50 hover:shadow-md cursor-pointer"
             label={t('header.login')}
           />
         </nav>
@@ -422,7 +422,7 @@ function HeroSlide() {
       </div>
 
       <GoogleLoginButton
-        className="flex items-center gap-3 rounded-2xl bg-teal-500 px-8 py-4 text-base font-semibold text-white shadow-lg transition hover:bg-teal-600 hover:shadow-xl active:scale-95"
+        className="flex items-center gap-3 rounded-2xl bg-teal-500 px-8 py-4 text-base font-semibold text-white shadow-lg transition hover:bg-teal-600 hover:shadow-xl active:scale-95 cursor-pointer"
         label={tCommon('login')}
       />
       <p className="text-xs text-gray-500 -mt-4">{t('header.loginNote')}</p>
@@ -493,7 +493,7 @@ function CtaSlide({ onScrollDown }: { onScrollDown?: () => void }) {
         </div>
 
         <GoogleLoginButton
-        className="flex items-center gap-3 rounded-2xl bg-teal-500 px-8 py-4 text-base font-semibold text-white shadow-lg transition hover:bg-teal-600 hover:shadow-xl active:scale-95"
+        className="flex items-center gap-3 rounded-2xl bg-teal-500 px-8 py-4 text-base font-semibold text-white shadow-lg transition hover:bg-teal-600 hover:shadow-xl active:scale-95 cursor-pointer"
         label={tCommon('login')}
       />
         <p className="text-xs text-gray-500 -mt-4 mb-4">{tLanding('header.loginNote')}</p>
@@ -507,7 +507,7 @@ function CtaSlide({ onScrollDown }: { onScrollDown?: () => void }) {
         {onScrollDown && (
           <button
             onClick={onScrollDown}
-            className="group mt-4 flex flex-col items-center gap-2"
+            className="group mt-4 flex flex-col items-center gap-2 cursor-pointer"
             aria-label={t('moreAbout')}
           >
             <span className="flex items-center gap-2 rounded-full border border-teal-200 bg-teal-50 px-5 py-2.5 text-sm font-bold text-teal-600 shadow-sm transition-all group-hover:bg-teal-100 group-hover:shadow group-active:scale-95">

@@ -44,7 +44,7 @@ export function DashboardClient({ userEmail, initialJobs }: DashboardClientProps
             <span className="text-sm text-gray-500 hidden sm:block">{userEmail}</span>
             <button
               onClick={handleLogout}
-              className="text-sm text-gray-400 hover:text-gray-600 transition"
+              className="text-sm text-gray-400 hover:text-gray-600 transition cursor-pointer"
             >
               ログアウト
             </button>
