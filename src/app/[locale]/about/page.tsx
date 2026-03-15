@@ -76,6 +76,15 @@ export default async function AboutPage() {
               {isEn ? 'Operator Profile' : '運営者について'}
             </h3>
             <div className="flex flex-col sm:flex-row gap-6 items-start">
+              <div className="shrink-0 mx-auto sm:mx-0 w-32 h-32 relative rounded-full overflow-hidden border-4 border-teal-50 shadow-sm">
+                <Image
+                  src="/developer.png"
+                  alt={isEn ? 'Developer Avatar' : '運営者のアバター'}
+                  fill
+                  sizes="128px"
+                  className="object-cover"
+                />
+              </div>
               <div className="flex-1 space-y-4 text-sm text-gray-600">
                 <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
                   <span className="font-medium text-gray-900">{isEn ? 'Operator' : '運営者'}</span>

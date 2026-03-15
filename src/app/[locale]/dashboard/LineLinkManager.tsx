@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useTranslations } from 'next-intl'
+import { FaLine } from 'react-icons/fa'
 
 interface LineLinkManagerProps {
   hasCompletedJob: boolean
@@ -74,41 +75,36 @@ export function LineLinkManager({ hasCompletedJob }: LineLinkManagerProps) {
     )
   }
 
-  if (!hasCompletedJob) {
-    return (
-      <div className="rounded-2xl bg-white shadow-sm p-6 space-y-4 opacity-60">
-        <div className="flex items-start gap-3">
-          <div className="w-10 h-10 rounded-xl bg-gray-200 flex items-center justify-center shrink-0">
-            <svg viewBox="0 0 40 40" className="w-6 h-6 fill-gray-400">
-              <path d="M20 4C11.163 4 4 10.268 4 18c0 5.285 3.284 9.88 8.235 12.485-.364 1.352-1.318 4.89-1.507 5.643-.235.937.343 1.003.72.73.296-.21 3.964-2.694 5.576-3.796.94.133 1.91.202 2.976.202 8.837 0 16-6.268 16-14s-7.163-14-16-14z"/>
-            </svg>
+    if (!hasCompletedJob) {
+      return (
+        <div className="rounded-2xl bg-white shadow-sm p-6 space-y-4 opacity-60">
+          <div className="flex items-start gap-3">
+            <div className="w-10 h-10 rounded-xl bg-gray-200 flex items-center justify-center shrink-0">
+              <FaLine className="w-6 h-6 text-gray-400" />
+            </div>
+            <div>
+              <h2 className="text-base font-bold text-gray-400">{t('title')}</h2>
+              <p className="text-xs text-gray-400 mt-1">{t('subtitle')}</p>
+            </div>
           </div>
-          <div>
-            <h2 className="text-base font-bold text-gray-400">{t('title')}</h2>
-            <p className="text-xs text-gray-400 mt-1">{t('subtitle')}</p>
+          <div className="rounded-xl border border-gray-100 bg-gray-50 p-4 flex items-center gap-3">
+            <div>
+              <p className="text-sm font-semibold text-gray-500">{t('lockedTitle')}</p>
+              <p className="text-xs text-gray-400 mt-0.5">{t('lockedDescription')}</p>
+            </div>
           </div>
         </div>
-        <div className="rounded-xl border border-gray-100 bg-gray-50 p-4 flex items-center gap-3">
-          <div>
-            <p className="text-sm font-semibold text-gray-500">{t('lockedTitle')}</p>
-            <p className="text-xs text-gray-400 mt-0.5">{t('lockedDescription')}</p>
-          </div>
-        </div>
-      </div>
-    )
-  }
+      )
+    }
 
-  return (
-    <div className="rounded-2xl bg-white shadow-sm p-6 space-y-4">
-      <div className="flex items-start gap-3">
-        {/* LINE ロゴ代替 */}
-        <div className="w-10 h-10 rounded-xl bg-[#06C755] flex items-center justify-center shrink-0">
-          <svg viewBox="0 0 40 40" className="w-6 h-6 fill-white">
-            <path d="M20 4C11.163 4 4 10.268 4 18c0 5.285 3.284 9.88 8.235 12.485-.364 1.352-1.318 4.89-1.507 5.643-.235.937.343 1.003.72.73.296-.21 3.964-2.694 5.576-3.796.94.133 1.91.202 2.976.202 8.837 0 16-6.268 16-14s-7.163-14-16-14z"/>
-          </svg>
-        </div>
-        <div>
-          <h2 className="text-base font-bold text-gray-900">{t('title')}</h2>
+    return (
+      <div className="rounded-2xl bg-white shadow-sm p-6 space-y-4">
+        <div className="flex items-start gap-3">
+          <div className="w-10 h-10 rounded-xl bg-[#06C755] flex items-center justify-center shrink-0">
+            <FaLine className="w-6 h-6 text-white" />
+          </div>
+          <div>
+            <h2 className="text-base font-bold text-gray-900">{t('title')}</h2>
           <p className="text-xs text-gray-500 mt-1">{t('subtitle')}</p>
         </div>
       </div>

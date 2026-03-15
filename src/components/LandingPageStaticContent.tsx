@@ -1,5 +1,6 @@
 import { useTranslations, useLocale } from 'next-intl'
 import { Link } from '@/i18n/navigation'
+import Image from 'next/image'
 import { AdBanner } from './AdBanner'
 import type { BlogPost } from '@/lib/microcms'
 
@@ -114,12 +115,31 @@ export function LandingPageStaticContent({ blogPosts = [] }: Props) {
           <h2 className="text-2xl font-bold text-gray-900 mb-2 text-center">{t('useCases.title')}</h2>
           <p className="text-center text-gray-500 text-sm mb-12">{t('useCases.subtitle')}</p>
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-            {(t.raw('useCases.cases') as Array<{title: string; body: string }>).map((c, i) => (
-              <div key={i} className="rounded-2xl border border-gray-100 bg-gray-50 p-6 flex flex-col gap-2">
-                <h3 className="font-bold text-gray-800 text-sm">{c.title}</h3>
-                <p className="text-xs text-gray-600 leading-relaxed">{c.body}</p>
-              </div>
-            ))}
+            {(t.raw('useCases.cases') as Array<{title: string; body: string }>).map((c, i) => {
+              const images = [
+                '/garbage_calendar.png',
+                '/sports.webp',
+                '/clean.webp',
+                '/line_bot.png'
+              ]
+              return (
+                <div key={i} className="rounded-2xl border border-gray-100 bg-gray-50 overflow-hidden flex flex-col">
+                  <div className="w-full aspect-[4/3] relative bg-white border-b border-gray-100">
+                    <Image
+                      src={images[i]}
+                      alt={c.title}
+                      fill
+                      sizes="(max-width: 640px) 100vw, 25vw"
+                      className="object-cover"
+                    />
+                  </div>
+                  <div className="p-6 flex flex-col gap-2">
+                    <h3 className="font-bold text-gray-800 text-sm break-keep w-full">{c.title}</h3>
+                    <p className="text-xs text-gray-600 leading-relaxed">{c.body}</p>
+                  </div>
+                </div>
+              )
+            })}
           </div>
         </div>
       </section>
@@ -216,17 +236,28 @@ export function LandingPageStaticContent({ blogPosts = [] }: Props) {
             <div className="absolute top-0 left-0 w-2 h-full bg-teal-500"></div>
             <h2 className="text-2xl font-bold text-gray-900 mb-2">{t('about.title')}</h2>
             <p className="text-teal-600 font-semibold text-sm mb-8">{t('about.subtitle')}</p>
-            <div className="space-y-4 text-sm text-gray-700 leading-relaxed">
-              <p>{t('about.body1')}</p>
-              <p className="font-semibold text-gray-900 bg-gray-50 p-4 rounded-xl border-l-4 border-gray-300">
-                {t('about.body2')}
-              </p>
-              <p>{t('about.body3')}</p>
-              <p>{t('about.body4')}</p>
-            </div>
-            <div className="mt-8 flex items-center justify-end gap-3 text-xs text-gray-500">
-              <span className="w-8 h-[1px] bg-gray-300"></span>
-              {t('about.author')}
+            <div className="flex flex-col sm:flex-row gap-8 items-start">
+              <div className="space-y-4 text-sm text-gray-700 leading-relaxed flex-1">
+                <p>{t('about.body1')}</p>
+                <p className="font-semibold text-gray-900 bg-gray-50 p-4 rounded-xl border-l-4 border-gray-300">
+                  {t('about.body2')}
+                </p>
+                <p>{t('about.body3')}</p>
+                <p>{t('about.body4')}</p>
+                <div className="mt-8 flex items-center justify-end gap-3 text-xs text-gray-500">
+                  <span className="w-8 h-[1px] bg-gray-300"></span>
+                  {t('about.author')}
+                </div>
+              </div>
+              <div className="shrink-0 mx-auto sm:mx-0 w-32 h-32 relative rounded-full overflow-hidden border-4 border-teal-50 shadow-sm mt-4 sm:mt-0">
+                <Image
+                  src="/developer.png"
+                  alt="Developer Avatar"
+                  fill
+                  sizes="128px"
+                  className="object-cover"
+                />
+              </div>
             </div>
           </div>
         </div>
