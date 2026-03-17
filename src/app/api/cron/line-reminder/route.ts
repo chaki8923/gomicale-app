@@ -108,19 +108,38 @@ export async function GET(request: NextRequest) {
         .map((ev) => `・${ev.title}${ev.description ? `（${ev.description}）` : ''}`)
         .join('\n')
 
-      // 月2回以下の収集種別に「希少」フラグを表示（例: 段ボール）
-      const allDatesForType = tomorrowEvents.map((ev) => {
+      // 月2回以下の収集種別に希少フラグを付与（例: 段ボール）
+      const hasRare = tomorrowEvents.some((ev) => {
         const monthCount = events.filter((e) => e.title === ev.title).length
-        return monthCount <= 2 ? `⚠️ 月${monthCount}回のみ` : null
+        return monthCount <= 2
       })
-      const rareNote = allDatesForType.filter(Boolean).join('\n')
+
+      // お母さんスタイルのメッセージ
+      const openings = [
+        'あんた！明日のゴミ出し忘れないでね！',
+        'あら、明日なんのゴミの日か覚えてる？起きたら準備してね',
+        '明日のゴミの準備はした？お母さん朝いないからよろしくね！',
+        '明日のゴミ出し、ちゃんと覚えてるかしら？',
+        '今日もおつかれ様！明日ゴミの日だから忘れないでね！',
+      ]
+      const opening = openings[Math.floor(Math.random() * openings.length)]
+
+      const closings = [
+        'ゴミ出し忘れたら臭くなるんだから気をつけてね！',
+        'ちゃんと分別ルール守るのよアンタ！しょーもないんだから',
+        '袋に入れて玄関置いときなさい！あんたどうせ忘れるんだから',
+        'あんた朝いっつもギリギリなんだから準備しときなさいね！しょーもない',
+      ]
+      const closing = closings[Math.floor(Math.random() * closings.length)]
 
       const message = [
-        `🗑️ 明日（${tomorrowStr}）のゴミ出し`,
+        opening,
         '',
+        `📅 ${tomorrowStr}（明日）の収集`,
         lines,
-        rareNote ? `\n${rareNote}` : '',
-        '\nゴミカレより',
+        hasRare ? '\n⚠️ 月数回しかない日だから絶対に忘れないでね！' : '',
+        '',
+        closing,
       ]
         .join('\n')
         .replace(/\n{3,}/g, '\n\n')
