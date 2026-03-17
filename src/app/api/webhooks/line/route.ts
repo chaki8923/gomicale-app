@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { validateSignature } from '@line/bot-sdk'
 import { getSupabaseServiceClient } from '@/lib/supabase/server'
 import { GoogleGenerativeAI } from '@google/generative-ai'
+import { detectSodaiGomi, updateUserStreak, buildXShareUrl } from '@/lib/garbage-classify'
+import { getSodaiGomiSearchUrl } from '@/lib/sodai-gomi-urls'
 
 // ============================================================
 // 型定義
@@ -415,10 +417,15 @@ async function handleMessageEvent(event: LineMessageEvent) {
     return
   }
 
-  // Gemini呼び出し成功時、利用回数をインクリメント
-  await serviceClient
-    .from('gemini_usage_limits')
-    .upsert({ user_id: userId, date: today, count: currentCount + 1 }, { onConflict: 'user_id, date' })
+  // Gemini呼び出し成功時、利用回数インクリメントとストリーク更新を並行実行
+  const [, streakResult] = await Promise.allSettled([
+    serviceClient
+      .from('gemini_usage_limits')
+      .upsert({ user_id: userId, date: today, count: currentCount + 1 }, { onConflict: 'user_id, date' }),
+    updateUserStreak(serviceClient, userId),
+  ])
+
+  const streak = streakResult.status === 'fulfilled' ? streakResult.value : null
 
   const { itemName, category, nextDates } = classifyResult
 
@@ -442,9 +449,33 @@ async function handleMessageEvent(event: LineMessageEvent) {
       })
       .join('\n')
     replyMessage += `\n\n直近の収集日：\n${dateLines}`
-  } else {
+  }
+
+  // ---- 粗大ゴミ判定 ----
+  const isSodai = detectSodaiGomi(category, nextDates?.length ?? 0)
+  if (isSodai) {
+    replyMessage += `\n\n🚛 粗大ゴミ収集の申し込みはこちら:\n${getSodaiGomiSearchUrl('ja')}`
+  } else if (!nextDates || nextDates.length === 0) {
     replyMessage += '\n\n⚠️ お住まいの自治体にお問い合わせください。'
   }
+
+  // ---- ストリーク（2日連続以上の場合のみ表示）----
+  if (streak && streak.current_streak >= 2) {
+    replyMessage += `\n\n🔥 ${streak.current_streak}日連続！累計${streak.total_classifications}回`
+  }
+
+  // ---- SNS シェアリンク ----
+  const firstDate = nextDates?.[0]
+    ? new Date(nextDates[0].date).toLocaleDateString('ja-JP', {
+        month: 'long',
+        day: 'numeric',
+        weekday: 'short',
+        timeZone: 'Asia/Tokyo',
+      })
+    : undefined
+
+  const shareUrl = buildXShareUrl({ itemName, category, nextDate: firstDate, locale: 'ja' })
+  replyMessage += `\n\n📢 Xでシェア:\n${shareUrl}`
 
   await replyText(event.replyToken, replyMessage)
 }
