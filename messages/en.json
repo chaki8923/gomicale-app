@@ -264,7 +264,14 @@
     "resultCategory": "Category",
     "resultNextDates": "Next Collection Dates",
     "noCalendarError": "No garbage calendar found. Please upload your garbage collection PDF first.",
-    "apiError": "An error occurred. Please try again."
+    "apiError": "An error occurred. Please try again.",
+    "shareButton": "Share Result",
+    "sodaiGomiTitle": "Bulky Waste / Special Collection Required",
+    "sodaiGomiDescription": "This item may not be collectible as regular garbage. Please contact your local municipality to arrange bulky waste collection.",
+    "sodaiGomiSearchButton": "Find bulky waste collection →",
+    "streakLabel": "Streak",
+    "streakDays": "{count}-day streak",
+    "streakTotal": "{count} total"
   },
   "faq": {
     "title": "FAQ",

@@ -149,6 +149,39 @@ export type Database = {
         }
         Relationships: []
       }
+      user_streaks: {
+        Row: {
+          id: string
+          user_id: string
+          current_streak: number
+          longest_streak: number
+          last_active_date: string | null
+          total_classifications: number
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          current_streak?: number
+          longest_streak?: number
+          last_active_date?: string | null
+          total_classifications?: number
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          current_streak?: number
+          longest_streak?: number
+          last_active_date?: string | null
+          total_classifications?: number
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       user_integrations: {
         Row: {
           created_at: string
@@ -338,3 +371,4 @@ export type JobResultData = {
   pdf_hash: string
   skipped_count?: number
 }
+export type UserStreak = Database['public']['Tables']['user_streaks']['Row']

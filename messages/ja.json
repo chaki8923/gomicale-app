@@ -264,7 +264,14 @@
     "resultCategory": "分類",
     "resultNextDates": "直近の収集日",
     "noCalendarError": "ゴミ出しカレンダーが登録されていません。先にゴミ出しカレンダーのPDFをアップロードしてください。",
-    "apiError": "エラーが発生しました。もう一度お試しください。"
+    "apiError": "エラーが発生しました。もう一度お試しください。",
+    "shareButton": "シェアする",
+    "sodaiGomiTitle": "粗大ゴミ・特別回収が必要な品目です",
+    "sodaiGomiDescription": "この品目は通常のゴミとして出せない場合があります。お住まいの自治体に粗大ゴミ収集の申し込みをしてください。",
+    "sodaiGomiSearchButton": "自治体の粗大ゴミ収集を調べる →",
+    "streakLabel": "連続記録",
+    "streakDays": "{count}日連続",
+    "streakTotal": "累計{count}回"
   },
   "faq": {
     "title": "よくある質問",

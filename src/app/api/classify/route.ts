@@ -13,6 +13,34 @@ type ClassifyResult = {
   nextDates: { date: string; title: string; description?: string }[]
 }
 
+type StreakInfo = {
+  current_streak: number
+  longest_streak: number
+  total_classifications: number
+}
+
+const SODAI_KEYWORDS = ['粗大', 'bulky', 'large waste', 'oversized', '判定不可', 'unclassifiable']
+
+function detectSodaiGomi(category: string, nextDatesCount: number): boolean {
+  const lower = category.toLowerCase()
+  return (
+    SODAI_KEYWORDS.some((kw) => lower.includes(kw.toLowerCase())) ||
+    nextDatesCount === 0
+  )
+}
+
+/** JSTの今日の日付文字列 (YYYY-MM-DD) */
+function getTodayJST(): string {
+  return new Date(Date.now() + 9 * 60 * 60 * 1000).toISOString().slice(0, 10)
+}
+
+/** JSTの昨日の日付文字列 (YYYY-MM-DD) */
+function getYesterdayJST(): string {
+  const d = new Date(Date.now() + 9 * 60 * 60 * 1000)
+  d.setUTCDate(d.getUTCDate() - 1)
+  return d.toISOString().slice(0, 10)
+}
+
 function buildPrompt(
   events: CalendarEvent[],
   query: string,
@@ -247,5 +275,67 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'parse_error', raw: text }, { status: 500 })
   }
 
-  return NextResponse.json(parsed)
+  const isSodaiGomi = detectSodaiGomi(parsed.category, parsed.nextDates.length)
+
+  // ストリーク更新
+  const streak = await updateStreak(serviceClient, userId)
+
+  return NextResponse.json({ ...parsed, isSodaiGomi, streak })
+}
+
+async function updateStreak(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  serviceClient: any,
+  userId: string
+): Promise<StreakInfo> {
+  const todayJST = getTodayJST()
+  const yesterdayJST = getYesterdayJST()
+
+  const { data: current } = await serviceClient
+    .from('user_streaks')
+    .select('current_streak, longest_streak, last_active_date, total_classifications')
+    .eq('user_id', userId)
+    .single()
+
+  if (!current) {
+    await serviceClient.from('user_streaks').insert({
+      user_id: userId,
+      current_streak: 1,
+      longest_streak: 1,
+      last_active_date: todayJST,
+      total_classifications: 1,
+    })
+    return { current_streak: 1, longest_streak: 1, total_classifications: 1 }
+  }
+
+  let newCurrentStreak: number
+  if (current.last_active_date === todayJST) {
+    // 今日すでに分類済み: ストリーク変化なし
+    newCurrentStreak = current.current_streak
+  } else if (current.last_active_date === yesterdayJST) {
+    // 連続: ストリークを伸ばす
+    newCurrentStreak = current.current_streak + 1
+  } else {
+    // 途切れた: リセット
+    newCurrentStreak = 1
+  }
+
+  const newLongest = Math.max(current.longest_streak, newCurrentStreak)
+  const newTotal = current.total_classifications + 1
+
+  await serviceClient
+    .from('user_streaks')
+    .update({
+      current_streak: newCurrentStreak,
+      longest_streak: newLongest,
+      last_active_date: todayJST,
+      total_classifications: newTotal,
+    })
+    .eq('user_id', userId)
+
+  return {
+    current_streak: newCurrentStreak,
+    longest_streak: newLongest,
+    total_classifications: newTotal,
+  }
 }

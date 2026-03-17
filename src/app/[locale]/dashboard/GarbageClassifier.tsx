@@ -1,8 +1,9 @@
 'use client'
 
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import Image from 'next/image'
 import { useLocale, useTranslations } from 'next-intl'
+import { getSodaiGomiSearchUrl } from '@/lib/sodai-gomi-urls'
 
 type NextDate = {
   date: string
@@ -10,9 +11,17 @@ type NextDate = {
   description?: string
 }
 
+type StreakInfo = {
+  current_streak: number
+  longest_streak: number
+  total_classifications: number
+}
+
 type ClassifyResult = {
   category: string
   nextDates: NextDate[]
+  isSodaiGomi?: boolean
+  streak?: StreakInfo
 }
 
 export function GarbageClassifier() {
@@ -25,7 +34,18 @@ export function GarbageClassifier() {
   const [loading, setLoading] = useState(false)
   const [result, setResult] = useState<ClassifyResult | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [streak, setStreak] = useState<StreakInfo | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  // マウント時にストリークを取得
+  useEffect(() => {
+    fetch('/api/streak')
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data: StreakInfo | null) => {
+        if (data) setStreak(data)
+      })
+      .catch(() => {})
+  }, [])
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0] ?? null
@@ -66,7 +86,7 @@ export function GarbageClassifier() {
         body: formData,
       })
 
-      const data = await res.json() as ClassifyResult & { error?: string }
+      const data = (await res.json()) as ClassifyResult & { error?: string }
 
       if (!res.ok || data.error) {
         if (data.error === 'no_garbage_calendar') {
@@ -78,6 +98,7 @@ export function GarbageClassifier() {
       }
 
       setResult(data)
+      if (data.streak) setStreak(data.streak)
     } catch {
       setError('api_error')
     } finally {
@@ -95,14 +116,55 @@ export function GarbageClassifier() {
     })
   }
 
+  const handleShare = async () => {
+    if (!result) return
+    const item = query || result.category
+    const firstDate = result.nextDates[0] ? formatDate(result.nextDates[0].date) : ''
+    const shareText =
+      locale === 'en'
+        ? `"${item}" → ${result.category}! 🗑️${firstDate ? ` Next: ${firstDate}` : ''}\n#GomiCale https://gomicale.jp`
+        : `「${item}」は${result.category}！🗑️${firstDate ? ` 次の収集日：${firstDate}` : ''}\n#ゴミカレ https://gomicale.jp`
+
+    if (typeof navigator !== 'undefined' && navigator.share) {
+      try {
+        await navigator.share({ text: shareText })
+        return
+      } catch {
+        // キャンセルまたは非対応 → X へフォールバック
+      }
+    }
+    window.open(
+      `https://x.com/intent/tweet?text=${encodeURIComponent(shareText)}`,
+      '_blank',
+      'noopener,noreferrer'
+    )
+  }
+
+  const sodaiGomiSearchUrl = getSodaiGomiSearchUrl(locale)
+
   return (
     <div className="rounded-2xl bg-white shadow-sm p-6">
-      <div className="flex items-center gap-3 mb-4">
+      <div className="flex items-center justify-between gap-3 mb-4">
         <div>
           <h2 className="text-base font-bold text-gray-900">{t('title')}</h2>
           <p className="text-xs text-gray-500">{t('subtitle')}</p>
           <p className="text-xs text-gray-400 mt-1">{t('recentDataNote')}</p>
         </div>
+
+        {/* ストリークバッジ */}
+        {streak && streak.current_streak > 0 && (
+          <div className="flex flex-col items-end shrink-0">
+            <div className="flex items-center gap-1 rounded-full bg-orange-50 border border-orange-100 px-2.5 py-1">
+              <span className="text-base leading-none">🔥</span>
+              <span className="text-xs font-bold text-orange-600">
+                {t('streakDays', { count: streak.current_streak })}
+              </span>
+            </div>
+            <span className="text-xs text-gray-400 mt-0.5">
+              {t('streakTotal', { count: streak.total_classifications })}
+            </span>
+          </div>
+        )}
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-3">
@@ -110,7 +172,11 @@ export function GarbageClassifier() {
           <input
             type="text"
             value={query}
-            onChange={(e) => { setQuery(e.target.value); setResult(null); setError(null) }}
+            onChange={(e) => {
+              setQuery(e.target.value)
+              setResult(null)
+              setError(null)
+            }}
             placeholder={t('placeholder')}
             className="flex-1 rounded-xl border border-gray-200 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-400"
           />
@@ -120,9 +186,23 @@ export function GarbageClassifier() {
             className="flex items-center justify-center w-10 h-10 rounded-xl border border-gray-200 text-gray-400 hover:border-teal-400 hover:text-teal-500 transition"
             title={t('uploadImage')}
           >
-            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M6.827 6.175A2.31 2.31 0 0 1 5.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 0 0 2.25 2.25h15A2.25 2.25 0 0 0 21.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 0 0-1.134-.175 2.31 2.31 0 0 1-1.64-1.055l-.822-1.316a2.192 2.192 0 0 0-1.736-1.039 48.774 48.774 0 0 0-5.232 0 2.192 2.192 0 0 0-1.736 1.039l-.821 1.316Z" />
-              <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 12.75a4.5 4.5 0 1 1-9 0 4.5 4.5 0 0 1 9 0ZM18.75 10.5h.008v.008h-.008V10.5Z" />
+            <svg
+              className="w-5 h-5"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={1.5}
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M6.827 6.175A2.31 2.31 0 0 1 5.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 0 0 2.25 2.25h15A2.25 2.25 0 0 0 21.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 0 0-1.134-.175 2.31 2.31 0 0 1-1.64-1.055l-.822-1.316a2.192 2.192 0 0 0-1.736-1.039 48.774 48.774 0 0 0-5.232 0 2.192 2.192 0 0 0-1.736 1.039l-.821 1.316Z"
+              />
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M16.5 12.75a4.5 4.5 0 1 1-9 0 4.5 4.5 0 0 1 9 0ZM18.75 10.5h.008v.008h-.008V10.5Z"
+              />
             </svg>
           </button>
           <input
@@ -173,9 +253,7 @@ export function GarbageClassifier() {
             unoptimized
             className="rounded-full shadow-sm"
           />
-          <p className="text-sm font-bold text-teal-600 animate-pulse">
-            {t('classifying')}
-          </p>
+          <p className="text-sm font-bold text-teal-600 animate-pulse">{t('classifying')}</p>
         </div>
       )}
 
@@ -192,24 +270,75 @@ export function GarbageClassifier() {
       )}
 
       {result && !loading && (
-        <div className="mt-4 rounded-xl bg-teal-50 border border-teal-100 p-4 space-y-3">
-          <div className="flex items-start gap-2">
-            <span className="text-xs font-bold text-teal-600 uppercase tracking-wide mt-1 whitespace-nowrap">{t('resultCategory')}</span>
-            <span className="rounded-xl bg-teal-500 px-3 py-1 text-sm font-bold text-white inline-block">
-              {result.category}
-            </span>
-          </div>
-          {result.nextDates.length > 0 && (
-            <div>
-              <span className="text-xs font-bold text-teal-600 uppercase tracking-wide block mb-1.5">{t('resultNextDates')}</span>
-              <div className="flex flex-wrap gap-2">
-                {result.nextDates.map((nd, i) => (
-                  <div key={i} className="flex flex-col rounded-xl bg-white border border-teal-100 px-3 py-2 shadow-sm min-w-[120px]">
-                    <span className="text-xs font-semibold text-teal-700">{nd.title}</span>
-                    <span className="text-sm font-bold text-gray-800">{formatDate(nd.date)}</span>
-                  </div>
-                ))}
+        <div className="mt-4 space-y-3">
+          {/* 分別結果カード */}
+          <div className="rounded-xl bg-teal-50 border border-teal-100 p-4 space-y-3">
+            <div className="flex items-start gap-2">
+              <span className="text-xs font-bold text-teal-600 uppercase tracking-wide mt-1 whitespace-nowrap">
+                {t('resultCategory')}
+              </span>
+              <span className="rounded-xl bg-teal-500 px-3 py-1 text-sm font-bold text-white inline-block">
+                {result.category}
+              </span>
+            </div>
+            {result.nextDates.length > 0 && (
+              <div>
+                <span className="text-xs font-bold text-teal-600 uppercase tracking-wide block mb-1.5">
+                  {t('resultNextDates')}
+                </span>
+                <div className="flex flex-wrap gap-2">
+                  {result.nextDates.map((nd, i) => (
+                    <div
+                      key={i}
+                      className="flex flex-col rounded-xl bg-white border border-teal-100 px-3 py-2 shadow-sm min-w-[120px]"
+                    >
+                      <span className="text-xs font-semibold text-teal-700">{nd.title}</span>
+                      <span className="text-sm font-bold text-gray-800">{formatDate(nd.date)}</span>
+                    </div>
+                  ))}
+                </div>
               </div>
+            )}
+
+            {/* シェアボタン */}
+            <button
+              type="button"
+              onClick={handleShare}
+              className="flex items-center gap-1.5 text-xs text-teal-600 hover:text-teal-700 font-medium transition"
+            >
+              <svg
+                className="w-3.5 h-3.5"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={2}
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M7.217 10.907a2.25 2.25 0 1 0 0 2.186m0-2.186c.18.324.283.696.283 1.093s-.103.77-.283 1.093m0-2.186 9.566-5.314m-9.566 7.5 9.566 5.314m0 0a2.25 2.25 0 1 0 3.935 2.186 2.25 2.25 0 0 0-3.935-2.186Zm0-12.814a2.25 2.25 0 1 0 3.933-2.185 2.25 2.25 0 0 0-3.933 2.185Z"
+                />
+              </svg>
+              {t('shareButton')}
+            </button>
+          </div>
+
+          {/* 粗大ゴミ特別CTA */}
+          {result.isSodaiGomi && (
+            <div className="rounded-xl bg-amber-50 border border-amber-200 p-4 space-y-2">
+              <div className="flex items-center gap-2">
+                <span className="text-lg">🚛</span>
+                <span className="text-sm font-bold text-amber-800">{t('sodaiGomiTitle')}</span>
+              </div>
+              <p className="text-xs text-amber-700">{t('sodaiGomiDescription')}</p>
+              <a
+                href={sodaiGomiSearchUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center text-xs font-semibold text-amber-700 hover:text-amber-900 underline underline-offset-2 transition"
+              >
+                {t('sodaiGomiSearchButton')}
+              </a>
             </div>
           )}
         </div>
