@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useTranslations } from 'next-intl'
+import { Button } from '@/components/ui/Button'
 
 export function ContactForm() {
   const t = useTranslations('contact.form')
@@ -91,13 +92,13 @@ export function ContactForm() {
         </div>
       )}
 
-      <button
+      <Button
         type="submit"
         disabled={status === 'submitting'}
         className="w-full rounded-xl bg-teal-500 px-8 py-3 text-base font-semibold text-white shadow-sm transition hover:bg-teal-600 disabled:opacity-50 disabled:cursor-not-allowed"
       >
         {status === 'submitting' ? t('submitting') : t('submit')}
-      </button>
+      </Button>
     </form>
   )
 }

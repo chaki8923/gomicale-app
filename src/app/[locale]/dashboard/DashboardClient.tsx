@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import { useTranslations, useLocale } from 'next-intl'
 import { Link } from '@/i18n/navigation'
 import { getSupabaseBrowserClient } from '@/lib/supabase/client'
+import { Button } from '@/components/ui/Button'
 import { UploadZone } from '@/components/UploadZone'
 import { JobStatusCard } from '@/components/JobStatusCard'
 import { AdBanner } from '@/components/AdBanner'
@@ -57,12 +58,12 @@ export function DashboardClient({ userEmail, initialJobs }: DashboardClientProps
           <div className="flex items-center gap-4">
             <LanguageSwitcher />
             <span className="text-sm text-gray-500 hidden sm:block">{userEmail}</span>
-            <button
+            <Button
               onClick={handleLogout}
               className="text-sm text-gray-400 hover:text-gray-600 transition cursor-pointer"
             >
               {tCommon('logout')}
-            </button>
+            </Button>
           </div>
         </div>
       </header>

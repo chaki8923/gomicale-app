@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useTranslations, useLocale, type TranslationValues } from 'next-intl'
+import { Button } from '@/components/ui/Button'
 
 type ParserMode = 'garbage' | 'general'
 
@@ -109,7 +110,7 @@ export function UploadZone({ onUploadComplete }: UploadZoneProps) {
       {/* モード選択 */}
       <div className="flex gap-2">
         {(Object.keys(modeConfig) as ParserMode[]).map((mode) => (
-          <button
+          <Button
             key={mode}
             type="button"
             onClick={() => { if (!isLoading) setParserMode(mode) }}
@@ -124,7 +125,7 @@ export function UploadZone({ onUploadComplete }: UploadZoneProps) {
             `}
           >
             {modeConfig[mode].label}
-          </button>
+          </Button>
         ))}
       </div>
 
@@ -135,7 +136,7 @@ export function UploadZone({ onUploadComplete }: UploadZoneProps) {
         <p className="text-sm font-medium text-gray-700 mb-2">{t('timeLabel')}</p>
         <div className="relative" ref={timePickerRef}>
           {/* トリガーボタン */}
-          <button
+          <Button
             type="button"
             onClick={() => { if (!isLoading) setIsTimePickerOpen((v) => !v) }}
             disabled={isLoading}
@@ -160,13 +161,13 @@ export function UploadZone({ onUploadComplete }: UploadZoneProps) {
             >
               <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
             </svg>
-          </button>
+          </Button>
 
           {/* ポップオーバー */}
           {isTimePickerOpen && (
             <div className="absolute left-0 top-full mt-2 z-50 w-72 bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden">
               {/* 終日オプション */}
-              <button
+              <Button
                 type="button"
                 onClick={() => { setEventTime(''); setIsTimePickerOpen(false) }}
                 className={`
@@ -181,7 +182,7 @@ export function UploadZone({ onUploadComplete }: UploadZoneProps) {
                     <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                   </svg>
                 )}
-              </button>
+              </Button>
 
               <div className="border-t border-gray-100" />
 
@@ -191,7 +192,7 @@ export function UploadZone({ onUploadComplete }: UploadZoneProps) {
                   <p className="text-[10px] font-bold text-gray-400 tracking-widest uppercase px-1 mb-1.5">AM</p>
                   <div className="grid grid-cols-4 gap-1.5">
                     {AM_OPTIONS.map((time) => (
-                      <button
+                      <Button
                         key={time}
                         type="button"
                         onClick={() => { setEventTime(time); setIsTimePickerOpen(false) }}
@@ -204,7 +205,7 @@ export function UploadZone({ onUploadComplete }: UploadZoneProps) {
                         `}
                       >
                         {time}
-                      </button>
+                      </Button>
                     ))}
                   </div>
                 </div>
@@ -212,7 +213,7 @@ export function UploadZone({ onUploadComplete }: UploadZoneProps) {
                   <p className="text-[10px] font-bold text-gray-400 tracking-widest uppercase px-1 mb-1.5">PM</p>
                   <div className="grid grid-cols-4 gap-1.5">
                     {PM_OPTIONS.map((time) => (
-                      <button
+                      <Button
                         key={time}
                         type="button"
                         onClick={() => { setEventTime(time); setIsTimePickerOpen(false) }}
@@ -225,7 +226,7 @@ export function UploadZone({ onUploadComplete }: UploadZoneProps) {
                         `}
                       >
                         {time}
-                      </button>
+                      </Button>
                     ))}
                   </div>
                 </div>

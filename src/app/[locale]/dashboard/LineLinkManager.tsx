@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useTranslations } from 'next-intl'
 import { FaLine } from 'react-icons/fa'
+import { Button } from '@/components/ui/Button'
 
 interface LineLinkManagerProps {
   hasCompletedJob: boolean
@@ -116,13 +117,13 @@ export function LineLinkManager({ hasCompletedJob }: LineLinkManagerProps) {
             <p className="text-sm font-semibold text-green-700">{t('linkedBadge')}</p>
           </div>
           <p className="text-xs text-gray-500">{t('linkedDescription')}</p>
-          <button
+          <Button
             onClick={handleUnlink}
             disabled={unlinking}
             className="text-xs text-red-400 hover:text-red-600 transition disabled:opacity-40"
           >
             {unlinking ? t('unlinking') : t('unlink')}
-          </button>
+          </Button>
         </div>
       ) : (
         <div className="space-y-4">
@@ -156,29 +157,29 @@ export function LineLinkManager({ hasCompletedJob }: LineLinkManagerProps) {
                 <div className="flex-1 rounded-xl border-2 border-teal-300 bg-teal-50 px-4 py-3 text-center">
                   <span className="text-3xl font-bold tracking-[0.3em] text-teal-700">{code}</span>
                 </div>
-                <button
+                <Button
                   onClick={handleCopy}
                   className="shrink-0 rounded-xl bg-teal-500 px-4 py-3 text-sm font-semibold text-white hover:bg-teal-600 transition"
                 >
                   {copied ? t('copied') : t('copy')}
-                </button>
+                </Button>
               </div>
-              <button
+              <Button
                 onClick={handleGenerateCode}
                 disabled={generating}
                 className="text-xs text-gray-400 hover:text-gray-600 transition"
               >
                 {t('reissue')}
-              </button>
+              </Button>
             </div>
           ) : (
-            <button
+            <Button
               onClick={handleGenerateCode}
               disabled={generating}
               className="w-full rounded-xl bg-[#06C755] py-3 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-40 transition cursor-pointer"
             >
               {generating ? t('issuing') : t('issue')}
-            </button>
+            </Button>
           )}
         </div>
       )}

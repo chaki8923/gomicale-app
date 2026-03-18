@@ -3,6 +3,7 @@
 import { useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { getSupabaseBrowserClient } from '@/lib/supabase/client'
+import { Button } from '@/components/ui/Button'
 import { UploadZone } from '@/components/UploadZone'
 import { JobStatusCard } from '@/components/JobStatusCard'
 import { AdBanner } from '@/components/AdBanner'
@@ -42,12 +43,12 @@ export function DashboardClient({ userEmail, initialJobs }: DashboardClientProps
           </div>
           <div className="flex items-center gap-4">
             <span className="text-sm text-gray-500 hidden sm:block">{userEmail}</span>
-            <button
+            <Button
               onClick={handleLogout}
               className="text-sm text-gray-400 hover:text-gray-600 transition cursor-pointer"
             >
               ログアウト
-            </button>
+            </Button>
           </div>
         </div>
       </header>

@@ -12,6 +12,7 @@ import 'swiper/css/pagination'
 import { GoogleLoginButton } from './GoogleLoginButton'
 import { AdBanner } from './AdBanner'
 import { LanguageSwitcher } from './LanguageSwitcher'
+import { Button } from './ui/Button'
 
 // ─── SVG アイコン ───────────────────────────────────────────
 function IconRecycle({ className = 'w-6 h-6' }: { className?: string }) {
@@ -505,7 +506,7 @@ function CtaSlide({ onScrollDown }: { onScrollDown?: () => void }) {
 
         {/* 下のコンテンツへ誘導ボタン */}
         {onScrollDown && (
-          <button
+          <Button
             onClick={onScrollDown}
             className="group mt-4 flex flex-col items-center gap-2 cursor-pointer"
             aria-label={t('moreAbout')}
@@ -516,7 +517,7 @@ function CtaSlide({ onScrollDown }: { onScrollDown?: () => void }) {
                 <path d="M12 5v14M5 12l7 7 7-7"/>
               </svg>
             </span>
-          </button>
+          </Button>
         )}
       </div>
 

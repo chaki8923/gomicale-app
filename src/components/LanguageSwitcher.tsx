@@ -4,6 +4,7 @@ import { useLocale } from 'next-intl'
 import { usePathname, useRouter } from '@/i18n/navigation'
 import { useTransition } from 'react'
 import Image from 'next/image'
+import { Button } from '@/components/ui/Button'
 
 export function LanguageSwitcher() {
   const locale = useLocale()
@@ -38,7 +39,7 @@ export function LanguageSwitcher() {
       )}
 
       <div className="flex items-center gap-0.5 text-xs font-medium">
-        <button
+        <Button
           onClick={() => switchLocale('ja')}
           disabled={isPending}
           className={`cursor-pointer px-2 py-1 rounded transition ${
@@ -48,9 +49,9 @@ export function LanguageSwitcher() {
           } ${isPending ? 'opacity-60' : ''}`}
         >
           JA
-        </button>
+        </Button>
         <span className="text-gray-200">|</span>
-        <button
+        <Button
           onClick={() => switchLocale('en')}
           disabled={isPending}
           className={`cursor-pointer px-2 py-1 rounded transition ${
@@ -60,7 +61,7 @@ export function LanguageSwitcher() {
           } ${isPending ? 'opacity-60' : ''}`}
         >
           EN
-        </button>
+        </Button>
       </div>
     </>
   )

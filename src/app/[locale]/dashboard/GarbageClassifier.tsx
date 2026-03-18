@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import Image from 'next/image'
 import { useLocale, useTranslations } from 'next-intl'
 import { getSodaiGomiSearchUrl } from '@/lib/sodai-gomi-urls'
+import { Button } from '@/components/ui/Button'
 
 type NextDate = {
   date: string
@@ -180,7 +181,7 @@ export function GarbageClassifier() {
             placeholder={t('placeholder')}
             className="flex-1 rounded-xl border border-gray-200 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-400"
           />
-          <button
+          <Button
             type="button"
             onClick={() => fileInputRef.current?.click()}
             className="flex items-center justify-center w-10 h-10 rounded-xl border border-gray-200 text-gray-400 hover:border-teal-400 hover:text-teal-500 transition"
@@ -204,7 +205,7 @@ export function GarbageClassifier() {
                 d="M16.5 12.75a4.5 4.5 0 1 1-9 0 4.5 4.5 0 0 1 9 0ZM18.75 10.5h.008v.008h-.008V10.5Z"
               />
             </svg>
-          </button>
+          </Button>
           <input
             ref={fileInputRef}
             type="file"
@@ -224,23 +225,23 @@ export function GarbageClassifier() {
               height={80}
               className="rounded-xl object-cover w-20 h-20 border border-gray-200"
             />
-            <button
+            <Button
               type="button"
               onClick={handleRemoveImage}
               className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-gray-500 text-white text-xs flex items-center justify-center hover:bg-gray-700"
             >
               ×
-            </button>
+            </Button>
           </div>
         )}
 
-        <button
+        <Button
           type="submit"
           disabled={loading || (!query && !imageFile)}
           className="w-full rounded-xl bg-teal-500 py-2.5 text-sm font-semibold text-white transition hover:bg-teal-600 disabled:opacity-40 disabled:cursor-not-allowed"
         >
           {loading ? t('classifying') : t('classify')}
-        </button>
+        </Button>
       </form>
 
       {loading && (
@@ -301,7 +302,7 @@ export function GarbageClassifier() {
             )}
 
             {/* シェアボタン */}
-            <button
+            <Button
               type="button"
               onClick={handleShare}
               className="flex items-center gap-1.5 text-xs text-teal-600 hover:text-teal-700 font-medium transition"
@@ -320,7 +321,7 @@ export function GarbageClassifier() {
                 />
               </svg>
               {t('shareButton')}
-            </button>
+            </Button>
           </div>
 
           {/* 粗大ゴミ特別CTA */}
