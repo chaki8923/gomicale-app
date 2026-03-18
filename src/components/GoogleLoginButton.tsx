@@ -1,6 +1,7 @@
 'use client'
 
 import { getSupabaseBrowserClient } from '@/lib/supabase/client'
+import { Button } from '@/components/ui/Button'
 
 interface GoogleLoginButtonProps {
   className?: string
@@ -32,7 +33,7 @@ export function GoogleLoginButton({
   }
 
   return (
-    <button
+    <Button
       onClick={handleGoogleLogin}
       className={className ?? 'flex items-center justify-center gap-3 rounded-xl border border-gray-200 bg-white px-6 py-3 text-sm font-medium text-gray-700 shadow-sm transition hover:bg-gray-50 hover:shadow-md'}
     >
@@ -55,6 +56,6 @@ export function GoogleLoginButton({
         />
       </svg>
       {label}
-    </button>
+    </Button>
   )
 }
