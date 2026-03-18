@@ -1,25 +1,32 @@
-export function haptic(pattern: number | number[] = 10) {
-  if (typeof window === 'undefined') return
+const isTouchDevice =
+  typeof window !== "undefined"
+    ? window.matchMedia("(pointer: coarse)").matches
+    : false
 
-  if ('vibrate' in navigator) {
-    navigator.vibrate(pattern)
-    return
-  }
+export function haptic(pattern: number | number[] = 50) {
+  try {
+    if (!isTouchDevice) return
 
-  // iOS fallback: checkbox trick
-  const input = document.createElement('input')
-  input.setAttribute('type', 'checkbox')
-  input.setAttribute('tabindex', '-1')
-  input.setAttribute('inputmode', 'none')
-  Object.assign(input.style, {
-    opacity: '0',
-    position: 'fixed',
-    top: '0',
-    left: '0',
-    pointerEvents: 'none',
-  })
-  document.body.appendChild(input)
-  input.focus()
-  input.click()
-  setTimeout(() => document.body.removeChild(input), 100)
+    if ("vibrate" in navigator) {
+      navigator.vibrate(pattern)
+      return
+    }
+
+    // iOS haptic trick via checkbox switch element
+    const label = document.createElement("label")
+    label.ariaHidden = "true"
+    label.style.display = "none"
+
+    const input = document.createElement("input")
+    input.type = "checkbox"
+    input.setAttribute("switch", "")
+    label.appendChild(input)
+
+    try {
+      document.head.appendChild(label)
+      label.click()
+    } finally {
+      document.head.removeChild(label)
+    }
+  } catch {}
 }
