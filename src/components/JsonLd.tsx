@@ -20,28 +20,38 @@ export function JsonLd({ data }: { data: Record<string, unknown> | Record<string
 // SoftwareApplication スキーマ（LP・全体レイアウト向け）
 // ────────────────────────────────────────────────────────────
 
-export function SoftwareApplicationJsonLd() {
+export function SoftwareApplicationJsonLd({ locale }: { locale?: string }) {
+  const isEn = locale === 'en'
   const data = {
     '@context': 'https://schema.org',
     '@type': 'SoftwareApplication',
-    name: 'ゴミカレ',
+    name: isEn ? 'GomiCale' : 'ゴミカレ',
     operatingSystem: 'Web, iOS, Android',
     applicationCategory: 'ProductivityApplication',
-    description:
-      'PDFのゴミ出しカレンダー、シフト表、行事予定表などをAIが解析し、Googleカレンダーに一括自動登録・インポートする無料スケジュール変換サービス。LINE Botでゴミ分別を写真で確認する機能も搭載。',
+    description: isEn
+      ? 'Free app that reads Japan garbage collection PDFs and bulk-imports them to Google Calendar. Also includes LINE Bot for instant garbage sorting guidance.'
+      : 'PDFのゴミ出しカレンダー、シフト表、行事予定表などをAIが解析し、Googleカレンダーに一括自動登録・インポートする無料スケジュール変換サービス。LINE Botでゴミ分別を写真で確認する機能も搭載。',
     url: 'https://gomicale.jp',
     offers: { '@type': 'Offer', price: '0', priceCurrency: 'JPY' },
-    featureList: [
-      'PDFから予定を自動抽出',
-      'Googleカレンダーへの一括登録',
-      'LINE Botでゴミ分別確認',
-      '複雑なルール（隔週・第N週など）の解析対応',
-      '多言語対応（日本語・英語）',
-    ],
+    featureList: isEn
+      ? [
+          'Auto-extract schedules from PDF',
+          'Bulk-import to Google Calendar',
+          'Garbage sorting via LINE Bot',
+          'Complex rule parsing (bi-weekly, nth-week, etc.)',
+          'Multi-language support (Japanese & English)',
+        ]
+      : [
+          'PDFから予定を自動抽出',
+          'Googleカレンダーへの一括登録',
+          'LINE Botでゴミ分別確認',
+          '複雑なルール（隔週・第N週など）の解析対応',
+          '多言語対応（日本語・英語）',
+        ],
     screenshot: 'https://gomicale.jp/oba_loading.png',
     author: {
       '@type': 'Organization',
-      name: 'ゴミカレ',
+      name: isEn ? 'GomiCale' : 'ゴミカレ',
       url: 'https://gomicale.jp',
     },
   }

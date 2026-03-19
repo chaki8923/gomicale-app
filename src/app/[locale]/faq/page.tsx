@@ -6,6 +6,22 @@ import { LanguageSwitcher } from '@/components/LanguageSwitcher'
 
 export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
   const { locale } = await params
+
+  if (locale === 'en') {
+    return {
+      title: 'FAQ - GomiCale',
+      description:
+        'Frequently asked questions about GomiCale — the free PDF-to-Google Calendar import app for Japan garbage collection schedules.',
+      alternates: {
+        canonical: `/${locale}/faq`,
+        languages: {
+          ja: '/ja/faq',
+          en: '/en/faq',
+        },
+      },
+    }
+  }
+
   return {
     title: 'よくある質問',
     description: 'ゴミカレに関するよくある質問をまとめています。料金・対応PDF・セキュリティ・スマートフォン対応など。',
