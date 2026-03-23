@@ -4,16 +4,21 @@ import {
   HarmBlockThreshold,
 } from '@google/generative-ai'
 import type { PdfParser } from './base'
-import { NotACalendarError } from './base'
+import { NotACalendarError, NotAGarbageCalendarError } from './base'
 import type { CalendarEvent, Language, ParseResult } from '../types'
 
 const GARBAGE_PROMPT = `
 あなたはゴミ出しカレンダーのデータ抽出AIです。
 
 ## 事前チェック
-添付のPDFがゴミ収集カレンダー・スケジュール表・予定表のいずれでもない場合（例: 契約書、請求書、マニュアル、写真集など）は、
+添付のPDFがスケジュール表・予定表・カレンダーのいずれでもない場合（例: 契約書、請求書、マニュアル、写真集など）は、
 他の処理を行わず以下のJSONのみを返してください：
 { "isCalendar": false }
+
+添付のPDFがカレンダー・予定表ではあるが、ゴミ収集カレンダーではない場合
+（例: 学校行事予定表、地域イベントカレンダー、シフト表など）は、
+他の処理を行わず以下のJSONのみを返してください：
+{ "isCalendar": true, "isGarbageCalendar": false }
 
 添付の PDF は自治体が配布するゴミ収集カレンダーです。
 
@@ -121,10 +126,13 @@ async function parseWithPrompt(prompt: string, pdfBuffer: Buffer): Promise<Parse
     throw new Error(`Gemini returned unexpected format: ${text.slice(0, 200)}`)
   }
 
-  const raw = JSON.parse(match[0]) as { isCalendar?: boolean; title?: string; events: Array<Record<string, string>> }
+  const raw = JSON.parse(match[0]) as { isCalendar?: boolean; isGarbageCalendar?: boolean; title?: string; events: Array<Record<string, string>> }
 
   if ('isCalendar' in raw && raw.isCalendar === false) {
     throw new NotACalendarError()
+  }
+  if ('isGarbageCalendar' in raw && raw.isGarbageCalendar === false) {
+    throw new NotAGarbageCalendarError()
   }
 
   const events: CalendarEvent[] = (raw.events || [])
@@ -154,6 +162,11 @@ You are an AI for extracting data from garbage collection calendars.
 If the attached PDF is NOT a garbage collection calendar, schedule, or event table
 (e.g., a contract, invoice, manual, or photo book), return ONLY the following JSON without any other processing:
 { "isCalendar": false }
+
+If the attached PDF is a calendar or schedule of some kind, but NOT a garbage collection calendar
+(e.g., a school event schedule, community events calendar, shift roster, etc.),
+return ONLY the following JSON without any other processing:
+{ "isCalendar": true, "isGarbageCalendar": false }
 
 The attached PDF is a garbage collection calendar distributed by a municipality.
 

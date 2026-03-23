@@ -4,7 +4,7 @@ import { createHash } from 'crypto'
 import { Resend } from 'resend'
 import type { LambdaPayload, CalendarEvent } from './types'
 import { createPdfParser } from './parsers/factory'
-import { NotACalendarError } from './parsers/base'
+import { NotACalendarError, NotAGarbageCalendarError } from './parsers/base'
 import { refreshAccessToken, batchInsertGarbageEvents } from './calendar/client'
 
 const APP_URL = process.env.APP_URL ?? 'https://gomicale.jp'
@@ -222,6 +222,13 @@ export const handler = async (event: LambdaPayload): Promise<void> => {
       message = language === 'en'
         ? 'The uploaded PDF does not appear to be a calendar or schedule. Please upload a garbage collection calendar or event schedule PDF.'
         : 'カレンダー形式のPDFではありませんでした。ゴミ出しカレンダーや行事予定表などのPDFをアップロードしてください。'
+    }
+
+    // ゴミ収集カレンダー以外の予定表PDFが送信された場合
+    if (err instanceof NotAGarbageCalendarError) {
+      message = language === 'en'
+        ? 'This PDF does not appear to be a garbage collection calendar. If it is a school schedule, shift roster, or other event calendar, please upload it again using the "General Schedule PDF" option.'
+        : 'このPDFはゴミ収集カレンダーではないようです。学校行事予定表・シフト表・地域イベントカレンダーなどの場合は、「汎用予定PDF」を選択して再度アップロードしてください。'
     }
 
     // Gemini APIの一時的なエラー（503やfetch failed）をユーザーフレンドリーなメッセージに書き換える
