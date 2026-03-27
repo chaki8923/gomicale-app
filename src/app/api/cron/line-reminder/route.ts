@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseServiceClient } from '@/lib/supabase/server'
 
+type Lang = 'ja' | 'en'
+
 type CalendarEvent = {
   date: string
   title: string
@@ -9,7 +11,6 @@ type CalendarEvent = {
 
 function getTomorrowJST(): string {
   const now = new Date()
-  // Shift to JST then advance 1 day
   const jstMs = now.getTime() + 9 * 60 * 60 * 1000
   const jstNow = new Date(jstMs)
   const tomorrow = new Date(jstNow)
@@ -39,8 +40,31 @@ async function sendPushMessage(to: string, text: string): Promise<void> {
   }
 }
 
+/**
+ * parsed_pdfs を _en → _ja → bare の順で検索し、イベントと言語を返す
+ */
+async function fetchParsedDataWithLang(
+  supabase: ReturnType<typeof getSupabaseServiceClient>,
+  pdfHash: string
+): Promise<{ events: CalendarEvent[]; lang: Lang } | null> {
+  for (const [suffix, lang] of [['_en', 'en'], ['_ja', 'ja'], ['', 'ja']] as [string, Lang][]) {
+    const { data } = await supabase
+      .from('parsed_pdfs')
+      .select('extracted_json')
+      .eq('pdf_hash', `${pdfHash}${suffix}`)
+      .single()
+    if (data) {
+      const extracted = data.extracted_json as unknown
+      const events: CalendarEvent[] = Array.isArray(extracted)
+        ? (extracted as CalendarEvent[])
+        : ((extracted as { events?: CalendarEvent[] })?.events ?? [])
+      return { events, lang }
+    }
+  }
+  return null
+}
+
 export async function GET(request: NextRequest) {
-  // Cron secret 検証（CRON_SECRET 未設定の場合は検証スキップ）
   const cronSecret = process.env.CRON_SECRET
   if (cronSecret) {
     const authHeader = request.headers.get('authorization')
@@ -52,7 +76,6 @@ export async function GET(request: NextRequest) {
   const serviceClient = getSupabaseServiceClient()
   const tomorrowStr = getTomorrowJST()
 
-  // LINE 連携済みユーザーを全取得
   const { data: lineLinks, error } = await serviceClient
     .from('line_links')
     .select('user_id, line_source_id')
@@ -66,7 +89,6 @@ export async function GET(request: NextRequest) {
 
   for (const link of lineLinks) {
     try {
-      // ユーザーの最新ゴミカレジョブを取得
       const { data: job } = await serviceClient
         .from('jobs')
         .select('pdf_hash, parser_mode')
@@ -79,71 +101,90 @@ export async function GET(request: NextRequest) {
 
       if (!job?.pdf_hash) continue
 
-      // parsed_pdfs からカレンダーデータ取得（ja → サフィックスなし の順）
-      let parsedData = await serviceClient
-        .from('parsed_pdfs')
-        .select('extracted_json')
-        .eq('pdf_hash', `${job.pdf_hash}_ja`)
-        .single()
+      const parsedResult = await fetchParsedDataWithLang(serviceClient, job.pdf_hash)
+      if (!parsedResult) continue
 
-      if (!parsedData.data) {
-        parsedData = await serviceClient
-          .from('parsed_pdfs')
-          .select('extracted_json')
-          .eq('pdf_hash', job.pdf_hash)
-          .single()
-      }
-
-      if (!parsedData.data) continue
-
-      const extracted = parsedData.data.extracted_json as unknown
-      const events: CalendarEvent[] = Array.isArray(extracted)
-        ? (extracted as CalendarEvent[])
-        : ((extracted as { events?: CalendarEvent[] })?.events ?? [])
+      const { events, lang } = parsedResult
 
       const tomorrowEvents = events.filter((ev) => ev.date === tomorrowStr)
       if (tomorrowEvents.length === 0) continue
 
-      const lines = tomorrowEvents
-        .map((ev) => `・${ev.title}${ev.description ? `（${ev.description}）` : ''}`)
-        .join('\n')
-
-      // 月2回以下の収集種別に希少フラグを付与（例: 段ボール）
       const hasRare = tomorrowEvents.some((ev) => {
         const monthCount = events.filter((e) => e.title === ev.title).length
         return monthCount <= 2
       })
 
-      // お母さんスタイルのメッセージ
-      const openings = [
-        'あんた！明日のゴミ出し忘れないでね！',
-        'あら、明日なんのゴミの日か覚えてる？起きたら準備してね',
-        '明日のゴミの準備はした？お母さん朝いないからよろしくね！',
-        '明日のゴミ出し、ちゃんと覚えてるかしら？',
-        '今日もおつかれ様！明日ゴミの日だから忘れないでね！',
-      ]
-      const opening = openings[Math.floor(Math.random() * openings.length)]
+      let message: string
 
-      const closings = [
-        'ゴミ出し忘れたら臭くなるんだから気をつけてね！',
-        'ちゃんと分別ルール守るのよアンタ！しょーもないんだから',
-        '袋に入れて玄関置いときなさい！あんたどうせ忘れるんだから',
-        'あんた朝いっつもギリギリなんだから準備しときなさいね！しょーもない',
-      ]
-      const closing = closings[Math.floor(Math.random() * closings.length)]
+      if (lang === 'en') {
+        const lines = tomorrowEvents
+          .map((ev) => `- ${ev.title}${ev.description ? ` (${ev.description})` : ''}`)
+          .join('\n')
 
-      const message = [
-        opening,
-        '',
-        `📅 ${tomorrowStr}（明日）の収集`,
-        lines,
-        hasRare ? '\n⚠️ 月数回しかない日だから絶対に忘れないでね！' : '',
-        '',
-        closing,
-      ]
-        .join('\n')
-        .replace(/\n{3,}/g, '\n\n')
-        .trim()
+        const openings = [
+          "Hey! Don't forget to take out the trash tomorrow!",
+          "Heads up! Tomorrow is garbage day — don't sleep through it.",
+          "Just a reminder — trash goes out tomorrow morning!",
+          "Don't forget: garbage day is tomorrow!",
+          "Good work today! Reminder: trash goes out tomorrow 🗑️",
+        ]
+        const opening = openings[Math.floor(Math.random() * openings.length)]
+
+        const closings = [
+          "Don't forget to sort it properly!",
+          "Seriously, don't miss it again!",
+          "Set an alarm if you have to!",
+          "You always cut it close in the morning — prep tonight!",
+        ]
+        const closing = closings[Math.floor(Math.random() * closings.length)]
+
+        message = [
+          opening,
+          '',
+          `📅 ${tomorrowStr} (Tomorrow) collection`,
+          lines,
+          hasRare ? '\n⚠️ This only happens a few times a month — absolutely do not miss it!' : '',
+          '',
+          closing,
+        ]
+          .join('\n')
+          .replace(/\n{3,}/g, '\n\n')
+          .trim()
+      } else {
+        const lines = tomorrowEvents
+          .map((ev) => `・${ev.title}${ev.description ? `（${ev.description}）` : ''}`)
+          .join('\n')
+
+        const openings = [
+          'あんた！明日のゴミ出し忘れないでね！',
+          'あら、明日なんのゴミの日か覚えてる？起きたら準備してね',
+          '明日のゴミの準備はした？お母さん朝いないからよろしくね！',
+          '明日のゴミ出し、ちゃんと覚えてるかしら？',
+          '今日もおつかれ様！明日ゴミの日だから忘れないでね！',
+        ]
+        const opening = openings[Math.floor(Math.random() * openings.length)]
+
+        const closings = [
+          'ゴミ出し忘れたら臭くなるんだから気をつけてね！',
+          'ちゃんと分別ルール守るのよアンタ！しょーもないんだから',
+          '袋に入れて玄関置いときなさい！あんたどうせ忘れるんだから',
+          'あんた朝いっつもギリギリなんだから準備しときなさいね！しょーもない',
+        ]
+        const closing = closings[Math.floor(Math.random() * closings.length)]
+
+        message = [
+          opening,
+          '',
+          `📅 ${tomorrowStr}（明日）の収集`,
+          lines,
+          hasRare ? '\n⚠️ 月数回しかない日だから絶対に忘れないでね！' : '',
+          '',
+          closing,
+        ]
+          .join('\n')
+          .replace(/\n{3,}/g, '\n\n')
+          .trim()
+      }
 
       await sendPushMessage(link.line_source_id, message)
       sentCount++

@@ -9,6 +9,8 @@ import { getSodaiGomiSearchUrl } from '@/lib/sodai-gomi-urls'
 // 型定義
 // ============================================================
 
+type Lang = 'ja' | 'en'
+
 type LineEventSource = {
   type: string
   userId?: string
@@ -83,8 +85,18 @@ const RICH_MENU_COMMANDS = {
   TOMORROW: '明日のゴミ',
 } as const
 
-function getCollectionsByDate(events: CalendarEvent[], dateStr: string, label: string): string {
+const RICH_MENU_COMMANDS_EN = {
+  TODAY: "Today's Garbage",
+  TOMORROW: "Tomorrow's Garbage",
+} as const
+
+function getCollectionsByDate(events: CalendarEvent[], dateStr: string, label: string, lang: Lang): string {
   const items = events.filter((ev) => ev.date === dateStr)
+  if (lang === 'en') {
+    if (items.length === 0) return `No collection on ${dateStr}.`
+    const lines = items.map((ev) => `- ${ev.title}${ev.description ? ` (${ev.description})` : ''}`).join('\n')
+    return `Collection on ${dateStr} (${label}):\n${lines}`
+  }
   if (items.length === 0) return `${label}（${dateStr}）は収集はありません。`
   const lines = items.map((ev) => `・${ev.title}${ev.description ? `（${ev.description}）` : ''}`).join('\n')
   return `${label}（${dateStr}）の収集:\n${lines}`
@@ -107,20 +119,74 @@ async function fetchImageAsBase64(messageId: string): Promise<{ base64: string; 
   return { base64: Buffer.from(buffer).toString('base64'), mimeType: contentType }
 }
 
+/**
+ * parsed_pdfs を _en → _ja → bare の順で検索し、イベントと言語を返す
+ */
+async function fetchParsedDataWithLang(
+  supabase: ReturnType<typeof getSupabaseServiceClient>,
+  pdfHash: string
+): Promise<{ events: CalendarEvent[]; lang: Lang } | null> {
+  for (const [suffix, lang] of [['_en', 'en'], ['_ja', 'ja'], ['', 'ja']] as [string, Lang][]) {
+    const { data } = await supabase
+      .from('parsed_pdfs')
+      .select('extracted_json')
+      .eq('pdf_hash', `${pdfHash}${suffix}`)
+      .single()
+    if (data) {
+      const extracted = data.extracted_json as unknown
+      const events: CalendarEvent[] = Array.isArray(extracted)
+        ? (extracted as CalendarEvent[])
+        : ((extracted as { events?: CalendarEvent[] })?.events ?? [])
+      return { events, lang }
+    }
+  }
+  return null
+}
+
 // ============================================================
 // Gemini 分類ロジック
 // ============================================================
 
-function buildPrompt(events: CalendarEvent[], query: string, today: string): string {
+function buildPrompt(events: CalendarEvent[], query: string, today: string, lang: Lang): string {
   const today_dt = new Date(today)
   const upcoming = events
     .filter((ev) => new Date(ev.date) >= today_dt)
     .sort((a, b) => a.date.localeCompare(b.date))
-  const categories = [...new Set(events.map((ev) => ev.title))].join('、')
+  const categories = [...new Set(events.map((ev) => ev.title))].join(lang === 'en' ? ', ' : '、')
   const scheduleText = upcoming
     .slice(0, 200)
-    .map((ev) => `${ev.date} ${ev.title}${ev.description ? `（${ev.description}）` : ''}`)
+    .map((ev) => `${ev.date} ${ev.title}${ev.description ? (lang === 'en' ? ` (${ev.description})` : `（${ev.description}）`) : ''}`)
     .join('\n')
+
+  if (lang === 'en') {
+    return `You are a garbage sorting expert.
+Based on the collection calendar below, tell the user what category the item (or image) belongs to and provide the next 2 collection dates.
+
+## Garbage categories in this calendar
+${categories}
+
+## Upcoming collection schedule (up to 200 entries from today)
+${scheduleText}
+
+## User's question
+"${query}"
+
+## Answer rules
+- If an image is attached, analyze it and write the identified item name in \`itemName\`. For text-only queries, also write the recognized item name.
+- Choose the single most appropriate category from the categories listed above.
+- If no matching category exists, or if the item is bulky waste / cannot be collected regularly, set category to "Cannot classify (please contact your local municipality)" and nextDates to an empty array.
+- Choose the 2 nearest collection dates on or after today (${today}) from the calendar.
+- Return ONLY the following JSON (no explanation):
+
+{
+  "itemName": "name of the item from the image or question",
+  "category": "collection category name",
+  "nextDates": [
+    { "date": "YYYY-MM-DD", "title": "collection category name" },
+    { "date": "YYYY-MM-DD", "title": "collection category name" }
+  ]
+}`
+  }
 
   return `あなたはゴミ分別の専門家です。
 以下のゴミ収集カレンダーをもとに、ユーザーが入力したアイテム（または画像）が何のゴミに分類されるかと、直近の収集日を2件教えてください。
@@ -154,6 +220,7 @@ ${scheduleText}
 async function classifyWithGemini(
   events: CalendarEvent[],
   query: string,
+  lang: Lang,
   imageBase64?: string,
   imageMimeType?: string
 ): Promise<{ itemName?: string; category: string; nextDates: { date: string; title: string }[] } | null> {
@@ -161,7 +228,7 @@ async function classifyWithGemini(
   if (!apiKey) return null
 
   const today = new Date().toISOString().slice(0, 10)
-  const prompt = buildPrompt(events, query, today)
+  const prompt = buildPrompt(events, query, today, lang)
 
   const genAI = new GoogleGenerativeAI(apiKey)
   const model = genAI.getGenerativeModel({
@@ -173,11 +240,19 @@ async function classifyWithGemini(
 
   if (imageBase64 && imageMimeType) {
     parts.push({ inlineData: { mimeType: imageMimeType as 'image/jpeg', data: imageBase64 } })
-    parts.push({
-      text: query
-        ? `${prompt}\n\n上記の画像のアイテムについて回答してください。ユーザーの補足: ${query}`
-        : `${prompt}\n\n上記の画像に写っているアイテムのゴミ分類を回答してください。`,
-    })
+    if (lang === 'en') {
+      parts.push({
+        text: query
+          ? `${prompt}\n\nPlease answer about the item in the image above. User note: ${query}`
+          : `${prompt}\n\nPlease classify the item shown in the image above.`,
+      })
+    } else {
+      parts.push({
+        text: query
+          ? `${prompt}\n\n上記の画像のアイテムについて回答してください。ユーザーの補足: ${query}`
+          : `${prompt}\n\n上記の画像に写っているアイテムのゴミ分類を回答してください。`,
+      })
+    }
   } else {
     parts.push({ text: prompt })
   }
@@ -225,38 +300,46 @@ async function handleMessageEvent(event: LineMessageEvent) {
         .single()
 
       if (!linkCode) {
-        await replyText(event.replyToken, 'コードが見つかりませんでした。ゴミカレのダッシュボードで新しいコードを発行してください。')
+        await replyText(
+          event.replyToken,
+          'Code not found. Please issue a new code from the GomiCale dashboard.\n\nコードが見つかりませんでした。ゴミカレのダッシュボードで新しいコードを発行してください。'
+        )
         return
       }
       if (linkCode.used_at) {
-        await replyText(event.replyToken, 'このコードはすでに使用済みです。ゴミカレのダッシュボードで新しいコードを発行してください。')
+        await replyText(
+          event.replyToken,
+          'This code has already been used. Please issue a new code from the GomiCale dashboard.\n\nこのコードはすでに使用済みです。ゴミカレのダッシュボードで新しいコードを発行してください。'
+        )
         return
       }
       if (new Date(linkCode.expires_at) < new Date(now)) {
-        await replyText(event.replyToken, 'コードの有効期限が切れています。ゴミカレのダッシュボードで新しいコードを発行してください。')
+        await replyText(
+          event.replyToken,
+          'The code has expired. Please issue a new code from the GomiCale dashboard.\n\nコードの有効期限が切れています。ゴミカレのダッシュボードで新しいコードを発行してください。'
+        )
         return
       }
 
-      // line_links に line_source_id を保存（すでに他のユーザーに紐づいている場合はエラーにするか上書きするか）
-      // 今回は upsert で「このトークルームを新しいユーザーに紐付け直す」挙動にする
       await serviceClient
         .from('line_links')
         .upsert({ user_id: linkCode.user_id, line_source_id: lineSourceId }, { onConflict: 'line_source_id' })
 
-      // （後方互換性のため、個人の場合は user_integrations にも保存しておく）
       if (event.source.type === 'user' && event.source.userId) {
         await serviceClient
           .from('user_integrations')
           .upsert({ user_id: linkCode.user_id, line_user_id: event.source.userId }, { onConflict: 'user_id' })
       }
 
-      // コードを使用済みにする
       await serviceClient
         .from('line_link_codes')
         .update({ used_at: now })
         .eq('id', linkCode.id)
 
-      await replyText(event.replyToken, '✅ ゴミカレとのLINE連携が完了しました！\n\nこれからはLINEでゴミの分別を調べられます。\n例：「ペットボトル」「電池」と送ってみてください 🗑️')
+      await replyText(
+        event.replyToken,
+        '✅ GomiCale LINE integration complete!\n\nYou can now look up garbage sorting via LINE.\nTry sending "plastic bottle" or "battery" 🗑️\n\n✅ ゴミカレとのLINE連携が完了しました！\n\nこれからはLINEでゴミの分別を調べられます。\n例：「ペットボトル」「電池」と送ってみてください 🗑️'
+      )
       return
     }
   }
@@ -265,7 +348,6 @@ async function handleMessageEvent(event: LineMessageEvent) {
   // 2. カレンダーデータ取得（リッチメニュー・ゴミ分類共通）
   // ============================================================
 
-  // LINE 送信元IDからゴミカレのユーザーを特定
   const { data: lineLink } = await serviceClient
     .from('line_links')
     .select('user_id')
@@ -277,7 +359,6 @@ async function handleMessageEvent(event: LineMessageEvent) {
   if (lineLink) {
     userId = lineLink.user_id
   } else {
-    // line_links にない場合、後方互換性のため user_integrations をフォールバックとして探す
     const { data: integration } = await serviceClient
       .from('user_integrations')
       .select('user_id')
@@ -286,14 +367,13 @@ async function handleMessageEvent(event: LineMessageEvent) {
 
     if (integration) {
       userId = integration.user_id
-      // ついでに line_links にマイグレーションしておく
       await serviceClient
         .from('line_links')
         .upsert({ user_id: userId, line_source_id: lineSourceId }, { onConflict: 'line_source_id' })
     } else {
       await replyText(
         event.replyToken,
-        'まだゴミカレと連携されていません。\nゴミカレのダッシュボード（https://gomicale.jp/dashboard）にアクセスし、「LINEと連携」から6桁のコードを取得して送信してください。'
+        'GomiCale is not linked yet.\nVisit https://gomicale.jp/dashboard, go to "LINE Integration", and send the 6-digit code here.\n\nまだゴミカレと連携されていません。\nゴミカレのダッシュボード（https://gomicale.jp/dashboard）にアクセスし、「LINEと連携」から6桁のコードを取得して送信してください。'
       )
       return
     }
@@ -313,38 +393,31 @@ async function handleMessageEvent(event: LineMessageEvent) {
   if (!job?.pdf_hash) {
     await replyText(
       event.replyToken,
-      'ゴミ出しカレンダーが登録されていません。\nゴミカレ（https://gomicale.jp/dashboard）でPDFをアップロードしてください。'
+      'No garbage collection calendar registered.\nPlease upload a PDF at GomiCale: https://gomicale.jp/dashboard\n\nゴミ出しカレンダーが登録されていません。\nゴミカレ（https://gomicale.jp/dashboard）でPDFをアップロードしてください。'
     )
     return
   }
 
-  // parsed_pdfs から extracted_json を取得
-  let parsedData = await serviceClient
-    .from('parsed_pdfs')
-    .select('extracted_json')
-    .eq('pdf_hash', `${job.pdf_hash}_ja`)
-    .single()
+  // parsed_pdfs から _en → _ja → bare の順で取得し言語を判定
+  const parsedResult = await fetchParsedDataWithLang(serviceClient, job.pdf_hash)
 
-  if (!parsedData.data) {
-    parsedData = await serviceClient
-      .from('parsed_pdfs')
-      .select('extracted_json')
-      .eq('pdf_hash', job.pdf_hash)
-      .single()
-  }
-
-  if (!parsedData.data) {
-    await replyText(event.replyToken, 'カレンダーデータの取得に失敗しました。')
+  if (!parsedResult) {
+    await replyText(
+      event.replyToken,
+      'Failed to retrieve calendar data. / カレンダーデータの取得に失敗しました。'
+    )
     return
   }
 
-  const extracted = parsedData.data.extracted_json as any
-  const events_data: CalendarEvent[] = Array.isArray(extracted)
-    ? extracted
-    : (extracted?.events || [])
+  const { events: events_data, lang } = parsedResult
 
-  if (!events_data || events_data.length === 0) {
-    await replyText(event.replyToken, 'カレンダーにデータが見つかりませんでした。')
+  if (events_data.length === 0) {
+    await replyText(
+      event.replyToken,
+      lang === 'en'
+        ? 'No data found in the calendar.'
+        : 'カレンダーにデータが見つかりませんでした。'
+    )
     return
   }
 
@@ -354,19 +427,22 @@ async function handleMessageEvent(event: LineMessageEvent) {
   if (event.message.type === 'text') {
     const text = event.message.text.trim()
 
-    if (text === RICH_MENU_COMMANDS.TODAY || text === RICH_MENU_COMMANDS.TOMORROW) {
-      const targetDate = new Date()
-      // JSTの現在時刻を取得
-      targetDate.setHours(targetDate.getHours() + 9)
+    const isToday =
+      text === RICH_MENU_COMMANDS.TODAY || text === RICH_MENU_COMMANDS_EN.TODAY
+    const isTomorrow =
+      text === RICH_MENU_COMMANDS.TOMORROW || text === RICH_MENU_COMMANDS_EN.TOMORROW
 
-      if (text === RICH_MENU_COMMANDS.TOMORROW) {
-        targetDate.setDate(targetDate.getDate() + 1)
-      }
+    if (isToday || isTomorrow) {
+      const targetDate = new Date()
+      targetDate.setHours(targetDate.getHours() + 9)
+      if (isTomorrow) targetDate.setDate(targetDate.getDate() + 1)
 
       const dateStr = targetDate.toISOString().slice(0, 10)
-      const label = text === RICH_MENU_COMMANDS.TODAY ? '今日' : '明日'
+      const label = lang === 'en'
+        ? (isTomorrow ? 'Tomorrow' : 'Today')
+        : (isTomorrow ? '明日' : '今日')
 
-      const replyMessage = getCollectionsByDate(events_data, dateStr, label)
+      const replyMessage = getCollectionsByDate(events_data, dateStr, label, lang)
       await replyText(event.replyToken, replyMessage)
       return
     }
@@ -376,22 +452,22 @@ async function handleMessageEvent(event: LineMessageEvent) {
   // 4. ゴミ分類 (Gemini)
   // ============================================================
 
-  // Gemini 利用制限の確認 (1ユーザーにつき1日5回まで)
-  const today = new Date().toISOString().slice(0, 10) // YYYY-MM-DD
-  const { data: usageLimit, error: usageError } = await serviceClient
+  const today = new Date().toISOString().slice(0, 10)
+  const { data: usageLimit } = await serviceClient
     .from('gemini_usage_limits')
     .select('count')
     .eq('user_id', userId)
     .eq('date', today)
     .single()
 
-  // usageLimit が取得できない場合はエラー（レコードが存在しない場合は0回として扱うので、後で新規作成する）
   const currentCount = usageLimit ? usageLimit.count : 0
 
   if (currentCount >= 5) {
     await replyText(
       event.replyToken,
-      '⚠️ 本日のAI画像判別機能の利用上限（5回）に達しました。\n\n「今日のゴミ」「明日のゴミ」などの検索機能は引き続きご利用いただけます。\nAI判別機能は明日またご利用ください。'
+      lang === 'en'
+        ? "⚠️ You've reached today's AI classification limit (5 times).\n\nYou can still use 'Today's Garbage' and 'Tomorrow's Garbage'. AI classification will be available again tomorrow."
+        : '⚠️ 本日のAI画像判別機能の利用上限（5回）に達しました。\n\n「今日のゴミ」「明日のゴミ」などの検索機能は引き続きご利用いただけます。\nAI判別機能は明日またご利用ください。'
     )
     return
   }
@@ -410,14 +486,19 @@ async function handleMessageEvent(event: LineMessageEvent) {
     }
   }
 
-  const classifyResult = await classifyWithGemini(events_data, query, imageBase64, imageMimeType)
+  const classifyResult = await classifyWithGemini(events_data, query, lang, imageBase64, imageMimeType)
 
   if (!classifyResult) {
-    await replyText(event.replyToken, 'ゴミの分類に失敗しました。もう一度お試しください。')
+    await replyText(
+      event.replyToken,
+      lang === 'en'
+        ? 'Failed to classify the item. Please try again.'
+        : 'ゴミの分類に失敗しました。もう一度お試しください。'
+    )
     return
   }
 
-  // Gemini呼び出し成功時、利用回数インクリメントとストリーク更新を並行実行
+  // 利用回数インクリメントとストリーク更新を並行実行
   const [, streakResult] = await Promise.allSettled([
     serviceClient
       .from('gemini_usage_limits')
@@ -431,51 +512,68 @@ async function handleMessageEvent(event: LineMessageEvent) {
 
   let replyMessage = ''
   if (itemName) {
-    replyMessage += `📦 対象物：${itemName}\n`
+    replyMessage += lang === 'en' ? `📦 Item: ${itemName}\n` : `📦 対象物：${itemName}\n`
   }
-  replyMessage += `🗑️ 分類：${category}`
+  replyMessage += lang === 'en' ? `🗑️ Category: ${category}` : `🗑️ 分類：${category}`
 
   if (nextDates && nextDates.length > 0) {
     const dateLines = nextDates
       .map((d) => {
         const dt = new Date(d.date)
-        const formatted = dt.toLocaleDateString('ja-JP', {
-          month: 'long',
-          day: 'numeric',
-          weekday: 'short',
-          timeZone: 'Asia/Tokyo',
-        })
-        return `・${formatted}（${d.title}）`
+        const formatted = lang === 'en'
+          ? dt.toLocaleDateString('en-US', {
+              month: 'long',
+              day: 'numeric',
+              weekday: 'short',
+              timeZone: 'Asia/Tokyo',
+            })
+          : dt.toLocaleDateString('ja-JP', {
+              month: 'long',
+              day: 'numeric',
+              weekday: 'short',
+              timeZone: 'Asia/Tokyo',
+            })
+        return lang === 'en'
+          ? `- ${formatted} (${d.title})`
+          : `・${formatted}（${d.title}）`
       })
       .join('\n')
-    replyMessage += `\n\n直近の収集日：\n${dateLines}`
+    replyMessage += lang === 'en'
+      ? `\n\nNext collection dates:\n${dateLines}`
+      : `\n\n直近の収集日：\n${dateLines}`
   }
 
   // ---- 粗大ゴミ判定 ----
   const isSodai = detectSodaiGomi(category, nextDates?.length ?? 0)
   if (isSodai) {
-    replyMessage += `\n\n🚛 粗大ゴミ収集の申し込みはこちら:\n${getSodaiGomiSearchUrl('ja')}`
+    replyMessage += lang === 'en'
+      ? `\n\n🚛 For bulky waste collection:\n${getSodaiGomiSearchUrl('en')}`
+      : `\n\n🚛 粗大ゴミ収集の申し込みはこちら:\n${getSodaiGomiSearchUrl('ja')}`
   } else if (!nextDates || nextDates.length === 0) {
-    replyMessage += '\n\n⚠️ お住まいの自治体にお問い合わせください。'
+    replyMessage += lang === 'en'
+      ? '\n\n⚠️ Please contact your local municipality.'
+      : '\n\n⚠️ お住まいの自治体にお問い合わせください。'
   }
 
   // ---- ストリーク（2日連続以上の場合のみ表示）----
   if (streak && streak.current_streak >= 2) {
-    replyMessage += `\n\n🔥 ${streak.current_streak}日連続！累計${streak.total_classifications}回`
+    replyMessage += lang === 'en'
+      ? `\n\n🔥 ${streak.current_streak}-day streak! Total: ${streak.total_classifications} times`
+      : `\n\n🔥 ${streak.current_streak}日連続！累計${streak.total_classifications}回`
   }
 
   // ---- SNS シェアリンク ----
   const firstDate = nextDates?.[0]
-    ? new Date(nextDates[0].date).toLocaleDateString('ja-JP', {
-        month: 'long',
-        day: 'numeric',
-        weekday: 'short',
-        timeZone: 'Asia/Tokyo',
-      })
+    ? new Date(nextDates[0].date).toLocaleDateString(
+        lang === 'en' ? 'en-US' : 'ja-JP',
+        { month: 'long', day: 'numeric', weekday: 'short', timeZone: 'Asia/Tokyo' }
+      )
     : undefined
 
-  const shareUrl = buildXShareUrl({ itemName, category, nextDate: firstDate, locale: 'ja' })
-  replyMessage += `\n\n📢 Xでシェア:\n${shareUrl}`
+  const shareUrl = buildXShareUrl({ itemName, category, nextDate: firstDate, locale: lang })
+  replyMessage += lang === 'en'
+    ? `\n\n📢 Share on X:\n${shareUrl}`
+    : `\n\n📢 Xでシェア:\n${shareUrl}`
 
   await replyText(event.replyToken, replyMessage)
 }
@@ -493,14 +591,12 @@ export async function POST(request: NextRequest) {
   const rawBody = await request.text()
   const signature = request.headers.get('x-line-signature') ?? ''
 
-  // LINE 署名検証
   if (!validateSignature(rawBody, channelSecret, signature)) {
     return NextResponse.json({ error: 'Invalid signature' }, { status: 401 })
   }
 
   const body = JSON.parse(rawBody) as LineWebhookBody
 
-  // イベントを並列処理（reply token は各イベントで独立）
   await Promise.all(
     body.events.map(async (event) => {
       try {
