@@ -156,7 +156,7 @@ export function DashboardClient({ userEmail, initialJobs }: DashboardClientProps
         )}
 
         <div className="pt-4 flex flex-col items-center gap-4">
-          <AdBanner id="new_300x250" />
+          <AdBanner id="gomicale_468x60" />
         </div>
       </main>
       </div>

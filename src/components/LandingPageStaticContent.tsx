@@ -280,7 +280,7 @@ export function LandingPageStaticContent({ blogPosts = [] }: Props) {
           </div>
 
           <div className="mx-auto max-w-3xl pt-8 pb-4 flex flex-col items-center gap-4">
-            <AdBanner id="new_300x250" />
+            <AdBanner id="gomicale_468x60" />
           </div>
         </div>
       </section>
