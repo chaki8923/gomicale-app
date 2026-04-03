@@ -33,18 +33,16 @@ LINE のユーザー ID (`line_user_id`) とゴミカレのユーザー ID (`use
 ### 連携フロー
 
 1. **コード発行 (ゴミカレ ダッシュボード)**
-   - ユーザーがダッシュボードの「LINE連携」セクションで「コードを生成」ボタンを押す
-   - `/api/line-link` に POST リクエストが送られ、ランダムな6桁の数字コードが生成される
-   - コードは `line_link_codes` テーブルに保存される（有効期限: 10分）
-
+  - ユーザーがダッシュボードの「LINE連携」セクションで「コードを生成」ボタンを押す
+  - `/api/line-link` に POST リクエストが送られ、ランダムな6桁の数字コードが生成される
+  - コードは `line_link_codes` テーブルに保存される（有効期限: 10分）
 2. **コード送信 (LINE Bot)**
-   - ユーザーは生成された6桁のコードをコピーし、LINE Bot のトーク画面に送信する
-
+  - ユーザーは生成された6桁のコードをコピーし、LINE Bot のトーク画面に送信する
 3. **コード検証と紐付け (Webhook)**
-   - Webhook がテキストメッセージを受け取る
-   - テキストが6桁の数字のみで構成されている場合、連携コードとみなして `line_link_codes` を検索
-   - 有効なコードであれば、`user_integrations` テーブルの対象ユーザーに `line_user_id` を保存
-   - 連携完了のメッセージを LINE に返信
+  - Webhook がテキストメッセージを受け取る
+  - テキストが6桁の数字のみで構成されている場合、連携コードとみなして `line_link_codes` を検索
+  - 有効なコードであれば、`user_integrations` テーブルの対象ユーザーに `line_user_id` を保存
+  - 連携完了のメッセージを LINE に返信
 
 ---
 
@@ -54,9 +52,9 @@ LINE のユーザー ID (`line_user_id`) とゴミカレのユーザー ID (`use
 
 マイグレーションファイル: `20260307000002_add_line_integration.sql`
 
-- **`user_integrations` テーブル (変更)**
+- `**user_integrations` テーブル (変更)**
   - `line_user_id` (text, unique) カラムを追加
-- **`line_link_codes` テーブル (新規)**
+- `**line_link_codes` テーブル (新規)**
   - `id` (uuid)
   - `user_id` (uuid) - 連携元のユーザー
   - `code` (varchar) - 6桁の連携コード
@@ -79,19 +77,19 @@ LINE のユーザー ID (`line_user_id`) とゴミカレのユーザー ID (`use
 LINE サーバーからのイベントを受け取る中核のファイルです。
 
 1. **署名検証 (`POST` 関数)**
-   - `validateSignature` を使用し、リクエストが確実に LINE から送られたものか（`x-line-signature` ヘッダー）を検証します。
+  - `validateSignature` を使用し、リクエストが確実に LINE から送られたものか（`x-line-signature` ヘッダー）を検証します。
 2. **イベントの振り分け (`handleMessageEvent` 関数)**
-   - イベントタイプが `message` の場合のみ処理します。
+  - イベントタイプが `message` の場合のみ処理します。
 3. **連携処理 (6桁コード)**
-   - メッセージが6桁の数字の場合、データベースでコードを検証し、`user_integrations` を更新します。
+  - メッセージが6桁の数字の場合、データベースでコードを検証し、`user_integrations` を更新します。
 4. **画像処理 (`fetchImageAsBase64` 関数)**
-   - メッセージタイプが `image` の場合、LINE Content API から画像バイナリを取得し、Base64 文字列に変換して Gemini に渡せる形式にします。
+  - メッセージタイプが `image` の場合、LINE Content API から画像バイナリを取得し、Base64 文字列に変換して Gemini に渡せる形式にします。
 5. **分類処理 (`classifyWithGemini` 関数)**
-   - ユーザーのカレンダーデータをプロンプトに組み込みます。
-   - 画像がある場合は、画像データ (`inlineData`) とテキストを組み合わせて Gemini に送信します。
-   - Gemini に対して、JSON形式で「対象物の名前 (`itemName`)」「分類 (`category`)」「収集日 (`nextDates`)」を返すよう指示します。
+  - ユーザーのカレンダーデータをプロンプトに組み込みます。
+  - 画像がある場合は、画像データ (`inlineData`) とテキストを組み合わせて Gemini に送信します。
+  - Gemini に対して、JSON形式で「対象物の名前 (`itemName`)」「分類 (`category`)」「収集日 (`nextDates`)」を返すよう指示します。
 6. **返信処理 (`replyText` 関数)**
-   - Gemini からの応答を整形し、LINE の Reply API を呼び出してユーザーにテキストメッセージを返信します。
+  - Gemini からの応答を整形し、LINE の Reply API を呼び出してユーザーにテキストメッセージを返信します。
 
 ---
 

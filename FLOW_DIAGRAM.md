@@ -98,14 +98,16 @@
 
 ### 処理フローのポイント
 
-| ステップ | 担当コンポーネント | 役割 |
-|---|---|---|
-| ログイン・認証 | Supabase Auth | Google OAuthによるログインとトークン管理 |
-| PDFの保存 | Cloudflare R2 | サイズ制限を回避しPDFを直接保管 |
-| ジョブ管理 | Supabase DB | 処理の進捗状態を `pending → processing → completed/failed` で管理 |
-| AI解析 | AWS Lambda + Gemini | PDFからゴミ収集日データをJSON形式で抽出 |
-| カレンダー登録 | Google Calendar API | 抽出した予定データをカレンダーに一括登録 |
-| リアルタイム通知 | Supabase Realtime | 完了・失敗をブラウザへ即時プッシュ |
+
+| ステップ     | 担当コンポーネント           | 役割                                                     |
+| -------- | ------------------- | ------------------------------------------------------ |
+| ログイン・認証  | Supabase Auth       | Google OAuthによるログインとトークン管理                             |
+| PDFの保存   | Cloudflare R2       | サイズ制限を回避しPDFを直接保管                                      |
+| ジョブ管理    | Supabase DB         | 処理の進捗状態を `pending → processing → completed/failed` で管理 |
+| AI解析     | AWS Lambda + Gemini | PDFからゴミ収集日データをJSON形式で抽出                                |
+| カレンダー登録  | Google Calendar API | 抽出した予定データをカレンダーに一括登録                                   |
+| リアルタイム通知 | Supabase Realtime   | 完了・失敗をブラウザへ即時プッシュ                                      |
+
 
 ---
 
@@ -247,14 +249,16 @@ LINEボットを使うには、事前にゴミカレアカウントとLINEアカ
 
 ### 処理フローのポイント
 
-| ステップ | 担当コンポーネント | 役割 |
-|---|---|---|
-| メッセージ受信 | LINE Messaging API | ユーザーのトークをWebhookへ転送 |
-| 署名検証 | Webhook (`/api/webhooks/line`) | 不正なリクエストの排除 |
-| ユーザー照合 | Supabase DB | LINE IDとゴミカレアカウントの紐付け確認 |
-| 画像取得 | LINE Content API | 送信された画像をBase64形式に変換 |
-| ゴミ分類判定 | Google Gemini API | カレンダーデータと画像/テキストを組み合わせてAIが判定 |
-| 返信 | LINE Reply API | 判定結果をユーザーへ返信 |
+
+| ステップ    | 担当コンポーネント                      | 役割                           |
+| ------- | ------------------------------ | ---------------------------- |
+| メッセージ受信 | LINE Messaging API             | ユーザーのトークをWebhookへ転送          |
+| 署名検証    | Webhook (`/api/webhooks/line`) | 不正なリクエストの排除                  |
+| ユーザー照合  | Supabase DB                    | LINE IDとゴミカレアカウントの紐付け確認      |
+| 画像取得    | LINE Content API               | 送信された画像をBase64形式に変換          |
+| ゴミ分類判定  | Google Gemini API              | カレンダーデータと画像/テキストを組み合わせてAIが判定 |
+| 返信      | LINE Reply API                 | 判定結果をユーザーへ返信                 |
+
 
 ---
 

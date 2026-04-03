@@ -4,14 +4,14 @@
 
 export const ADS = {
   gomicale_468x60: {
-    href: 'https://px.a8.net/svt/ejp?a8mat=4AZES3+G23X6A+4X26+NU729',
+    href: 'https://px.a8.net/svt/ejp?a8mat=4AZES5+BFZZEA+3EMG+1HLVB5',
     image: {
-      src: 'https://www27.a8.net/svt/bgt?aid=260312979971&wid=001&eno=01&mid=s00000022947004004000&mc=1',
+      src: 'https://www25.a8.net/svt/bgt?aid=260312981692&wid=001&eno=01&mid=s00000015892009004000&mc=1',
       width: 468,
       height: 60,
     },
     tracking: {
-      src: 'https://www10.a8.net/0.gif?a8mat=4AZES3+G23X6A+4X26+NU729',
+      src: 'https://www15.a8.net/0.gif?a8mat=4AZES5+BFZZEA+3EMG+1HLVB5',
     },
   },
   new_300x250: {
