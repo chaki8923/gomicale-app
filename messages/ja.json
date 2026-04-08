@@ -232,7 +232,16 @@
     "skipped": "（{count}件は既存のため省略）",
     "processingMessage": "PDFの解析とGoogleカレンダーへの登録を開始しました。",
     "processingTime": "完了まで約10分程度かかります。完了後にメールでお知らせします。",
-    "unknownError": "不明なエラーが発生しました"
+    "unknownError": "不明なエラーが発生しました",
+    "calendarPermissionError": "Googleカレンダーへのアクセス権限がありません",
+    "calendarPermissionShowDetail": "解決方法を見る",
+    "calendarPermissionModalTitle": "カレンダーへのアクセスを許可してください",
+    "calendarPermissionStep1": "① 一度ログアウトします",
+    "calendarPermissionStep2": "② 再度ログインするときに、Google認証画面でカレンダーのチェックボックスにチェックを入れます（下の画像を参考にしてください）",
+    "calendarPermissionStep3": "③ 再ログイン後、PDFを再度アップロードしてください",
+    "calendarPermissionImageAlt": "Google認証画面でカレンダーへのアクセスを許可するチェックボックスの操作例",
+    "calendarPermissionLogout": "ログアウトする",
+    "calendarPermissionClose": "閉じる"
   },
   "login": {
     "title": "ゴミカレ",

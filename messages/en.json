@@ -232,7 +232,16 @@
     "skipped": "({count} skipped as duplicates)",
     "processingMessage": "Started analyzing PDF and registering to Google Calendar.",
     "processingTime": "This may take up to 10 minutes. You will be notified by email when complete.",
-    "unknownError": "An unknown error occurred"
+    "unknownError": "An unknown error occurred",
+    "calendarPermissionError": "Google Calendar access permission is missing",
+    "calendarPermissionShowDetail": "How to fix this",
+    "calendarPermissionModalTitle": "Please allow access to Google Calendar",
+    "calendarPermissionStep1": "① Sign out of the app",
+    "calendarPermissionStep2": "② When signing in again, check the Calendar checkbox on the Google authorization screen (see the image below)",
+    "calendarPermissionStep3": "③ After signing back in, upload your PDF again",
+    "calendarPermissionImageAlt": "Example showing how to check the calendar access checkbox on the Google authorization screen",
+    "calendarPermissionLogout": "Sign out",
+    "calendarPermissionClose": "Close"
   },
   "login": {
     "title": "GomiCale",
