@@ -48,14 +48,7 @@ export function InquiryPanel({ userEmail }: InquiryPanelProps) {
   const [replyOpenId, setReplyOpenId] = useState<string | null>(null)
   const [replyContent, setReplyContent] = useState('')
   const [isReplySubmitting, setIsReplySubmitting] = useState(false)
-  // 初回3秒間だけバウンスアニメーション
-  const [isBouncing, setIsBouncing] = useState(true)
   const listRef = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    const timer = setTimeout(() => setIsBouncing(false), 3000)
-    return () => clearTimeout(timer)
-  }, [])
 
   // 初回データ取得 + Realtime購読
   useEffect(() => {
@@ -187,13 +180,24 @@ export function InquiryPanel({ userEmail }: InquiryPanelProps) {
 
   return (
     <>
+      {/* ふわふわアニメーション用スタイル */}
+      <style>{`
+        @keyframes inquiry-float {
+          0%, 100% { transform: translateY(0px); }
+          50% { transform: translateY(-5px); }
+        }
+        .inquiry-float {
+          animation: inquiry-float 3s ease-in-out infinite;
+        }
+      `}</style>
+
       {/* フローティングボタン */}
       <button
         onClick={() => setIsOpen((v) => !v)}
-        className={`fixed bottom-6 right-6 z-40 flex items-center gap-2.5 bg-orange-500 hover:bg-orange-600 active:bg-orange-700 text-white font-bold px-5 py-3.5 rounded-2xl shadow-xl cursor-pointer transition-all duration-200 ${isBouncing ? 'animate-bounce' : ''}`}
+        style={{ animationPlayState: isOpen ? 'paused' : 'running' }}
+        className="inquiry-float fixed bottom-6 right-6 z-40 flex items-center gap-2.5 bg-teal-600 hover:bg-teal-700 active:bg-teal-800 text-white font-bold px-5 py-3.5 rounded-2xl shadow-xl cursor-pointer transition-colors duration-200"
         aria-label={t('title')}
       >
-        {/* メガホン風アイコン */}
         <svg className="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" />
         </svg>
@@ -222,15 +226,15 @@ export function InquiryPanel({ userEmail }: InquiryPanelProps) {
         `}
       >
         {/* ヘッダー */}
-        <div className="flex-shrink-0 bg-orange-500 px-5 py-4 rounded-t-2xl sm:rounded-tl-2xl sm:rounded-tr-none">
+        <div className="flex-shrink-0 bg-teal-600 px-5 py-4 rounded-t-2xl sm:rounded-tl-2xl sm:rounded-tr-none">
           <div className="flex items-start justify-between gap-3">
             <div>
               <h2 className="text-base font-bold text-white leading-snug">{t('title')}</h2>
-              <p className="text-xs text-orange-100 mt-0.5">{t('subtitle')}</p>
+              <p className="text-xs text-teal-100 mt-0.5">{t('subtitle')}</p>
             </div>
             <button
               onClick={() => setIsOpen(false)}
-              className="p-1.5 rounded-lg text-orange-200 hover:text-white hover:bg-orange-600 cursor-pointer transition flex-shrink-0"
+              className="p-1.5 rounded-lg text-teal-200 hover:text-white hover:bg-teal-700 cursor-pointer transition flex-shrink-0"
               aria-label={t('close')}
             >
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -260,11 +264,11 @@ export function InquiryPanel({ userEmail }: InquiryPanelProps) {
 
                 {/* 返信一覧 */}
                 {post.replies.length > 0 && (
-                  <div className="border-t border-orange-100 bg-orange-50 px-4 py-3 space-y-3">
+                  <div className="border-t border-teal-100 bg-teal-50 px-4 py-3 space-y-3">
                     {post.replies.map((reply) => (
                       <div key={reply.id}>
                         <div className="flex items-center gap-1.5 mb-1">
-                          <span className="text-xs font-semibold text-orange-700 bg-orange-100 px-2 py-0.5 rounded-full">
+                          <span className="text-xs font-semibold text-teal-700 bg-teal-100 px-2 py-0.5 rounded-full">
                             {t('adminLabel')}
                           </span>
                         </div>
@@ -288,7 +292,7 @@ export function InquiryPanel({ userEmail }: InquiryPanelProps) {
                           placeholder={t('replyPlaceholder')}
                           rows={3}
                           maxLength={2000}
-                          className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 resize-none focus:outline-none focus:ring-2 focus:ring-orange-400"
+                          className="w-full text-sm text-gray-900 placeholder:text-gray-500 border border-gray-300 rounded-lg px-3 py-2 resize-none focus:outline-none focus:ring-2 focus:ring-teal-400"
                         />
                         <div className="flex gap-2 justify-end">
                           <button
@@ -300,7 +304,7 @@ export function InquiryPanel({ userEmail }: InquiryPanelProps) {
                           <button
                             onClick={() => handleSubmitReply(post.id)}
                             disabled={isReplySubmitting || !replyContent.trim()}
-                            className="text-xs font-semibold text-white bg-orange-500 hover:bg-orange-600 disabled:opacity-50 px-3 py-1.5 rounded-lg cursor-pointer transition"
+                            className="text-xs font-semibold text-white bg-teal-600 hover:bg-teal-700 disabled:opacity-50 px-3 py-1.5 rounded-lg cursor-pointer transition"
                           >
                             {isReplySubmitting ? '...' : t('replySubmit')}
                           </button>
@@ -309,7 +313,7 @@ export function InquiryPanel({ userEmail }: InquiryPanelProps) {
                     ) : (
                       <button
                         onClick={() => { setReplyOpenId(post.id); setReplyContent('') }}
-                        className="text-xs text-orange-600 hover:text-orange-700 font-medium cursor-pointer transition"
+                        className="text-xs text-teal-600 hover:text-teal-700 font-medium cursor-pointer transition"
                       >
                         {t('replyToggle')}
                       </button>
@@ -332,14 +336,14 @@ export function InquiryPanel({ userEmail }: InquiryPanelProps) {
             placeholder={t('placeholder')}
             rows={3}
             maxLength={2000}
-            className="w-full text-sm border border-gray-300 rounded-xl px-3 py-2.5 resize-none focus:outline-none focus:ring-2 focus:ring-orange-400"
+            className="w-full text-sm text-gray-900 placeholder:text-gray-500 border border-gray-300 rounded-xl px-3 py-2.5 resize-none focus:outline-none focus:ring-2 focus:ring-teal-400"
           />
           <div className="flex items-center justify-between">
             <span className="text-xs text-gray-400">{newContent.length}/2000</span>
             <button
               onClick={handleSubmitPost}
               disabled={isSubmitting || !newContent.trim()}
-              className="inline-flex items-center gap-1.5 text-sm font-bold text-white bg-orange-500 hover:bg-orange-600 active:bg-orange-700 disabled:opacity-50 px-5 py-2.5 rounded-xl cursor-pointer transition shadow-sm"
+              className="inline-flex items-center gap-1.5 text-sm font-bold text-white bg-teal-600 hover:bg-teal-700 active:bg-teal-800 disabled:opacity-50 px-5 py-2.5 rounded-xl cursor-pointer transition shadow-sm"
             >
               {isSubmitting ? t('submitting') : t('submit')}
               {!isSubmitting && (
