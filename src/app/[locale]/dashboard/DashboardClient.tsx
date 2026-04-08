@@ -14,6 +14,7 @@ import { LanguageSwitcher } from '@/components/LanguageSwitcher'
 import { GarbageClassifier } from './GarbageClassifier'
 import { LineLinkManager } from './LineLinkManager'
 import { CalendarPermissionModal } from '@/components/CalendarPermissionModal'
+import { InquiryPanel } from '@/components/InquiryPanel'
 import type { Job } from '@/types/database'
 
 const CALENDAR_PERMISSION_ERROR_MARKER = 'Googleカレンダーへのアクセス権限'
@@ -230,6 +231,10 @@ export function DashboardClient({ userEmail, initialJobs }: DashboardClientProps
         </div>
       </main>
       </div>
+
+      {initialJobs.length > 0 && (
+        <InquiryPanel userEmail={userEmail} />
+      )}
 
       <footer className="mt-12 py-6 border-t border-gray-100 bg-white">
         <div className="max-w-2xl mx-auto px-4 flex flex-wrap justify-center gap-4 text-xs text-gray-400">

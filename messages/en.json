@@ -304,5 +304,22 @@
       { "q": "Are there any unsupported municipalities?", "a": "GomiCale is not limited to specific municipalities and supports any PDF calendar format from any municipality in Japan. However, accuracy may vary depending on how each municipality formats and distributes their PDF calendars." },
       { "q": "Can I delete my account?", "a": "Yes, you can request account and data deletion by contacting us. Deletion will remove your registration history and Google account integration information. Note that events already registered to Google Calendar will not be deleted — please remove those from Google Calendar if needed." }
     ]
+  },
+  "inquiry": {
+    "title": "Support",
+    "placeholder": "Any questions or feedback? Feel free to ask! (up to 2000 characters)",
+    "submit": "Send",
+    "submitting": "Sending...",
+    "replyPlaceholder": "Enter reply...",
+    "replySubmit": "Reply",
+    "adminLabel": "Admin",
+    "noPostsYet": "No posts yet.\nFeel free to ask anything!",
+    "errorEmpty": "Please enter a message",
+    "errorTooLong": "Must be 2000 characters or less",
+    "errorSubmit": "Failed to send. Please try again.",
+    "replyLabel": "Reply",
+    "replyToggle": "Reply",
+    "replyCancel": "Cancel",
+    "close": "Close"
   }
 }

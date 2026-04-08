@@ -14,6 +14,51 @@ export type Database = {
   }
   public: {
     Tables: {
+      inquiry_posts: {
+        Row: {
+          id: string
+          user_id: string
+          content: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          content: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          content?: string
+          created_at?: string
+        }
+        Relationships: []
+      }
+      inquiry_replies: {
+        Row: {
+          id: string
+          post_id: string
+          admin_user_id: string
+          content: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          post_id: string
+          admin_user_id: string
+          content: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          post_id?: string
+          admin_user_id?: string
+          content?: string
+          created_at?: string
+        }
+        Relationships: []
+      }
       line_link_codes: {
         Row: {
           id: string
@@ -372,3 +417,5 @@ export type JobResultData = {
   skipped_count?: number
 }
 export type UserStreak = Database['public']['Tables']['user_streaks']['Row']
+export type InquiryPost = Database['public']['Tables']['inquiry_posts']['Row']
+export type InquiryReply = Database['public']['Tables']['inquiry_replies']['Row']
