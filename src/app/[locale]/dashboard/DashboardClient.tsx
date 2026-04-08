@@ -15,16 +15,20 @@ import { GarbageClassifier } from './GarbageClassifier'
 import { LineLinkManager } from './LineLinkManager'
 import { CalendarPermissionModal } from '@/components/CalendarPermissionModal'
 import { InquiryPanel } from '@/components/InquiryPanel'
+import { InquiryReplyModal } from '@/components/InquiryReplyModal'
 import type { Job } from '@/types/database'
+import type { UnreadReply } from '@/components/InquiryReplyModal'
 
 const CALENDAR_PERMISSION_ERROR_MARKER = 'Googleカレンダーへのアクセス権限'
 
 interface DashboardClientProps {
   userEmail: string
+  userId: string
   initialJobs: Job[]
+  unreadReplies: UnreadReply[]
 }
 
-export function DashboardClient({ userEmail, initialJobs }: DashboardClientProps) {
+export function DashboardClient({ userEmail, userId, initialJobs, unreadReplies }: DashboardClientProps) {
   const router = useRouter()
   const t = useTranslations('dashboard')
   const tCommon = useTranslations('common')
@@ -34,6 +38,7 @@ export function DashboardClient({ userEmail, initialJobs }: DashboardClientProps
 
   const [isHistoryOpen, setIsHistoryOpen] = useState(false)
   const [isCalendarModalOpen, setIsCalendarModalOpen] = useState(false)
+  const [isReplyModalOpen, setIsReplyModalOpen] = useState(unreadReplies.length > 0)
 
   const handleUploadComplete = useCallback((jobId: string) => {
     setActiveJobIds((prev) => [jobId, ...prev])
@@ -59,6 +64,13 @@ export function DashboardClient({ userEmail, initialJobs }: DashboardClientProps
         onClose={() => setIsCalendarModalOpen(false)}
         locale={locale}
       />
+      {isReplyModalOpen && (
+        <InquiryReplyModal
+          unreadReplies={unreadReplies}
+          userId={userId}
+          onClose={() => setIsReplyModalOpen(false)}
+        />
+      )}
       <header className="bg-white border-b border-gray-100 shadow-sm">
         <div className="max-w-2xl mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-2">

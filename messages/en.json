@@ -305,6 +305,13 @@
       { "q": "Can I delete my account?", "a": "Yes, you can request account and data deletion by contacting us. Deletion will remove your registration history and Google account integration information. Note that events already registered to Google Calendar will not be deleted — please remove those from Google Calendar if needed." }
     ]
   },
+  "inquiryReplyModal": {
+    "title": "You have a reply from the admin",
+    "subtitle": "The admin has replied to your post.",
+    "yourPost": "Your post",
+    "adminReply": "Admin reply",
+    "confirm": "Got it"
+  },
   "inquiry": {
     "title": "Feedback & Complaints",
     "subtitle": "Send us anything. We respond directly.",

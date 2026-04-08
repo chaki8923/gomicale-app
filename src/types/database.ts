@@ -14,6 +14,21 @@ export type Database = {
   }
   public: {
     Tables: {
+      inquiry_reply_reads: {
+        Row: {
+          user_id: string
+          last_read_at: string
+        }
+        Insert: {
+          user_id: string
+          last_read_at?: string
+        }
+        Update: {
+          user_id?: string
+          last_read_at?: string
+        }
+        Relationships: []
+      }
       inquiry_posts: {
         Row: {
           id: string
@@ -419,3 +434,4 @@ export type JobResultData = {
 export type UserStreak = Database['public']['Tables']['user_streaks']['Row']
 export type InquiryPost = Database['public']['Tables']['inquiry_posts']['Row']
 export type InquiryReply = Database['public']['Tables']['inquiry_replies']['Row']
+export type InquiryReplyRead = Database['public']['Tables']['inquiry_reply_reads']['Row']
