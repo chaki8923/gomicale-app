@@ -234,7 +234,6 @@
     "processingTime": "完了まで約10分程度かかります。完了後にメールでお知らせします。",
     "unknownError": "不明なエラーが発生しました",
     "calendarPermissionError": "Googleカレンダーへのアクセス権限がありません",
-    "calendarPermissionErrorShort": "カレンダーへのアクセス権限エラー",
     "calendarPermissionShowDetail": "解決方法を見る",
     "calendarPermissionModalTitle": "カレンダーへのアクセスを許可してください",
     "calendarPermissionStep1": "① 一度ログアウトします",

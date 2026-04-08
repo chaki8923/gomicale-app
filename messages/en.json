@@ -234,7 +234,6 @@
     "processingTime": "This may take up to 10 minutes. You will be notified by email when complete.",
     "unknownError": "An unknown error occurred",
     "calendarPermissionError": "Google Calendar access permission is missing",
-    "calendarPermissionErrorShort": "Calendar access permission error",
     "calendarPermissionShowDetail": "How to fix this",
     "calendarPermissionModalTitle": "Please allow access to Google Calendar",
     "calendarPermissionStep1": "① Sign out of the app",
