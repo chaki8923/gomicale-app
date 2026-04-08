@@ -195,13 +195,15 @@ export function InquiryPanel({ userEmail }: InquiryPanelProps) {
       <button
         onClick={() => setIsOpen((v) => !v)}
         style={{ animationPlayState: isOpen ? 'paused' : 'running' }}
-        className="inquiry-float fixed bottom-6 right-6 z-40 flex items-center gap-2.5 bg-teal-600 hover:bg-teal-700 active:bg-teal-800 text-white font-bold px-5 py-3.5 rounded-2xl shadow-xl cursor-pointer transition-colors duration-200"
+        className="inquiry-float fixed bottom-4 right-4 z-40 flex items-center gap-2.5 bg-teal-600 hover:bg-teal-700 active:bg-teal-800 text-white font-bold cursor-pointer transition-colors duration-200 shadow-xl
+          p-3.5 rounded-2xl
+          sm:px-5 sm:py-3.5 sm:rounded-2xl"
         aria-label={t('title')}
       >
         <svg className="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" />
         </svg>
-        <div className="flex flex-col items-start leading-tight">
+        <div className="hidden sm:flex flex-col items-start leading-tight">
           <span className="text-sm">{t('buttonLabel')}</span>
           <span className="text-xs font-normal opacity-90">{t('subtitle')}</span>
         </div>

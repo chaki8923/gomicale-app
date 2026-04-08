@@ -49,7 +49,7 @@ export default async function DashboardPage({
     .order('created_at', { ascending: true })
 
   const unreadReplies: UnreadReply[] = (unreadRepliesRaw ?? []).map((r) => {
-    const post = r.inquiry_posts as { id: string; content: string; user_id: string }
+    const post = r.inquiry_posts as unknown as { id: string; content: string; user_id: string }
     return {
       replyId: r.id,
       replyContent: r.content,
