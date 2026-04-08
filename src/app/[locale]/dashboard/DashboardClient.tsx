@@ -13,7 +13,10 @@ import { AdBanner } from '@/components/AdBanner'
 import { LanguageSwitcher } from '@/components/LanguageSwitcher'
 import { GarbageClassifier } from './GarbageClassifier'
 import { LineLinkManager } from './LineLinkManager'
+import { CalendarPermissionModal } from '@/components/CalendarPermissionModal'
 import type { Job } from '@/types/database'
+
+const CALENDAR_PERMISSION_ERROR_MARKER = 'Googleカレンダーへのアクセス権限'
 
 interface DashboardClientProps {
   userEmail: string
@@ -24,10 +27,12 @@ export function DashboardClient({ userEmail, initialJobs }: DashboardClientProps
   const router = useRouter()
   const t = useTranslations('dashboard')
   const tCommon = useTranslations('common')
+  const tJobStatus = useTranslations('jobStatus')
   const locale = useLocale()
   const [activeJobIds, setActiveJobIds] = useState<string[]>([])
 
   const [isHistoryOpen, setIsHistoryOpen] = useState(false)
+  const [isCalendarModalOpen, setIsCalendarModalOpen] = useState(false)
 
   const handleUploadComplete = useCallback((jobId: string) => {
     setActiveJobIds((prev) => [jobId, ...prev])
@@ -48,6 +53,11 @@ export function DashboardClient({ userEmail, initialJobs }: DashboardClientProps
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 to-teal-50">
+      <CalendarPermissionModal
+        isOpen={isCalendarModalOpen}
+        onClose={() => setIsCalendarModalOpen(false)}
+        locale={locale}
+      />
       <header className="bg-white border-b border-gray-100 shadow-sm">
         <div className="max-w-2xl mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -154,7 +164,21 @@ export function DashboardClient({ userEmail, initialJobs }: DashboardClientProps
                               </p>
                             )
                           })()}
-                          {job.status === 'error' && (
+                          {job.status === 'error' && typeof job.error_message === 'string' && job.error_message.includes(CALENDAR_PERMISSION_ERROR_MARKER) && (
+                            <div className="flex flex-wrap items-center gap-2">
+                              <p className="text-sm text-red-400">{t('errorPrefix')}{t('calendarPermissionErrorShort')}</p>
+                              <button
+                                onClick={() => setIsCalendarModalOpen(true)}
+                                className="inline-flex items-center gap-1 text-xs font-medium text-red-500 underline underline-offset-2 hover:text-red-600 transition"
+                              >
+                                <svg className="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                  <path strokeLinecap="round" strokeLinejoin="round" d="M9.879 7.519c1.171-1.025 3.071-1.025 4.242 0 1.172 1.025 1.172 2.687 0 3.712-.203.179-.43.326-.67.442-.745.361-1.45.999-1.45 1.827v.75M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9 5.25h.008v.008H12v-.008z" />
+                                </svg>
+                                {tJobStatus('calendarPermissionShowDetail')}
+                              </button>
+                            </div>
+                          )}
+                          {job.status === 'error' && !(typeof job.error_message === 'string' && job.error_message.includes(CALENDAR_PERMISSION_ERROR_MARKER)) && (
                             <p className="text-sm text-red-400">{t('errorPrefix')}{job.error_message}</p>
                           )}
                           {(job.status === 'pending' || job.status === 'processing') && (
