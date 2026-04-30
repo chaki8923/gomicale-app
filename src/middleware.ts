@@ -5,8 +5,30 @@ import { NextRequest, NextResponse } from 'next/server'
 
 const intlMiddleware = createMiddleware(routing)
 
+const MAINTENANCE_PATH = '/maintenance'
+
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
+
+  // Maintenance mode: redirect all non-API traffic to /maintenance
+  const isMaintenanceMode = process.env.MAINTENANCE_MODE === 'true'
+  const isMaintenancePage = pathname === MAINTENANCE_PATH
+  const isApiRoute = pathname.startsWith('/api')
+  const isAuthRoute = pathname.startsWith('/auth')
+  const isStaticAsset = pathname.startsWith('/_next')
+
+  if (isMaintenanceMode && !isMaintenancePage && !isApiRoute && !isAuthRoute && !isStaticAsset) {
+    const url = request.nextUrl.clone()
+    url.pathname = MAINTENANCE_PATH
+    return NextResponse.redirect(url)
+  }
+
+  // If maintenance mode is off but someone visits /maintenance, redirect to home
+  if (!isMaintenanceMode && isMaintenancePage) {
+    const url = request.nextUrl.clone()
+    url.pathname = '/'
+    return NextResponse.redirect(url)
+  }
 
   // External webhooks: bypass Supabase session update entirely
   if (pathname.startsWith('/api/webhooks')) {
