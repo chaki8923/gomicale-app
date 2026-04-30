@@ -6,25 +6,31 @@ import { NextRequest, NextResponse } from 'next/server'
 const intlMiddleware = createMiddleware(routing)
 
 const MAINTENANCE_PATH = '/maintenance'
+// Matches /maintenance or /ja/maintenance, /en/maintenance, etc.
+const MAINTENANCE_RE = /^(\/[a-z]{2})?\/maintenance(\/|$)/
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
 
-  // Maintenance mode: redirect all non-API traffic to /maintenance
   const isMaintenanceMode = process.env.MAINTENANCE_MODE === 'true'
-  const isMaintenancePage = pathname === MAINTENANCE_PATH
   const isApiRoute = pathname.startsWith('/api')
   const isAuthRoute = pathname.startsWith('/auth')
   const isStaticAsset = pathname.startsWith('/_next')
+  const isMaintenancePath = MAINTENANCE_RE.test(pathname)
 
-  if (isMaintenanceMode && !isMaintenancePage && !isApiRoute && !isAuthRoute && !isStaticAsset) {
-    const url = request.nextUrl.clone()
-    url.pathname = MAINTENANCE_PATH
-    return NextResponse.redirect(url)
+  if (isMaintenanceMode && !isApiRoute && !isAuthRoute && !isStaticAsset) {
+    if (pathname !== MAINTENANCE_PATH) {
+      // Redirect everything (including /ja/maintenance) to bare /maintenance
+      const url = request.nextUrl.clone()
+      url.pathname = MAINTENANCE_PATH
+      return NextResponse.redirect(url)
+    }
+    // Serve /maintenance directly without going through intl routing
+    return NextResponse.next()
   }
 
-  // If maintenance mode is off but someone visits /maintenance, redirect to home
-  if (!isMaintenanceMode && isMaintenancePage) {
+  // If maintenance mode is off but someone visits /maintenance (any locale), redirect to home
+  if (!isMaintenanceMode && isMaintenancePath) {
     const url = request.nextUrl.clone()
     url.pathname = '/'
     return NextResponse.redirect(url)
