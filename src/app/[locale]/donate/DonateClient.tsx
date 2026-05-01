@@ -1,7 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
 
 const AMOUNTS = [50, 100, 150, 200, 250, 300, 350, 400, 450, 500]
 
@@ -9,7 +8,6 @@ export function DonateClient() {
   const [selected, setSelected] = useState<number>(100)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const router = useRouter()
 
   async function handleDonate() {
     setLoading(true)
@@ -24,7 +22,7 @@ export function DonateClient() {
       if (!res.ok || !data.url) {
         throw new Error(data.error ?? 'エラーが発生しました')
       }
-      router.push(data.url)
+      window.location.href = data.url
     } catch (err) {
       setError(err instanceof Error ? err.message : 'エラーが発生しました')
       setLoading(false)
