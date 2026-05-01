@@ -5,7 +5,7 @@ import { useTranslations } from 'next-intl'
 import { getSupabaseBrowserClient } from '@/lib/supabase/client'
 import type { InquiryPost, InquiryReply } from '@/types/database'
 
-const ADMIN_EMAIL = 'REDACTED'
+const ADMIN_EMAIL = process.env.NEXT_PUBLIC_ADMIN_EMAIL ?? ''
 
 type PostWithReplies = InquiryPost & { replies: InquiryReply[] }
 

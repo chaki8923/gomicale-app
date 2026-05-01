@@ -9,6 +9,11 @@ const MAINTENANCE_PATH = '/maintenance'
 // Matches /maintenance or /ja/maintenance, /en/maintenance, etc.
 const MAINTENANCE_RE = /^(\/[a-z]{2})?\/maintenance(\/|$)/
 
+function withMaintenanceNoindex(response: NextResponse) {
+  response.headers.set('X-Robots-Tag', 'noindex, nofollow')
+  return response
+}
+
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
 
@@ -23,10 +28,10 @@ export async function middleware(request: NextRequest) {
       // Redirect everything (including /ja/maintenance) to bare /maintenance
       const url = request.nextUrl.clone()
       url.pathname = MAINTENANCE_PATH
-      return NextResponse.redirect(url)
+      return withMaintenanceNoindex(NextResponse.redirect(url))
     }
     // Serve /maintenance directly without going through intl routing
-    return NextResponse.next()
+    return withMaintenanceNoindex(NextResponse.next())
   }
 
   // If maintenance mode is off but someone visits /maintenance (any locale), redirect to home
