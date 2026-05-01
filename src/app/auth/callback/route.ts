@@ -1,21 +1,47 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getSupabaseServerClient, getSupabaseServiceClient } from '@/lib/supabase/server'
+import { createServerClient } from '@supabase/ssr'
+import { getSupabaseServiceClient } from '@/lib/supabase/server'
+import type { Database } from '@/types/database'
 
 // Google OAuth コールバック処理
-// ・セッション確立
+// ・セッション確立（クッキーをリダイレクトレスポンスに明示的に設定）
 // ・リフレッシュトークンを user_integrations に upsert
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url)
   const code = searchParams.get('code')
-  const next = searchParams.get('next') ?? '/dashboard'
+
+  // next-intl のロケール cookie を参照（なければデフォルト 'ja'）
+  const locale = request.cookies.get('NEXT_LOCALE')?.value ?? 'ja'
+  const next = searchParams.get('next') ?? `/${locale}/dashboard`
 
   if (!code) {
     return NextResponse.redirect(`${origin}/login?error=missing_code`)
   }
 
-  const supabase = await getSupabaseServerClient()
+  // リダイレクトレスポンスを先に生成し、setAll でクッキーを直接このレスポンスに書き込む。
+  // getSupabaseServerClient() (cookies() from next/headers) だと Route Handler の
+  // NextResponse.redirect() にクッキーが確実に含まれないケースがあるため、
+  // middleware.ts と同様のパターンで明示的に設定する。
+  const response = NextResponse.redirect(`${origin}${next}`)
 
-  // 認証コードをセッションに交換
+  const supabase = createServerClient<Database>(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return request.cookies.getAll()
+        },
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach(({ name, value, options }) =>
+            response.cookies.set(name, value, options),
+          )
+        },
+      },
+    },
+  )
+
+  // 認証コードをセッションに交換（setAll 経由でクッキーが response に書き込まれる）
   const { data, error } = await supabase.auth.exchangeCodeForSession(code)
   if (error || !data.session) {
     console.error('[auth/callback] exchangeCodeForSession error:', error)
@@ -55,5 +81,5 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  return NextResponse.redirect(`${origin}${next}`)
+  return response
 }
