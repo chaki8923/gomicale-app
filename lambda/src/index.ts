@@ -35,6 +35,14 @@ async function sendCompletionEmail(
           <p style="margin:0;color:#065f46;font-size:18px;font-weight:bold">${inserted}件 登録完了</p>
           ${skipped > 0 ? `<p style="margin:4px 0 0;color:#6b7280;font-size:13px">（${skipped}件は既存のためスキップ）</p>` : ''}
         </div>
+        <div style="text-align:center;margin-top:16px">
+          <img
+            src="${APP_URL}/seiza_oba.png"
+            alt="ゴミカレキャラクター"
+            width="120"
+            style="display:block;margin:0 auto"
+          />
+        </div>
         <div style="border:1px solid #e5e7eb;border-radius:8px;padding:16px;margin-top:16px;text-align:center">
           <p style="margin:0 0 4px;color:#374151;font-size:14px;font-weight:bold">
             このサービスが役に立ちましたか？
