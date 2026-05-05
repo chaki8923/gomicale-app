@@ -35,6 +35,18 @@ async function sendCompletionEmail(
           <p style="margin:0;color:#065f46;font-size:18px;font-weight:bold">${inserted}件 登録完了</p>
           ${skipped > 0 ? `<p style="margin:4px 0 0;color:#6b7280;font-size:13px">（${skipped}件は既存のためスキップ）</p>` : ''}
         </div>
+        <div style="border:1px solid #e5e7eb;border-radius:8px;padding:16px;margin-top:16px;text-align:center">
+        <p style="margin:0 0 4px;color:#374151;font-size:14px;font-weight:bold">
+        このサービスが役に立ちましたか？
+        </p>
+        <p style="margin:0 0 12px;color:#6b7280;font-size:12px">
+        開発継続のためのご支援をいただけると嬉しいです
+        </p>
+        <a href="${APP_URL}/ja/donate"
+        style="display:inline-block;background:#0d9488;color:#fff;text-decoration:none;padding:10px 24px;border-radius:8px;font-size:14px;font-weight:bold">
+        おばさんに寄付する❤️
+        </a>
+        </div>
         <div style="text-align:center;margin-top:16px">
           <img
             src="${APP_URL}/seiza_oba.png"
@@ -42,18 +54,6 @@ async function sendCompletionEmail(
             width="120"
             style="display:block;margin:0 auto"
           />
-        </div>
-        <div style="border:1px solid #e5e7eb;border-radius:8px;padding:16px;margin-top:16px;text-align:center">
-          <p style="margin:0 0 4px;color:#374151;font-size:14px;font-weight:bold">
-            このサービスが役に立ちましたか？
-          </p>
-          <p style="margin:0 0 12px;color:#6b7280;font-size:12px">
-            開発継続のためのご支援をいただけると大変助かります
-          </p>
-          <a href="${APP_URL}/ja/donate"
-             style="display:inline-block;background:#0d9488;color:#fff;text-decoration:none;padding:10px 24px;border-radius:8px;font-size:14px;font-weight:bold">
-            開発者へ寄付する ❤️
-          </a>
         </div>
         <p style="color:#9ca3af;font-size:12px;margin-top:24px">ゴミカレ</p>
       </div>
@@ -106,7 +106,7 @@ const r2 = new S3Client({
   region: 'auto',
   endpoint: `https://${process.env.CLOUDFLARE_ACCOUNT_ID}.r2.cloudflarestorage.com`,
   credentials: {
-    accessKeyId:     process.env.R2_ACCESS_KEY_ID!,
+    accessKeyId: process.env.R2_ACCESS_KEY_ID!,
     secretAccessKey: process.env.R2_SECRET_ACCESS_KEY!,
   },
 })
