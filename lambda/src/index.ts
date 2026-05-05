@@ -47,11 +47,11 @@ async function sendCompletionEmail(
         おばさんに寄付する❤️
         </a>
         </div>
-        <div style="text-align:center;margin-top:16px">
+        <div style="text-align:center;">
           <img
             src="${APP_URL}/seiza_oba.png"
             alt="ゴミカレキャラクター"
-            width="120"
+            width="320"
             style="display:block;margin:0 auto"
           />
         </div>
