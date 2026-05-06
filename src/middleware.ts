@@ -56,8 +56,13 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next()
   }
 
-  // API routes and auth callback don't need locale routing
-  if (pathname.startsWith('/api') || pathname.startsWith('/auth')) {
+  // Auth routes must bypass middleware session updates so PKCE callback cookies are untouched
+  if (pathname.startsWith('/auth')) {
+    return NextResponse.next()
+  }
+
+  // API routes don't need locale routing
+  if (pathname.startsWith('/api')) {
     return updateSession(request)
   }
 
