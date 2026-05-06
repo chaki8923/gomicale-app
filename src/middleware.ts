@@ -41,6 +41,16 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(url)
   }
 
+  // Supabase OAuth が Redirect URLs 未登録により Site URL にフォールバックした場合の救済
+  // /, /ja, /en に ?code= 付きでリダイレクトされてきた場合は /auth/callback に転送する
+  const codeParam = request.nextUrl.searchParams.get('code')
+  const isHomePage = pathname === '/' || pathname === '/ja' || pathname === '/en'
+  if (codeParam && isHomePage) {
+    const url = request.nextUrl.clone()
+    url.pathname = '/auth/callback'
+    return NextResponse.redirect(url)
+  }
+
   // External webhooks: bypass Supabase session update entirely
   if (pathname.startsWith('/api/webhooks')) {
     return NextResponse.next()
