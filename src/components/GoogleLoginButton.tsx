@@ -1,6 +1,5 @@
 'use client'
 
-import { getSupabaseBrowserClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/Button'
 
 interface GoogleLoginButtonProps {
@@ -12,24 +11,8 @@ export function GoogleLoginButton({
   className,
   label = 'Googleでログイン',
 }: GoogleLoginButtonProps) {
-  const handleGoogleLogin = async () => {
-    const supabase = getSupabaseBrowserClient()
-    await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: {
-        redirectTo: `${window.location.origin}/auth/callback`,
-        scopes: [
-          'https://www.googleapis.com/auth/calendar.events',
-          'openid',
-          'email',
-          'profile',
-        ].join(' '),
-        queryParams: {
-          access_type: 'offline',
-          prompt: 'consent',
-        },
-      },
-    })
+  const handleGoogleLogin = () => {
+    window.location.href = '/auth/sign-in'
   }
 
   return (
