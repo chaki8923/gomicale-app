@@ -16,6 +16,15 @@ function withMaintenanceNoindex(response: NextResponse) {
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
+  const host = request.nextUrl.hostname
+
+  // Canonical host: force www -> apex so OAuth start/callback share same host cookie jar
+  if (host === 'www.gomicale.jp') {
+    const url = request.nextUrl.clone()
+    url.hostname = 'gomicale.jp'
+    url.protocol = 'https:'
+    return NextResponse.redirect(url, 301)
+  }
 
   const isMaintenanceMode = process.env.MAINTENANCE_MODE === 'true'
   const isApiRoute = pathname.startsWith('/api')

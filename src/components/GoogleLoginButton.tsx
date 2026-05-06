@@ -20,6 +20,14 @@ export function GoogleLoginButton({
       .map((part) => part.split('=')[0])
 
   const handleGoogleLogin = async () => {
+    if (window.location.hostname === 'www.gomicale.jp') {
+      const canonicalUrl = new URL(window.location.href)
+      canonicalUrl.hostname = 'gomicale.jp'
+      canonicalUrl.protocol = 'https:'
+      window.location.assign(canonicalUrl.toString())
+      return
+    }
+
     const supabase = getSupabaseBrowserClient()
     console.info('[auth/client] oauth pre-redirect cookies', {
       cookieNames: getCookieNames(),
