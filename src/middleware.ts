@@ -16,6 +16,15 @@ function withMaintenanceNoindex(response: NextResponse) {
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
+  const host = request.nextUrl.hostname
+
+  // Canonical host: force www -> apex so OAuth start/callback share same host cookie jar
+  if (host === 'www.gomicale.jp') {
+    const url = request.nextUrl.clone()
+    url.hostname = 'gomicale.jp'
+    url.protocol = 'https:'
+    return NextResponse.redirect(url, 301)
+  }
 
   const isMaintenanceMode = process.env.MAINTENANCE_MODE === 'true'
   const isApiRoute = pathname.startsWith('/api')
@@ -41,13 +50,28 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(url)
   }
 
+  // Supabase OAuth が Redirect URLs 未登録により Site URL にフォールバックした場合の救済
+  // /, /ja, /en に ?code= 付きでリダイレクトされてきた場合は /auth/callback に転送する
+  const codeParam = request.nextUrl.searchParams.get('code')
+  const isHomePage = pathname === '/' || pathname === '/ja' || pathname === '/en'
+  if (codeParam && isHomePage) {
+    const url = request.nextUrl.clone()
+    url.pathname = '/auth/callback'
+    return NextResponse.redirect(url)
+  }
+
   // External webhooks: bypass Supabase session update entirely
   if (pathname.startsWith('/api/webhooks')) {
     return NextResponse.next()
   }
 
-  // API routes and auth callback don't need locale routing
-  if (pathname.startsWith('/api') || pathname.startsWith('/auth')) {
+  // Auth routes must bypass middleware session updates so PKCE callback cookies are untouched
+  if (pathname.startsWith('/auth')) {
+    return NextResponse.next()
+  }
+
+  // API routes don't need locale routing
+  if (pathname.startsWith('/api')) {
     return updateSession(request)
   }
 

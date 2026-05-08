@@ -18,6 +18,18 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(`${origin}/login?error=missing_code`)
   }
 
+  const cookieNames = request.cookies.getAll().map(({ name }) => name)
+  const hasPkceVerifierCookie = cookieNames.some((name) =>
+    name.includes('code-verifier') || name.includes('code_verifier'),
+  )
+  const userAgent = request.headers.get('user-agent') ?? 'unknown'
+  console.info('[auth/callback] pkce precheck', {
+    hasCode: Boolean(code),
+    hasPkceVerifierCookie,
+    cookieNames,
+    userAgent: userAgent.slice(0, 120),
+  })
+
   // リダイレクトレスポンスを先に生成し、setAll でクッキーを直接このレスポンスに書き込む。
   // getSupabaseServerClient() (cookies() from next/headers) だと Route Handler の
   // NextResponse.redirect() にクッキーが確実に含まれないケースがあるため、
