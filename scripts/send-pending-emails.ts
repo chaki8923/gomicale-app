@@ -45,8 +45,8 @@ async function sendRetryEmail(toEmail: string): Promise<void> {
       <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:24px">
         <h2 style="color:#0d9488;margin-bottom:8px">アップロードが完了しませんでした</h2>
         <p style="color:#374151;margin-bottom:16px">
-          処理の実行中にブラウザやタブを閉じた可能性があり、PDFファイルのアップロードが完了しませんでした。<br>
-          お手数ですがもう一度アップロードをお願い致します。
+          処理の実行中にブラウザやタブを閉じられた可能性があり、PDFファイルのアップロードが完了しませんでした。<br>
+          大変お手数ですがもう一度アップロードをお願いいたします。
         </p>
         <div style="text-align:center;margin-top:24px">
           <a href="${APP_URL}"
