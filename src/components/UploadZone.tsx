@@ -42,15 +42,6 @@ export function UploadZone({ onUploadComplete }: UploadZoneProps) {
     return () => document.removeEventListener('mousedown', handleOutside)
   }, [isTimePickerOpen])
 
-  useEffect(() => {
-    if (!isLoading) return
-    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-      e.preventDefault()
-    }
-    window.addEventListener('beforeunload', handleBeforeUnload)
-    return () => window.removeEventListener('beforeunload', handleBeforeUnload)
-  }, [isLoading])
-
   const modeConfig: Record<ParserMode, { label: string; description: string }> = {
     garbage: { label: t('garbageLabel'), description: t('garbageDesc') },
     general: { label: t('generalLabel'), description: t('generalDesc') },
@@ -113,6 +104,15 @@ export function UploadZone({ onUploadComplete }: UploadZoneProps) {
   }, [processFile])
 
   const isLoading = ['uploading', 'starting'].includes(state)
+
+  useEffect(() => {
+    if (!isLoading) return
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      e.preventDefault()
+    }
+    window.addEventListener('beforeunload', handleBeforeUnload)
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload)
+  }, [isLoading])
 
   return (
     <>
