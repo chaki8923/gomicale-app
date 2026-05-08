@@ -42,6 +42,15 @@ export function UploadZone({ onUploadComplete }: UploadZoneProps) {
     return () => document.removeEventListener('mousedown', handleOutside)
   }, [isTimePickerOpen])
 
+  useEffect(() => {
+    if (!isLoading) return
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      e.preventDefault()
+    }
+    window.addEventListener('beforeunload', handleBeforeUnload)
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload)
+  }, [isLoading])
+
   const modeConfig: Record<ParserMode, { label: string; description: string }> = {
     garbage: { label: t('garbageLabel'), description: t('garbageDesc') },
     general: { label: t('generalLabel'), description: t('generalDesc') },
@@ -106,6 +115,21 @@ export function UploadZone({ onUploadComplete }: UploadZoneProps) {
   const isLoading = ['uploading', 'starting'].includes(state)
 
   return (
+    <>
+      {isLoading && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm">
+          <div className="mx-4 w-full max-w-sm rounded-2xl bg-white p-8 shadow-2xl text-center">
+            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-yellow-100">
+              <svg className="h-9 w-9 text-yellow-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v4m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+              </svg>
+            </div>
+            <h2 className="mb-2 text-xl font-bold text-gray-900">{t('processingModalTitle')}</h2>
+            <p className="mb-1 text-base font-semibold text-red-600">{t('processingModalWarning')}</p>
+            <p className="text-sm text-gray-500">{t('processingModalBody')}</p>
+          </div>
+        </div>
+      )}
     <div className="w-full space-y-3">
       {/* モード選択 */}
       <div className="flex gap-2">
@@ -289,6 +313,7 @@ export function UploadZone({ onUploadComplete }: UploadZoneProps) {
         <p className="mt-2 text-sm text-red-500">{error}</p>
       )}
     </div>
+    </>
   )
 }
 

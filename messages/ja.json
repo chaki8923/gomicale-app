@@ -221,7 +221,10 @@
     "errorNetwork": "ネットワークエラーが発生しました",
     "errorUnexpected": "予期しないエラーが発生しました",
     "errorUploadFailed": "アップロード失敗 (HTTP {status})",
-    "errorLimitExceeded": "1日のアップロード上限（5回）に達しました。明日またお試しください。"
+    "errorLimitExceeded": "1日のアップロード上限（5回）に達しました。明日またお試しください。",
+    "processingModalTitle": "処理中です",
+    "processingModalWarning": "このページを閉じないでください",
+    "processingModalBody": "カレンダーへの登録が完了するまで、ブラウザやタブを閉じると処理が中断されます。"
   },
   "jobStatus": {
     "pending": "待機中",

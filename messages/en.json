@@ -221,7 +221,10 @@
     "errorNetwork": "A network error occurred",
     "errorUnexpected": "An unexpected error occurred",
     "errorUploadFailed": "Upload failed (HTTP {status})",
-    "errorLimitExceeded": "Daily upload limit (5 times) exceeded. Please try again tomorrow."
+    "errorLimitExceeded": "Daily upload limit (5 times) exceeded. Please try again tomorrow.",
+    "processingModalTitle": "Processing in progress",
+    "processingModalWarning": "Do not close this page",
+    "processingModalBody": "Closing the browser or tab before registration is complete will interrupt the process."
   },
   "jobStatus": {
     "pending": "Queued",
