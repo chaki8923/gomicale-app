@@ -24,11 +24,13 @@ const CALENDAR_PERMISSION_ERROR_MARKER = 'Googleカレンダーへのアクセ�
 interface DashboardClientProps {
   userEmail: string
   userId: string
+  userName: string
+  userAvatarUrl: string
   initialJobs: Job[]
   unreadReplies: UnreadReply[]
 }
 
-export function DashboardClient({ userEmail, userId, initialJobs, unreadReplies }: DashboardClientProps) {
+export function DashboardClient({ userEmail, userId, userName, userAvatarUrl, initialJobs, unreadReplies }: DashboardClientProps) {
   const router = useRouter()
   const t = useTranslations('dashboard')
   const tCommon = useTranslations('common')
@@ -80,7 +82,22 @@ export function DashboardClient({ userEmail, userId, initialJobs, unreadReplies 
           </div>
           <div className="flex items-center gap-4">
             <LanguageSwitcher />
-            <span className="text-sm text-gray-500 hidden sm:block">{userEmail}</span>
+            <div className="hidden sm:flex items-center gap-2">
+              {userAvatarUrl ? (
+                <Image
+                  src={userAvatarUrl}
+                  alt={userName}
+                  width={32}
+                  height={32}
+                  className="rounded-full"
+                />
+              ) : (
+                <span className="w-8 h-8 rounded-full bg-green-100 text-green-700 flex items-center justify-center text-sm font-medium">
+                  {userName.charAt(0).toUpperCase()}
+                </span>
+              )}
+              <span className="text-sm text-gray-500">{userName}</span>
+            </div>
             <Button
               onClick={handleLogout}
               className="text-sm text-gray-400 hover:text-gray-600 transition cursor-pointer"

@@ -4,7 +4,16 @@ import withPWAInit from '@ducanh2912/next-pwa'
 
 const withNextIntl = createNextIntlPlugin()
 
-const nextConfig: NextConfig = {}
+const nextConfig: NextConfig = {
+  images: {
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'lh3.googleusercontent.com',
+      },
+    ],
+  },
+}
 
 const withPWA = withPWAInit({
   dest: 'public',

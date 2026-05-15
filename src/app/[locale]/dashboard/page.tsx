@@ -59,10 +59,21 @@ export default async function DashboardPage({
     }
   })
 
+  const userName =
+    (user.user_metadata?.full_name as string | undefined) ??
+    (user.user_metadata?.name as string | undefined) ??
+    user.email ??
+    ''
+
+  const userAvatarUrl =
+    (user.user_metadata?.avatar_url as string | undefined) ?? ''
+
   return (
     <DashboardClient
       userEmail={user.email ?? ''}
       userId={user.id}
+      userName={userName}
+      userAvatarUrl={userAvatarUrl}
       initialJobs={(jobs ?? []) as Job[]}
       unreadReplies={unreadReplies}
     />
