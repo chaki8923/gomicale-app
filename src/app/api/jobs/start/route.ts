@@ -24,6 +24,11 @@ type GoogleApiErrorResponse = {
   error?: {
     errors?: Array<{ reason?: string }>
   }
+  error_description?: string
+}
+
+type GoogleTokenInfoResponse = {
+  scope?: string
 }
 
 type PreflightFailure = {
@@ -130,21 +135,26 @@ async function refreshGoogleAccessToken(refreshToken: string): Promise<string> {
   return tokenBody.access_token
 }
 
-async function checkGoogleCalendarAccess(accessToken: string): Promise<PreflightFailure | null> {
-  const res = await fetch('https://www.googleapis.com/calendar/v3/users/me/calendarList?maxResults=1', {
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-    },
-  })
+async function checkGoogleCalendarScope(accessToken: string): Promise<PreflightFailure | null> {
+  const res = await fetch(
+    `https://oauth2.googleapis.com/tokeninfo?access_token=${encodeURIComponent(accessToken)}`,
+  )
 
   if (res.ok) {
-    return null
+    const body = await res.json() as GoogleTokenInfoResponse
+    const scopes = new Set((body.scope ?? '').split(/\s+/).filter(Boolean))
+    return scopes.has('https://www.googleapis.com/auth/calendar.events')
+      ? null
+      : {
+          errorCode: JOB_ERROR_CODES.GOOGLE_CALENDAR_SCOPE_MISSING,
+          message: 'Googleカレンダーへのアクセス権限がありません。一度ログアウトし、再ログイン時にカレンダーへのアクセスを許可してください。',
+        }
   }
 
   let reason: string | undefined
   try {
     const body = await res.json() as GoogleApiErrorResponse
-    reason = body.error?.errors?.[0]?.reason
+    reason = body.error?.errors?.[0]?.reason ?? body.error_description
   } catch {
     reason = undefined
   }
@@ -214,7 +224,7 @@ export async function POST(request: NextRequest) {
   let preflightFailure: PreflightFailure | null = null
   try {
     const accessToken = await refreshGoogleAccessToken(integration.google_refresh_token_enc)
-    preflightFailure = await checkGoogleCalendarAccess(accessToken)
+    preflightFailure = await checkGoogleCalendarScope(accessToken)
   } catch (err) {
     preflightFailure = err as PreflightFailure
   }
