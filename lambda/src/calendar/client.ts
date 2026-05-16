@@ -5,6 +5,24 @@ import type { CalendarEvent } from '../types'
 
 const CALENDAR_ID = 'primary'
 
+export type CalendarIntegrationErrorCode =
+  | 'GOOGLE_REAUTH_REQUIRED'
+  | 'GOOGLE_CALENDAR_SCOPE_MISSING'
+  | 'GOOGLE_CALENDAR_PERMISSION_DENIED'
+  | 'GOOGLE_CALENDAR_RATE_LIMIT'
+  | 'GOOGLE_API_TEMPORARY'
+  | 'GOOGLE_OAUTH_CONFIG_ERROR'
+
+export class CalendarIntegrationError extends Error {
+  constructor(
+    public code: CalendarIntegrationErrorCode,
+    message: string,
+  ) {
+    super(message)
+    this.name = 'CalendarIntegrationError'
+  }
+}
+
 // Phase 1: insert の間隔 (120ms = 8.3 req/sec、上限10 req/sec に余裕)
 const PHASE1_INTERVAL_MS = 120
 
@@ -24,6 +42,59 @@ type InsertOutcome =
 type ConflictOutcome = 'inserted' | 'skipped' | 'error'
 
 const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms))
+
+function getGoogleApiStatus(err: unknown): number | undefined {
+  const e = err as { code?: number; response?: { status?: number } }
+  return e?.code ?? e?.response?.status
+}
+
+function getGoogleApiReason(err: unknown): string | undefined {
+  const e = err as {
+    response?: { data?: { error?: { errors?: Array<{ reason?: string }> } } }
+    errors?: Array<{ reason?: string }>
+  }
+  return e?.response?.data?.error?.errors?.[0]?.reason ?? e?.errors?.[0]?.reason
+}
+
+function mapCalendarApiError(err: unknown): CalendarIntegrationError | null {
+  const status = getGoogleApiStatus(err)
+  const reason = getGoogleApiReason(err)
+
+  if (status === 401) {
+    return new CalendarIntegrationError(
+      'GOOGLE_REAUTH_REQUIRED',
+      'Google認証の有効期限が切れています。再認証してください。',
+    )
+  }
+
+  if (status === 403) {
+    if (reason === 'insufficientPermissions') {
+      return new CalendarIntegrationError(
+        'GOOGLE_CALENDAR_SCOPE_MISSING',
+        'Googleカレンダーへのアクセス権限がありません。一度ログアウトし、再ログイン時にカレンダーへのアクセスを許可してください。',
+      )
+    }
+    if (reason === 'rateLimitExceeded' || reason === 'userRateLimitExceeded') {
+      return new CalendarIntegrationError(
+        'GOOGLE_CALENDAR_RATE_LIMIT',
+        'Google Calendar API のレート制限に達しました。しばらくしてから再試行してください。',
+      )
+    }
+    return new CalendarIntegrationError(
+      'GOOGLE_CALENDAR_PERMISSION_DENIED',
+      'Googleカレンダーへのアクセスが拒否されました。再認証をお試しください。',
+    )
+  }
+
+  if (status != null && status >= 500) {
+    return new CalendarIntegrationError(
+      'GOOGLE_API_TEMPORARY',
+      'Google API が一時的に利用できません。時間をおいて再試行してください。',
+    )
+  }
+
+  return null
+}
 
 function buildEventDateTime(date: string, eventTime?: string, timezone?: string) {
   if (eventTime) {
@@ -68,11 +139,43 @@ export async function refreshAccessToken(refreshToken: string): Promise<string> 
   )
   oauth2Client.setCredentials({ refresh_token: refreshToken })
 
-  const { credentials } = await oauth2Client.refreshAccessToken()
-  if (!credentials.access_token) {
-    throw new Error('Failed to refresh Google access token')
+  try {
+    const { credentials } = await oauth2Client.refreshAccessToken()
+    if (!credentials.access_token) {
+      throw new Error('Failed to refresh Google access token')
+    }
+    return credentials.access_token
+  } catch (err) {
+    const e = err as {
+      response?: { status?: number; data?: { error?: string } }
+      code?: number
+    }
+    const status = e?.response?.status ?? e?.code
+    const oauthError = e?.response?.data?.error
+
+    if (oauthError === 'invalid_grant' || status === 401) {
+      throw new CalendarIntegrationError(
+        'GOOGLE_REAUTH_REQUIRED',
+        'Google認証の有効期限が切れています。再認証してください。',
+      )
+    }
+
+    if (oauthError === 'invalid_client' || oauthError === 'unauthorized_client') {
+      throw new CalendarIntegrationError(
+        'GOOGLE_OAUTH_CONFIG_ERROR',
+        'Google OAuth 設定に問題があります。管理者にお問い合わせください。',
+      )
+    }
+
+    if (status != null && status >= 500) {
+      throw new CalendarIntegrationError(
+        'GOOGLE_API_TEMPORARY',
+        'Google API が一時的に利用できません。時間をおいて再試行してください。',
+      )
+    }
+
+    throw err
   }
-  return credentials.access_token
 }
 
 /**
@@ -106,10 +209,15 @@ async function attemptInsert(
     })
     return { kind: 'inserted' }
   } catch (err) {
-    const code = (err as { code?: number })?.code
-    if (code === 403) {
-      throw new Error('Googleカレンダーへのアクセス権限がありません。一度ログアウトし、再ログイン時にカレンダーへのアクセスを許可してください。')
+    const mapped = mapCalendarApiError(err)
+    if (mapped) {
+      if (mapped.code === 'GOOGLE_CALENDAR_RATE_LIMIT' || mapped.code === 'GOOGLE_API_TEMPORARY') {
+        console.warn('[calendar] temporary insert issue:', mapped.message)
+        return { kind: 'error' }
+      }
+      throw mapped
     }
+    const code = getGoogleApiStatus(err)
     if (code === 409) {
       return { kind: 'conflict', ev, eventId, displayTitle, descriptionText }
     }
@@ -150,6 +258,14 @@ async function handleConflict(
     })
     return 'inserted'
   } catch (err) {
+    const mapped = mapCalendarApiError(err)
+    if (mapped) {
+      if (mapped.code === 'GOOGLE_CALENDAR_RATE_LIMIT' || mapped.code === 'GOOGLE_API_TEMPORARY') {
+        console.warn('[calendar] temporary conflict issue:', mapped.message)
+        return 'error'
+      }
+      throw mapped
+    }
     console.error('[calendar] conflict handler error:', err)
     return 'error'
   }

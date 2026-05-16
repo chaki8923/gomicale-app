@@ -5,9 +5,21 @@ import { Resend } from 'resend'
 import type { LambdaPayload, CalendarEvent } from './types'
 import { createPdfParser } from './parsers/factory'
 import { NotACalendarError, NotAGarbageCalendarError } from './parsers/base'
-import { refreshAccessToken, batchInsertGarbageEvents } from './calendar/client'
+import {
+  refreshAccessToken,
+  batchInsertGarbageEvents,
+  CalendarIntegrationError,
+  type CalendarIntegrationErrorCode,
+} from './calendar/client'
 
 const APP_URL = process.env.APP_URL ?? 'https://gomicale.jp'
+
+type JobErrorCode =
+  | CalendarIntegrationErrorCode
+  | 'NOT_A_CALENDAR'
+  | 'NOT_A_GARBAGE_CALENDAR'
+  | 'GEMINI_TEMPORARY'
+  | 'UNKNOWN'
 
 async function sendCompletionEmail(
   toEmail: string,
@@ -226,10 +238,16 @@ export const handler = async (event: LambdaPayload): Promise<void> => {
     }
   } catch (err) {
     let message = err instanceof Error ? err.message : String(err)
+    let errorCode: JobErrorCode = 'UNKNOWN'
     console.error('[handler] error:', message, err)
+
+    if (err instanceof CalendarIntegrationError) {
+      errorCode = err.code
+    }
 
     // カレンダー形式でないPDFが送信された場合
     if (err instanceof NotACalendarError) {
+      errorCode = 'NOT_A_CALENDAR'
       message = language === 'en'
         ? 'The uploaded PDF does not appear to be a calendar or schedule. Please upload a garbage collection calendar or event schedule PDF.'
         : 'カレンダー形式のPDFではありませんでした。ゴミ出しカレンダーや行事予定表などのPDFをアップロードしてください。'
@@ -237,6 +255,7 @@ export const handler = async (event: LambdaPayload): Promise<void> => {
 
     // ゴミ収集カレンダー以外の予定表PDFが送信された場合
     if (err instanceof NotAGarbageCalendarError) {
+      errorCode = 'NOT_A_GARBAGE_CALENDAR'
       message = language === 'en'
         ? 'This PDF does not appear to be a garbage collection calendar. If it is a school schedule, shift roster, or other event calendar, please upload it again using the "General Schedule PDF" option.'
         : 'このPDFはゴミ収集カレンダーではないようです。学校行事予定表・シフト表・地域イベントカレンダーなどの場合は、「汎用予定PDF」を選択して再度アップロードしてください。'
@@ -244,6 +263,7 @@ export const handler = async (event: LambdaPayload): Promise<void> => {
 
     // Gemini APIの一時的なエラー（503やfetch failed）をユーザーフレンドリーなメッセージに書き換える
     if (message.includes('503 Service Unavailable') || message.includes('high demand') || message.includes('fetch failed')) {
+      errorCode = 'GEMINI_TEMPORARY'
       message = language === 'en'
         ? 'AI server is currently experiencing high demand and is temporarily unavailable. Please wait a few minutes and try again.'
         : '現在AIサーバーが混み合っており、一時的に利用できない状態です。数分〜数十分ほど時間を置いてから再度お試しください。'
@@ -253,6 +273,9 @@ export const handler = async (event: LambdaPayload): Promise<void> => {
     await supabase.from('jobs').update({
       status: 'error',
       error_message: message,
+      result_data: {
+        error_code: errorCode,
+      },
     }).eq('id', jobId)
 
     // エラー通知メール送信（失敗しても無視）

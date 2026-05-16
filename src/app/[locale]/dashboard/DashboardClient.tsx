@@ -16,6 +16,7 @@ import { LineLinkManager } from './LineLinkManager'
 import { CalendarPermissionModal } from '@/components/CalendarPermissionModal'
 import { InquiryPanel } from '@/components/InquiryPanel'
 import { InquiryReplyModal } from '@/components/InquiryReplyModal'
+import { getJobErrorCode, isCalendarReauthErrorCode, type JobResultDataLike } from '@/lib/job-errors'
 import type { Job } from '@/types/database'
 import type { UnreadReply } from '@/components/InquiryReplyModal'
 
@@ -179,7 +180,7 @@ export function DashboardClient({ userEmail, userId, userName, userAvatarUrl, in
                         
                         <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
                           {job.status === 'completed' && job.result_data && (() => {
-                            const rd = job.result_data as { calendar_event_count?: number; skipped_count?: number }
+                            const rd = job.result_data as JobResultDataLike
                             const inserted = rd.calendar_event_count ?? 0
                             const skipped = rd.skipped_count ?? 0
                             return (
@@ -194,7 +195,14 @@ export function DashboardClient({ userEmail, userId, userName, userAvatarUrl, in
                               </p>
                             )
                           })()}
-                          {job.status === 'error' && typeof job.error_message === 'string' && job.error_message.includes(CALENDAR_PERMISSION_ERROR_MARKER) && (
+                          {job.status === 'error' && (() => {
+                            const errorCode = getJobErrorCode(job.result_data)
+                            const isCalendarErrorByCode = isCalendarReauthErrorCode(errorCode)
+                            const isCalendarErrorByMessage =
+                              typeof job.error_message === 'string' &&
+                              job.error_message.includes(CALENDAR_PERMISSION_ERROR_MARKER)
+                            return isCalendarErrorByCode || isCalendarErrorByMessage
+                          })() && (
                             <div className="flex flex-wrap items-center gap-2">
                               <p className="text-sm text-red-400">{t('errorPrefix')}{job.error_message}</p>
                               <button
@@ -208,7 +216,14 @@ export function DashboardClient({ userEmail, userId, userName, userAvatarUrl, in
                               </button>
                             </div>
                           )}
-                          {job.status === 'error' && !(typeof job.error_message === 'string' && job.error_message.includes(CALENDAR_PERMISSION_ERROR_MARKER)) && (
+                          {job.status === 'error' && (() => {
+                            const errorCode = getJobErrorCode(job.result_data)
+                            const isCalendarErrorByCode = isCalendarReauthErrorCode(errorCode)
+                            const isCalendarErrorByMessage =
+                              typeof job.error_message === 'string' &&
+                              job.error_message.includes(CALENDAR_PERMISSION_ERROR_MARKER)
+                            return !(isCalendarErrorByCode || isCalendarErrorByMessage)
+                          })() && (
                             <p className="text-sm text-red-400">{t('errorPrefix')}{job.error_message}</p>
                           )}
                           {(job.status === 'pending' || job.status === 'processing') && (

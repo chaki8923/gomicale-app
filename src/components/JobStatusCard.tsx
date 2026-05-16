@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useTranslations, useLocale } from 'next-intl'
 import { getSupabaseBrowserClient } from '@/lib/supabase/client'
 import { CalendarPermissionModal } from '@/components/CalendarPermissionModal'
+import { getJobErrorCode, isCalendarReauthErrorCode, type JobResultDataLike } from '@/lib/job-errors'
 import type { Job } from '@/types/database'
 
 interface JobStatusCardProps {
@@ -72,11 +73,14 @@ export function JobStatusCard({ jobId, onComplete }: JobStatusCardProps) {
   }
 
   const isProcessing = job.status === 'pending' || job.status === 'processing'
-  const resultData = job.result_data as { calendar_event_count?: number; skipped_count?: number } | null
+  const resultData = job.result_data as JobResultDataLike | null
+  const errorCode = getJobErrorCode(job.result_data)
   const isCalendarPermissionError =
     job.status === 'error' &&
-    typeof job.error_message === 'string' &&
-    job.error_message.includes(CALENDAR_PERMISSION_ERROR_MARKER)
+    (
+      isCalendarReauthErrorCode(errorCode) ||
+      (typeof job.error_message === 'string' && job.error_message.includes(CALENDAR_PERMISSION_ERROR_MARKER))
+    )
 
   return (
     <>
