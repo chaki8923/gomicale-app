@@ -232,7 +232,7 @@ async function classifyWithGemini(
 
   const genAI = new GoogleGenerativeAI(apiKey)
   const model = genAI.getGenerativeModel({
-    model: process.env.GEMINI_CLASSIFY_MODEL ?? 'gemini-3-flash-preview',
+    model: process.env.GEMINI_CLASSIFY_MODEL ?? 'gemini-3.1-flash-lite',
     generationConfig: { responseMimeType: 'application/json', temperature: 0 },
   })
 
