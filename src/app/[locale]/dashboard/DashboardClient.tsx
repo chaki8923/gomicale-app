@@ -8,6 +8,7 @@ import { Link } from '@/i18n/navigation'
 import { getSupabaseBrowserClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/Button'
 import { UploadZone } from '@/components/UploadZone'
+import { ManualScheduleInput } from '@/components/ManualScheduleInput'
 import { JobStatusCard } from '@/components/JobStatusCard'
 import { AdBanner } from '@/components/AdBanner'
 import { LanguageSwitcher } from '@/components/LanguageSwitcher'
@@ -122,6 +123,10 @@ export function DashboardClient({ userEmail, userId, userName, userAvatarUrl, in
           <h2 className="text-lg font-semibold text-gray-800 mb-3">{t('uploadTitle')}</h2>
           <p className="text-sm text-gray-500 mb-4">{t('uploadDescription')}</p>
           <UploadZone onUploadComplete={handleUploadComplete} />
+        </section>
+
+        <section>
+          <ManualScheduleInput onStart={handleUploadComplete} />
         </section>
 
         {activeJobIds.length > 0 && (

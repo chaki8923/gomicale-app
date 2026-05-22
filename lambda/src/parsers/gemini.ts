@@ -105,6 +105,10 @@ function createGeminiModel() {
   })
 }
 
+function isDateInRange(date: string, start: string, end: string): boolean {
+  return date >= start && date <= end
+}
+
 async function parseWithPrompt(prompt: string, pdfBuffer: Buffer): Promise<ParseResult> {
   const model = createGeminiModel()
   const base64Pdf = pdfBuffer.toString('base64')
@@ -153,6 +157,116 @@ async function parseWithPrompt(prompt: string, pdfBuffer: Buffer): Promise<Parse
     })
 
   return { title: raw.title, events }
+}
+
+function buildManualInstructionPrompt(
+  instruction: string,
+  fiscalYearStart: string,
+  fiscalYearEnd: string,
+  language: Language,
+): string {
+  if (language === 'en') {
+    return `
+You are an AI that converts natural-language garbage collection rules into concrete Google Calendar events.
+
+## User instruction
+${instruction}
+
+## Target period
+- Start date: ${fiscalYearStart}
+- End date: ${fiscalYearEnd}
+
+## Critical rules
+- Expand recurring rules into ALL concrete dates within the target period.
+- Interpret rules such as "every Tuesday", "Mondays and Thursdays", "2nd and 4th Friday", "first/third Wednesday", and equivalent Japanese expressions.
+- Use the weekday and ordinal occurrence within each month in the local Japan calendar.
+- If multiple garbage types occur on the same date, output separate event objects.
+- Do not output dates outside the target period.
+- If the instruction is ambiguous, infer conservatively and keep the original wording in description.
+
+## Output
+Return ONLY this JSON object:
+{
+  "title": "Manual garbage collection rules",
+  "events": [
+    { "date": "YYYY-MM-DD", "title": "Collection type", "description": "Source rule if useful" }
+  ]
+}
+`.trim()
+  }
+
+  return `
+あなたは自然文で書かれたゴミ収集ルールを、Googleカレンダー登録用の具体的な予定一覧へ変換するAIです。
+
+## ユーザーの入力指示
+${instruction}
+
+## 対象期間
+- 開始日: ${fiscalYearStart}
+- 終了日: ${fiscalYearEnd}
+
+## 最重要ルール
+- 入力指示に含まれる繰り返しルールを、対象期間内のすべての具体日付へ展開してください。
+- 「毎週火曜日」「月曜と木曜」「第2・4金」「第1・第3水曜」のような表現を正しく解釈してください。
+- 「第2金曜」はその月の2回目の金曜日という意味です。
+- 曜日・第n曜日の判定は日本時間のカレンダーとして扱ってください。
+- 1つの日付に複数の収集種別がある場合は、別々のイベントとして出力してください。
+- 対象期間外の日付は絶対に出力しないでください。
+- 迷う表現がある場合は保守的に解釈し、description に元のルールを残してください。
+
+## 出力形式
+以下のJSONオブジェクトのみを返してください。説明文は不要です。
+{
+  "title": "手入力: ゴミ収集ルール",
+  "events": [
+    { "date": "YYYY-MM-DD", "title": "収集種別", "description": "必要に応じて元ルール" }
+  ]
+}
+`.trim()
+}
+
+export async function parseManualGarbageInstruction(
+  instruction: string,
+  fiscalYearStart: string,
+  fiscalYearEnd: string,
+  language: Language = 'ja',
+): Promise<ParseResult> {
+  const model = createGeminiModel()
+  const prompt = buildManualInstructionPrompt(instruction, fiscalYearStart, fiscalYearEnd, language)
+
+  const result = await model.generateContent(prompt)
+  const text = result.response.text().trim()
+  const match = text.match(/\{[\s\S]*\}/)
+  if (!match) {
+    throw new Error(`Gemini returned unexpected format: ${text.slice(0, 200)}`)
+  }
+
+  const raw = JSON.parse(match[0]) as { title?: string; events?: Array<Record<string, string>> }
+  const events: CalendarEvent[] = (raw.events || [])
+    .map((item) => {
+      const desc = (item.description ?? '').trim()
+      return {
+        date:        (item.date ?? '').trim(),
+        title:       (item.title ?? item['garbage_type'] ?? '').trim(),
+        description: desc || undefined,
+      }
+    })
+    .filter((ev) => {
+      if (!ev.date || !ev.title) {
+        console.warn('[gemini/manual] skipping event with empty field:', ev)
+        return false
+      }
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(ev.date) || !isDateInRange(ev.date, fiscalYearStart, fiscalYearEnd)) {
+        console.warn('[gemini/manual] skipping out-of-range event:', ev)
+        return false
+      }
+      return true
+    })
+
+  return {
+    title: raw.title ?? (language === 'en' ? 'Manual garbage collection rules' : '手入力: ゴミ収集ルール'),
+    events,
+  }
 }
 
 const GARBAGE_PROMPT_EN = `

@@ -226,6 +226,20 @@
     "processingModalWarning": "このページを閉じないでください",
     "processingModalBody": "カレンダーへの登録が完了するまで、ブラウザやタブを閉じると処理が中断されます。"
   },
+  "manualSchedule": {
+    "title": "文章でゴミ収集ルールを登録",
+    "description": "PDFがカレンダー形式でない場合は、地区の収集ルールを文章で入力してください。AIが今年度分（4月〜翌3月）の予定に変換してGoogleカレンダーへ登録します。",
+    "exampleLabel": "入力例",
+    "example": "毎週火曜日は資源ごみ、月曜と木曜は燃えるゴミ、第2・4金は燃やさないゴミ",
+    "placeholder": "例：毎週火曜日は資源ごみ、月曜と木曜は燃えるゴミ、第2・4金は燃やさないゴミ",
+    "remaining": "残り {count} 文字",
+    "rangeNote": "今年度分を登録します",
+    "submit": "文章からカレンダー登録",
+    "submitting": "登録を開始中...",
+    "errorTooLong": "入力指示は2000文字以内で入力してください",
+    "errorSubmit": "登録の開始に失敗しました",
+    "errorUnexpected": "予期しないエラーが発生しました"
+  },
   "jobStatus": {
     "pending": "待機中",
     "processing": "解析・登録中",

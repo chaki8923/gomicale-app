@@ -226,6 +226,20 @@
     "processingModalWarning": "Do not close this page",
     "processingModalBody": "Closing the browser or tab before registration is complete will interrupt the process."
   },
+  "manualSchedule": {
+    "title": "Register garbage rules from text",
+    "description": "If your local schedule is not a calendar-style PDF, enter the collection rules as text. AI will convert them into events for the current fiscal year (April through March) and register them to Google Calendar.",
+    "exampleLabel": "Example",
+    "example": "Every Tuesday is recyclables, Monday and Thursday are burnable garbage, the 2nd and 4th Friday are non-burnable garbage",
+    "placeholder": "Example: Every Tuesday is recyclables, Monday and Thursday are burnable garbage, the 2nd and 4th Friday are non-burnable garbage",
+    "remaining": "{count} characters remaining",
+    "rangeNote": "Registers the current fiscal year",
+    "submit": "Register calendar from text",
+    "submitting": "Starting registration...",
+    "errorTooLong": "Please keep the instruction within 2000 characters",
+    "errorSubmit": "Failed to start registration",
+    "errorUnexpected": "An unexpected error occurred"
+  },
   "jobStatus": {
     "pending": "Queued",
     "processing": "Analyzing & registering",
