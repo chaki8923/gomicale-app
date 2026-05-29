@@ -4,9 +4,12 @@ import { createPresignedUploadUrl } from '@/lib/r2'
 import { randomUUID } from 'crypto'
 import type { Job } from '@/types/database'
 
+// アップロード可能な MIME タイプ
+const ALLOWED_CONTENT_TYPES = ['application/pdf', 'image/jpeg', 'image/png', 'image/webp']
+
 // POST /api/upload/presign
 // R2 へのアップロード用 Presigned URL を発行し、jobs テーブルにレコードを作成する
-export async function POST(_request: NextRequest) {
+export async function POST(request: NextRequest) {
   const supabase = await getSupabaseServerClient()
 
   const { data: { user }, error: authError } = await supabase.auth.getUser()
@@ -14,8 +17,14 @@ export async function POST(_request: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
+  const body = await request.json().catch(() => ({})) as { contentType?: string }
+  const contentType = body.contentType ?? 'application/pdf'
+  if (!ALLOWED_CONTENT_TYPES.includes(contentType)) {
+    return NextResponse.json({ error: 'Unsupported content type' }, { status: 400 })
+  }
+
   const fileId = randomUUID()
-  const { uploadUrl, objectKey } = await createPresignedUploadUrl(user.id, fileId)
+  const { uploadUrl, objectKey } = await createPresignedUploadUrl(user.id, fileId, contentType)
 
   // jobs テーブルに pending レコードを作成
   const { data: job, error: jobError } = await supabase

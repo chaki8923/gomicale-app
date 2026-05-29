@@ -1,12 +1,14 @@
 import type { ParseResult } from '../types'
 
 /**
- * PDF 解析の Strategy インターフェース
+ * ファイル（PDF / 画像）解析の Strategy インターフェース
  * 新しい LLM プロバイダー（OpenAI 等）を追加する場合は
  * このインターフェースを実装するだけでよい
+ * @param fileBuffer 解析対象のバイナリ
+ * @param mimeType   ファイルの MIME タイプ（例: application/pdf, image/jpeg）
  */
 export interface PdfParser {
-  parse(pdfBuffer: Buffer): Promise<ParseResult>
+  parse(fileBuffer: Buffer, mimeType: string): Promise<ParseResult>
 }
 
 /**

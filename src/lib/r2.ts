@@ -14,6 +14,14 @@ const r2Client = new S3Client({
 const BUCKET_NAME  = process.env.R2_BUCKET_NAME!
 const PRESIGN_TTL  = 300 // 5分
 
+// アップロード可能な MIME タイプと対応する拡張子
+const EXT_BY_MIME: Record<string, string> = {
+  'application/pdf': 'pdf',
+  'image/jpeg':      'jpg',
+  'image/png':       'png',
+  'image/webp':      'webp',
+}
+
 export interface PresignedUploadResult {
   uploadUrl: string
   objectKey: string
@@ -21,19 +29,22 @@ export interface PresignedUploadResult {
 
 /**
  * R2 へのアップロード用 Presigned URL を発行する
- * @param userId  Supabase ユーザー ID
- * @param fileId  フロントエンドが生成した一意のファイルID (UUID)
+ * @param userId       Supabase ユーザー ID
+ * @param fileId       フロントエンドが生成した一意のファイルID (UUID)
+ * @param contentType  アップロードするファイルの MIME タイプ
  */
 export async function createPresignedUploadUrl(
   userId: string,
   fileId: string,
+  contentType: string = 'application/pdf',
 ): Promise<PresignedUploadResult> {
-  const objectKey = `uploads/${userId}/${fileId}.pdf`
+  const ext = EXT_BY_MIME[contentType] ?? 'pdf'
+  const objectKey = `uploads/${userId}/${fileId}.${ext}`
 
   const command = new PutObjectCommand({
     Bucket:      BUCKET_NAME,
     Key:         objectKey,
-    ContentType: 'application/pdf',
+    ContentType: contentType,
   })
 
   const uploadUrl = await getSignedUrl(r2Client, command, {

@@ -9,6 +9,24 @@ import { refreshAccessToken, batchInsertGarbageEvents } from './calendar/client'
 
 const APP_URL = process.env.APP_URL ?? 'https://gomicale.jp'
 
+// オブジェクトキーの拡張子から MIME タイプを判定するためのマップ
+const MIME_BY_EXT: Record<string, string> = {
+  pdf:  'application/pdf',
+  jpg:  'image/jpeg',
+  jpeg: 'image/jpeg',
+  png:  'image/png',
+  webp: 'image/webp',
+}
+
+// R2 のオブジェクトキー / Content-Type から Gemini に渡す MIME タイプを決定する
+function resolveMimeType(objectKey: string, contentType?: string): string {
+  if (contentType && Object.values(MIME_BY_EXT).includes(contentType)) {
+    return contentType
+  }
+  const ext = objectKey.split('.').pop()?.toLowerCase() ?? ''
+  return MIME_BY_EXT[ext] ?? 'application/pdf'
+}
+
 async function sendCompletionEmail(
   toEmail: string,
   inserted: number,
@@ -134,7 +152,11 @@ export const handler = async (event: LambdaPayload): Promise<void> => {
       await s3Response.Body!.transformToByteArray(),
     )
 
-    // ── 2. PDF ハッシュ計算 ────────────────────────────────────────
+    // アップロードされたファイルの MIME タイプを判定（PDF / 画像）
+    const mimeType = resolveMimeType(r2ObjectKey, s3Response.ContentType)
+    console.info('[handler] mimeType:', mimeType)
+
+    // ── 2. ファイルハッシュ計算 ────────────────────────────────────
     const pdfHash = createHash('sha256').update(pdfBuffer).digest('hex')
     console.info('[handler] pdfHash:', pdfHash)
 
@@ -163,7 +185,7 @@ export const handler = async (event: LambdaPayload): Promise<void> => {
     } else {
       // ── 4. LLM で PDF 解析（Strategy パターン） ──────────────────
       const parser = createPdfParser(event.parserMode ?? 'garbage', language)
-      const parseResult = await parser.parse(pdfBuffer)
+      const parseResult = await parser.parse(pdfBuffer, mimeType)
       events = parseResult.events
       pdfTitle = parseResult.title
       console.info('[handler] parsed events count:', events.length, 'title:', pdfTitle)
@@ -228,18 +250,18 @@ export const handler = async (event: LambdaPayload): Promise<void> => {
     let message = err instanceof Error ? err.message : String(err)
     console.error('[handler] error:', message, err)
 
-    // カレンダー形式でないPDFが送信された場合
+    // カレンダー形式でないファイルが送信された場合
     if (err instanceof NotACalendarError) {
       message = language === 'en'
-        ? 'The uploaded PDF does not appear to be a calendar or schedule. Please upload a garbage collection calendar or event schedule PDF.'
-        : 'カレンダー形式のPDFではありませんでした。ゴミ出しカレンダーや行事予定表などのPDFをアップロードしてください。'
+        ? 'The uploaded file does not appear to be a calendar or schedule. Please upload a garbage collection calendar or event schedule (PDF or photo).'
+        : 'カレンダー形式のファイルではありませんでした。ゴミ出しカレンダーや行事予定表などのPDF・写真をアップロードしてください。'
     }
 
-    // ゴミ収集カレンダー以外の予定表PDFが送信された場合
+    // ゴミ収集カレンダー以外の予定表が送信された場合
     if (err instanceof NotAGarbageCalendarError) {
       message = language === 'en'
-        ? 'This PDF does not appear to be a garbage collection calendar. If it is a school schedule, shift roster, or other event calendar, please upload it again using the "General Schedule PDF" option.'
-        : 'このPDFはゴミ収集カレンダーではないようです。学校行事予定表・シフト表・地域イベントカレンダーなどの場合は、「汎用予定PDF」を選択して再度アップロードしてください。'
+        ? 'This file does not appear to be a garbage collection calendar. If it is a school schedule, shift roster, or other event calendar, please upload it again using the "General Schedule" option.'
+        : 'このファイルはゴミ収集カレンダーではないようです。学校行事予定表・シフト表・地域イベントカレンダーなどの場合は、「汎用予定」を選択して再度アップロードしてください。'
     }
 
     // Gemini APIの一時的なエラー（503やfetch failed）をユーザーフレンドリーなメッセージに書き換える

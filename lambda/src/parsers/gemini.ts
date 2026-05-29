@@ -11,23 +11,23 @@ const GARBAGE_PROMPT = `
 あなたはゴミ出しカレンダーのデータ抽出AIです。
 
 ## 事前チェック
-添付のPDFがスケジュール表・予定表・カレンダーのいずれでもない場合（例: 契約書、請求書、マニュアル、写真集など）は、
+添付のファイル（PDFまたは画像）がスケジュール表・予定表・カレンダーのいずれでもない場合（例: 契約書、請求書、マニュアル、写真集など）は、
 他の処理を行わず以下のJSONのみを返してください：
 { "isCalendar": false }
 
-添付のPDFがカレンダー・予定表ではあるが、ゴミ収集カレンダーではない場合
+添付のファイル（PDFまたは画像）がカレンダー・予定表ではあるが、ゴミ収集カレンダーではない場合
 （例: 学校行事予定表、地域イベントカレンダー、シフト表など）は、
 他の処理を行わず以下のJSONのみを返してください：
 { "isCalendar": true, "isGarbageCalendar": false }
 
-添付の PDF は自治体が配布するゴミ収集カレンダーです。
+添付のファイル（PDFまたは画像）は自治体が配布するゴミ収集カレンダーです。
 
 ## 最重要指示
-- PDFに記載された**全ての**収集日を**一件も漏らさず**抽出すること
+- ファイルに記載された**全ての**収集日を**一件も漏らさず**抽出すること
 - 火曜日・水曜日など特定の曜日に固定されている収集も全て含めること
-- title は**絶対に空にしてはいけない**。不明瞭な場合もPDFの該当セルに見える文字をそのまま使うこと
+- title は**絶対に空にしてはいけない**。不明瞭な場合もファイルの該当セルに見える文字をそのまま使うこと
 
-## PDFの構造
+## ファイル（PDF/画像）の構造
 - 複数ヶ月分のカレンダーが横に並んでいる場合がある
 - 各月のカレンダーは「日 月 火 水 木 金 土」のヘッダーを持つ
 - 各週は「日付の行」と「収集種別の行」が交互に並ぶことが多い
@@ -39,7 +39,7 @@ const GARBAGE_PROMPT = `
 缶・びん・ペットボトル、資源ごみ、粗大ごみ、紙類、段ボール など
 
 ## 出力形式
-PDF全体を表すタイトルと、日付ごとの予定一覧を含む以下のJSON形式のみ返してください：
+ファイル全体を表すタイトルと、日付ごとの予定一覧を含む以下のJSON形式のみ返してください：
 
 {
   "title": "ゴミ収集カレンダーの名称（例: 〇〇市 ゴミ収集カレンダー令和X年度）",
@@ -50,7 +50,7 @@ PDF全体を表すタイトルと、日付ごとの予定一覧を含む以下�
 }
 
 ## 注意事項
-- title (トップレベル) はPDFのタイトルや内容を要約した短い名称にしてください
+- title (トップレベル) はファイルのタイトルや内容を要約した短い名称にしてください
 - events 内の date は ISO 8601 形式 (YYYY-MM-DD) で返すこと
 - events 内の title は原文のまま返すこと（略称・記号もそのまま）
 - events 内の title が空になる場合は絶対に出力しないこと（そのエントリ自体を除外すること）
@@ -61,15 +61,15 @@ PDF全体を表すタイトルと、日付ごとの予定一覧を含む以下�
 `.trim()
 
 const GENERAL_PROMPT = `
-あなたはPDFから予定を抽出するAIです。
+あなたはファイル（PDFまたは画像）から予定を抽出するAIです。
 
 ## 事前チェック
-添付のPDFがスケジュール表・予定表・カレンダーのいずれでもない場合（例: 契約書、請求書、マニュアル、写真集など）は、
+添付のファイル（PDFまたは画像）がスケジュール表・予定表・カレンダーのいずれでもない場合（例: 契約書、請求書、マニュアル、写真集など）は、
 他の処理を行わず以下のJSONのみを返してください：
 { "isCalendar": false }
 
-添付のPDFに記載されている「日付」と「予定タイトル」をすべて抽出し、
-PDF全体のタイトルと共に以下のJSON形式のみで返してください。説明文は不要です。
+添付のファイル（PDFまたは画像）に記載されている「日付」と「予定タイトル」をすべて抽出し、
+ファイル全体のタイトルと共に以下のJSON形式のみで返してください。説明文は不要です。
 
 {
   "title": "予定表の名称（例: 〇〇学校 年間行事予定表）",
@@ -80,7 +80,7 @@ PDF全体のタイトルと共に以下のJSON形式のみで返してくださ�
 }
 
 注意:
-- title (トップレベル) はPDFのタイトルや内容を要約した短い名称にしてください
+- title (トップレベル) はファイルのタイトルや内容を要約した短い名称にしてください
 - events 内の date は ISO 8601 形式 (YYYY-MM-DD) で返すこと
 - events 内の title は原文のまま返すこと
 - 年が不明な場合は文書内の他の日付や文脈から推定すること
@@ -105,16 +105,16 @@ function createGeminiModel() {
   })
 }
 
-async function parseWithPrompt(prompt: string, pdfBuffer: Buffer): Promise<ParseResult> {
+async function parseWithPrompt(prompt: string, fileBuffer: Buffer, mimeType: string): Promise<ParseResult> {
   const model = createGeminiModel()
-  const base64Pdf = pdfBuffer.toString('base64')
+  const base64Data = fileBuffer.toString('base64')
 
   const result = await model.generateContent([
     prompt,
     {
       inlineData: {
-        mimeType: 'application/pdf',
-        data: base64Pdf,
+        mimeType,
+        data: base64Data,
       },
     },
   ])
@@ -159,23 +159,23 @@ const GARBAGE_PROMPT_EN = `
 You are an AI for extracting data from garbage collection calendars.
 
 ## Pre-check
-If the attached PDF is NOT a garbage collection calendar, schedule, or event table
+If the attached file (PDF or image) is NOT a garbage collection calendar, schedule, or event table
 (e.g., a contract, invoice, manual, or photo book), return ONLY the following JSON without any other processing:
 { "isCalendar": false }
 
-If the attached PDF is a calendar or schedule of some kind, but NOT a garbage collection calendar
+If the attached file (PDF or image) is a calendar or schedule of some kind, but NOT a garbage collection calendar
 (e.g., a school event schedule, community events calendar, shift roster, etc.),
 return ONLY the following JSON without any other processing:
 { "isCalendar": true, "isGarbageCalendar": false }
 
-The attached PDF is a garbage collection calendar distributed by a municipality.
+The attached file (PDF or image) is a garbage collection calendar distributed by a municipality.
 
 ## Critical Instructions
 - Extract ALL collection dates without missing any
 - Include collections fixed on specific days of the week (e.g., every Tuesday)
-- The title must NEVER be empty. If unclear, use the text visible in the PDF cell as-is
+- The title must NEVER be empty. If unclear, use the text visible in the file cell as-is
 
-## PDF Structure
+## File (PDF/image) Structure
 - Multiple months' calendars may be arranged side by side
 - Each month's calendar has a header with day-of-week names
 - Each week often alternates between "date rows" and "collection type rows"
@@ -191,31 +191,31 @@ Return ONLY a JSON object containing the overall calendar title and an array of 
 {
   "title": "Name of the calendar (e.g. City Name Garbage Collection Calendar 202X)",
   "events": [
-    { "date": "YYYY-MM-DD", "title": "Collection Type (in English)", "description": "Details if specified in PDF (e.g., plastic bags, trays, bottles)" },
+    { "date": "YYYY-MM-DD", "title": "Collection Type (in English)", "description": "Details if specified in the file (e.g., plastic bags, trays, bottles)" },
     ...
   ]
 }
 
 ## Notes
-- title (top level) should be a concise English summary of the PDF's purpose
+- title (top level) should be a concise English summary of the file's purpose
 - events date must be in ISO 8601 format (YYYY-MM-DD)
 - events title should be translated to natural English (e.g., "Burnable Garbage", "Plastic Recycling", "Cans & Bottles")
 - Never output an empty title inside events (exclude the entire entry)
-- description only if the PDF lists specific items; otherwise use empty string ""
+- description only if the file lists specific items; otherwise use empty string ""
 - If the year is not shown, estimate from surrounding dates
 - If multiple collection types occur on one date, output them as separate objects
 - Output only the JSON object, nothing else
 `.trim()
 
 const GENERAL_PROMPT_EN = `
-You are an AI that extracts schedule information from PDFs.
+You are an AI that extracts schedule information from files (PDF or image).
 
 ## Pre-check
-If the attached PDF is NOT a schedule, calendar, or event table
+If the attached file (PDF or image) is NOT a schedule, calendar, or event table
 (e.g., a contract, invoice, manual, or photo book), return ONLY the following JSON without any other processing:
 { "isCalendar": false }
 
-Extract the overall title and all "dates" and "event titles" listed in the attached PDF.
+Extract the overall title and all "dates" and "event titles" listed in the attached file (PDF or image).
 Return them ONLY in the following JSON format. No explanatory text needed.
 
 {
@@ -227,7 +227,7 @@ Return them ONLY in the following JSON format. No explanatory text needed.
 }
 
 Notes:
-- title (top level) should be a concise English summary of the PDF's content
+- title (top level) should be a concise English summary of the file's content
 - events date must be in ISO 8601 format (YYYY-MM-DD)
 - events title should be translated to natural English
 - If the year is unknown, estimate from other dates or context in the document
@@ -238,18 +238,18 @@ Notes:
 export class GeminiGarbageParser implements PdfParser {
   constructor(private readonly language: Language = 'ja') {}
 
-  async parse(pdfBuffer: Buffer): Promise<ParseResult> {
+  async parse(fileBuffer: Buffer, mimeType: string): Promise<ParseResult> {
     const prompt = this.language === 'en' ? GARBAGE_PROMPT_EN : GARBAGE_PROMPT
-    return parseWithPrompt(prompt, pdfBuffer)
+    return parseWithPrompt(prompt, fileBuffer, mimeType)
   }
 }
 
 export class GeminiGeneralParser implements PdfParser {
   constructor(private readonly language: Language = 'ja') {}
 
-  async parse(pdfBuffer: Buffer): Promise<ParseResult> {
+  async parse(fileBuffer: Buffer, mimeType: string): Promise<ParseResult> {
     const prompt = this.language === 'en' ? GENERAL_PROMPT_EN : GENERAL_PROMPT
-    return parseWithPrompt(prompt, pdfBuffer)
+    return parseWithPrompt(prompt, fileBuffer, mimeType)
   }
 }
 

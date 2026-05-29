@@ -6,6 +6,8 @@ import { Button } from '@/components/ui/Button'
 
 type ParserMode = 'garbage' | 'general'
 
+const ACCEPTED_TYPES = ['application/pdf', 'image/jpeg', 'image/png', 'image/webp']
+
 interface UploadZoneProps {
   onUploadComplete: (jobId: string) => void
 }
@@ -48,8 +50,8 @@ export function UploadZone({ onUploadComplete }: UploadZoneProps) {
   }
 
   const processFile = useCallback(async (file: File) => {
-    if (file.type !== 'application/pdf') {
-      setError(t('errorPdfOnly'))
+    if (!ACCEPTED_TYPES.includes(file.type)) {
+      setError(t('errorFileType'))
       return
     }
     if (file.size > 20 * 1024 * 1024) {
@@ -62,7 +64,11 @@ export function UploadZone({ onUploadComplete }: UploadZoneProps) {
 
     try {
       // ── 1. presigned URL と jobId を取得 ─────────────────────
-      const presignRes = await fetch('/api/upload/presign', { method: 'POST' })
+      const presignRes = await fetch('/api/upload/presign', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ contentType: file.type }),
+      })
       if (presignRes.status === 401) throw new Error(t('errorPresign'))
       if (presignRes.status === 429) throw new Error(t('errorLimitExceeded'))
       if (!presignRes.ok) throw new Error(t('errorUnexpected'))
@@ -275,7 +281,7 @@ export function UploadZone({ onUploadComplete }: UploadZoneProps) {
       >
         <input
           type="file"
-          accept="application/pdf"
+          accept="application/pdf,image/jpeg,image/png,image/webp"
           className="hidden"
           onChange={handleFileInput}
           disabled={isLoading}
@@ -317,7 +323,7 @@ export function UploadZone({ onUploadComplete }: UploadZoneProps) {
   )
 }
 
-// XHR で R2 の presigned URL に PDF を直接 PUT し、アップロード進捗を返す
+// XHR で R2 の presigned URL にファイルを直接 PUT し、アップロード進捗を返す
 function uploadToR2(
   uploadUrl: string,
   file: File,
@@ -327,7 +333,8 @@ function uploadToR2(
   return new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest()
     xhr.open('PUT', uploadUrl)
-    xhr.setRequestHeader('Content-Type', 'application/pdf')
+    // presigned URL の署名時に指定した ContentType と一致させる必要がある
+    xhr.setRequestHeader('Content-Type', file.type)
 
     xhr.upload.onprogress = (e) => {
       if (e.lengthComputable) {
