@@ -86,7 +86,16 @@ export function UploadZone({ onUploadComplete }: UploadZoneProps) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ jobId, parserMode, language: locale, eventTime, timezone }),
       })
-      if (!startRes.ok) throw new Error(t('errorJobStart'))
+      if (!startRes.ok) {
+        let detailMessage: string | null = null
+        try {
+          const body = await startRes.json() as { message?: string }
+          detailMessage = body.message ?? null
+        } catch {
+          detailMessage = null
+        }
+        throw new Error(detailMessage ?? t('errorJobStart'))
+      }
 
       setState('done')
       onUploadComplete(jobId)

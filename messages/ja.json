@@ -227,6 +227,20 @@
     "processingModalWarning": "このページを閉じないでください",
     "processingModalBody": "カレンダーへの登録が完了するまで、ブラウザやタブを閉じると処理が中断されます。"
   },
+  "manualSchedule": {
+    "title": "文章でゴミ収集ルールを登録",
+    "description": "PDFがカレンダー形式でない場合は、地区の収集ルールを文章で入力してください。AIが今年度分（4月〜翌3月）の予定に変換してGoogleカレンダーへ登録します。",
+    "exampleLabel": "入力例",
+    "example": "毎週火曜日は資源ごみ、月曜と木曜は燃えるゴミ、第2・4金は燃やさないゴミ",
+    "placeholder": "例：毎週火曜日は資源ごみ、月曜と木曜は燃えるゴミ、第2・4金は燃やさないゴミ",
+    "remaining": "残り {count} 文字",
+    "rangeNote": "今年度分を登録します",
+    "submit": "文章からカレンダー登録",
+    "submitting": "登録を開始中...",
+    "errorTooLong": "入力指示は2000文字以内で入力してください",
+    "errorSubmit": "登録の開始に失敗しました",
+    "errorUnexpected": "予期しないエラーが発生しました"
+  },
   "jobStatus": {
     "pending": "待機中",
     "processing": "解析・登録中",
@@ -240,10 +254,12 @@
     "calendarPermissionError": "Googleカレンダーへのアクセス権限がありません",
     "calendarPermissionShowDetail": "解決方法を見る",
     "calendarPermissionModalTitle": "カレンダーへのアクセスを許可してください",
-    "calendarPermissionStep1": "① 一度ログアウトします",
-    "calendarPermissionStep2": "② 再度ログインするときに、Google認証画面でカレンダーのチェックボックスにチェックを入れます（下の画像を参考にしてください）",
-    "calendarPermissionStep3": "③ 再ログイン後、PDFを再度アップロードしてください",
+    "calendarPermissionStep1": "① まず「Googleを再認証する」を押して再認証します（うまくいかない場合はログアウトしてから再ログインしてください）",
+    "calendarPermissionStep2": "② Google認証画面でカレンダーのチェックボックスにチェックを入れます（下の画像を参考にしてください）",
+    "calendarPermissionStep3": "③ 再認証後、PDFを再度アップロードしてください",
     "calendarPermissionImageAlt": "Google認証画面でカレンダーへのアクセスを許可するチェックボックスの操作例",
+    "calendarPermissionReauthorize": "Googleを再認証する",
+    "calendarPermissionReauthing": "Google認証へ移動中...",
     "calendarPermissionLogout": "ログアウトする",
     "calendarPermissionClose": "閉じる"
   },

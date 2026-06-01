@@ -9,6 +9,10 @@ export interface LambdaPayload {
   language?: Language
   eventTime?: string
   timezone?: string
+  inputMode?: 'pdf' | 'manual'
+  manualInstruction?: string
+  fiscalYearStart?: string
+  fiscalYearEnd?: string
 }
 
 export interface CalendarEvent {

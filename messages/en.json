@@ -227,6 +227,20 @@
     "processingModalWarning": "Do not close this page",
     "processingModalBody": "Closing the browser or tab before registration is complete will interrupt the process."
   },
+  "manualSchedule": {
+    "title": "Register garbage rules from text",
+    "description": "If your local schedule is not a calendar-style PDF, enter the collection rules as text. AI will convert them into events for the current fiscal year (April through March) and register them to Google Calendar.",
+    "exampleLabel": "Example",
+    "example": "Every Tuesday is recyclables, Monday and Thursday are burnable garbage, the 2nd and 4th Friday are non-burnable garbage",
+    "placeholder": "Example: Every Tuesday is recyclables, Monday and Thursday are burnable garbage, the 2nd and 4th Friday are non-burnable garbage",
+    "remaining": "{count} characters remaining",
+    "rangeNote": "Registers the current fiscal year",
+    "submit": "Register calendar from text",
+    "submitting": "Starting registration...",
+    "errorTooLong": "Please keep the instruction within 2000 characters",
+    "errorSubmit": "Failed to start registration",
+    "errorUnexpected": "An unexpected error occurred"
+  },
   "jobStatus": {
     "pending": "Queued",
     "processing": "Analyzing & registering",
@@ -240,10 +254,12 @@
     "calendarPermissionError": "Google Calendar access permission is missing",
     "calendarPermissionShowDetail": "How to fix this",
     "calendarPermissionModalTitle": "Please allow access to Google Calendar",
-    "calendarPermissionStep1": "① Sign out of the app",
-    "calendarPermissionStep2": "② When signing in again, check the Calendar checkbox on the Google authorization screen (see the image below)",
-    "calendarPermissionStep3": "③ After signing back in, upload your PDF again",
+    "calendarPermissionStep1": "① Click \"Re-authorize Google\" first (if it does not work, sign out and sign in again)",
+    "calendarPermissionStep2": "② On the Google consent screen, make sure the Calendar checkbox is selected (see image below)",
+    "calendarPermissionStep3": "③ After re-authorization, upload your PDF again",
     "calendarPermissionImageAlt": "Example showing how to check the calendar access checkbox on the Google authorization screen",
+    "calendarPermissionReauthorize": "Re-authorize Google",
+    "calendarPermissionReauthing": "Redirecting to Google...",
     "calendarPermissionLogout": "Sign out",
     "calendarPermissionClose": "Close"
   },

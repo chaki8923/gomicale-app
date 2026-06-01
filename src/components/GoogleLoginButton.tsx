@@ -6,19 +6,79 @@ import { Button } from '@/components/ui/Button'
 interface GoogleLoginButtonProps {
   className?: string
   label?: string
+  forceConsent?: boolean
+  postAuthPath?: string
+}
+
+type StartGoogleOAuthOptions = {
+  forceConsent?: boolean
+  postAuthPath?: string
+}
+
+function getCookieNames() {
+  return document.cookie
+    .split(';')
+    .map((part) => part.trim())
+    .filter(Boolean)
+    .map((part) => part.split('=')[0])
+}
+
+export async function startGoogleOAuth({
+  forceConsent = true,
+  postAuthPath,
+}: StartGoogleOAuthOptions = {}) {
+  const supabase = getSupabaseBrowserClient()
+
+  const redirectBase = `${window.location.origin}/auth/callback`
+  const redirectTo = postAuthPath
+    ? `${redirectBase}?next=${encodeURIComponent(postAuthPath)}`
+    : redirectBase
+
+  console.info('[auth/client] oauth pre-redirect cookies', {
+    cookieNames: getCookieNames(),
+  })
+
+  const { data, error } = await supabase.auth.signInWithOAuth({
+    provider: 'google',
+    options: {
+      skipBrowserRedirect: true,
+      redirectTo,
+      scopes: [
+        'https://www.googleapis.com/auth/calendar.events',
+        'openid',
+        'email',
+        'profile',
+      ].join(' '),
+      queryParams: {
+        access_type: 'offline',
+        prompt: forceConsent ? 'consent' : 'select_account',
+        include_granted_scopes: 'true',
+      },
+    },
+  })
+
+  if (error || !data?.url) {
+    console.error('[auth/client] signInWithOAuth error:', error)
+    return false
+  }
+
+  console.info('[auth/client] oauth post-create cookies', {
+    cookieNames: getCookieNames(),
+    hasUrl: Boolean(data.url),
+  })
+
+  // クッキー反映待ち（iOS/ゲストモード向けに短時間待機してから遷移）
+  await new Promise((resolve) => setTimeout(resolve, 150))
+  window.location.assign(data.url)
+  return true
 }
 
 export function GoogleLoginButton({
   className,
   label = 'Googleでログイン',
+  forceConsent = true,
+  postAuthPath,
 }: GoogleLoginButtonProps) {
-  const getCookieNames = () =>
-    document.cookie
-      .split(';')
-      .map((part) => part.trim())
-      .filter(Boolean)
-      .map((part) => part.split('=')[0])
-
   const handleGoogleLogin = async () => {
     if (window.location.hostname === 'www.gomicale.jp') {
       const canonicalUrl = new URL(window.location.href)
@@ -28,42 +88,7 @@ export function GoogleLoginButton({
       return
     }
 
-    const supabase = getSupabaseBrowserClient()
-    console.info('[auth/client] oauth pre-redirect cookies', {
-      cookieNames: getCookieNames(),
-    })
-
-    const { data, error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: {
-        skipBrowserRedirect: true,
-        redirectTo: `${window.location.origin}/auth/callback`,
-        scopes: [
-          'https://www.googleapis.com/auth/calendar.events',
-          'openid',
-          'email',
-          'profile',
-        ].join(' '),
-        queryParams: {
-          access_type: 'offline',
-          prompt: 'consent',
-        },
-      },
-    })
-
-    if (error || !data?.url) {
-      console.error('[auth/client] signInWithOAuth error:', error)
-      return
-    }
-
-    console.info('[auth/client] oauth post-create cookies', {
-      cookieNames: getCookieNames(),
-      hasUrl: Boolean(data.url),
-    })
-
-    // クッキー反映待ち（iOS/ゲストモード向けに短時間待機してから遷移）
-    await new Promise((resolve) => setTimeout(resolve, 150))
-    window.location.assign(data.url)
+    await startGoogleOAuth({ forceConsent, postAuthPath })
   }
 
   return (

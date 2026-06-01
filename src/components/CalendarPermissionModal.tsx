@@ -1,9 +1,11 @@
 'use client'
 
+import { useState } from 'react'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { getSupabaseBrowserClient } from '@/lib/supabase/client'
+import { startGoogleOAuth } from '@/components/GoogleLoginButton'
 
 interface CalendarPermissionModalProps {
   isOpen: boolean
@@ -14,8 +16,19 @@ interface CalendarPermissionModalProps {
 export function CalendarPermissionModal({ isOpen, onClose, locale }: CalendarPermissionModalProps) {
   const t = useTranslations('jobStatus')
   const router = useRouter()
+  const [isReauthing, setIsReauthing] = useState(false)
 
   if (!isOpen) return null
+
+  const handleReauthorize = async () => {
+    if (isReauthing) return
+    setIsReauthing(true)
+    await startGoogleOAuth({
+      forceConsent: true,
+      postAuthPath: `/${locale}/dashboard`,
+    })
+    setIsReauthing(false)
+  }
 
   const handleLogout = async () => {
     const supabase = getSupabaseBrowserClient()
@@ -77,6 +90,13 @@ export function CalendarPermissionModal({ isOpen, onClose, locale }: CalendarPer
             className="w-full sm:w-auto px-5 py-2.5 text-sm font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-xl transition"
           >
             {t('calendarPermissionClose')}
+          </button>
+          <button
+            onClick={handleReauthorize}
+            disabled={isReauthing}
+            className="w-full sm:w-auto px-5 py-2.5 text-sm font-medium text-white bg-teal-500 hover:bg-teal-600 disabled:opacity-70 disabled:cursor-not-allowed rounded-xl transition"
+          >
+            {isReauthing ? t('calendarPermissionReauthing') : t('calendarPermissionReauthorize')}
           </button>
           <button
             onClick={handleLogout}

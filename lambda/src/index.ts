@@ -4,8 +4,14 @@ import { createHash } from 'crypto'
 import { Resend } from 'resend'
 import type { LambdaPayload, CalendarEvent } from './types'
 import { createPdfParser } from './parsers/factory'
+import { parseManualGarbageInstruction } from './parsers/gemini'
 import { NotACalendarError, NotAGarbageCalendarError } from './parsers/base'
-import { refreshAccessToken, batchInsertGarbageEvents } from './calendar/client'
+import {
+  refreshAccessToken,
+  batchInsertGarbageEvents,
+  CalendarIntegrationError,
+  type CalendarIntegrationErrorCode,
+} from './calendar/client'
 
 const APP_URL = process.env.APP_URL ?? 'https://gomicale.jp'
 
@@ -26,6 +32,13 @@ function resolveMimeType(objectKey: string, contentType?: string): string {
   const ext = objectKey.split('.').pop()?.toLowerCase() ?? ''
   return MIME_BY_EXT[ext] ?? 'application/pdf'
 }
+
+type JobErrorCode =
+  | CalendarIntegrationErrorCode
+  | 'NOT_A_CALENDAR'
+  | 'NOT_A_GARBAGE_CALENDAR'
+  | 'GEMINI_TEMPORARY'
+  | 'UNKNOWN'
 
 async function sendCompletionEmail(
   toEmail: string,
@@ -136,65 +149,132 @@ const supabase = createClient(
 )
 
 export const handler = async (event: LambdaPayload): Promise<void> => {
-  const { jobId, userId, r2ObjectKey, language = 'ja', eventTime, timezone } = event
-  console.info('[handler] start', { jobId, userId, r2ObjectKey, language, eventTime, timezone })
+  const {
+    jobId,
+    userId,
+    r2ObjectKey,
+    language = 'ja',
+    eventTime,
+    timezone,
+    inputMode = 'pdf',
+    manualInstruction,
+    fiscalYearStart,
+    fiscalYearEnd,
+  } = event
+  console.info('[handler] start', { jobId, userId, r2ObjectKey, language, eventTime, timezone, inputMode })
 
   try {
-    // ── 1. R2 から PDF をダウンロード ──────────────────────────────
-    const s3Response = await r2.send(
-      new GetObjectCommand({
-        Bucket: process.env.R2_BUCKET_NAME!,
-        Key: r2ObjectKey,
-      }),
-    )
-
-    const pdfBuffer = Buffer.from(
-      await s3Response.Body!.transformToByteArray(),
-    )
-
-    // アップロードされたファイルの MIME タイプを判定（PDF / 画像）
-    const mimeType = resolveMimeType(r2ObjectKey, s3Response.ContentType)
-    console.info('[handler] mimeType:', mimeType)
-
-    // ── 2. ファイルハッシュ計算 ────────────────────────────────────
-    const pdfHash = createHash('sha256').update(pdfBuffer).digest('hex')
-    console.info('[handler] pdfHash:', pdfHash)
-
-    // ── 3. キャッシュチェック（再解析防止） ──────────────────────
-    // 言語ごとに異なる解析結果になるため、キーに language を含める
-    const cacheKey = `${pdfHash}_${language}`
     let events: CalendarEvent[]
     let pdfTitle: string | undefined
-    const { data: cached } = await supabase
-      .from('parsed_pdfs')
-      .select('extracted_json')
-      .eq('pdf_hash', cacheKey)
-      .maybeSingle()
+    let pdfHash: string
 
-    if (cached) {
-      console.info('[handler] cache hit, skip parsing')
-      const parsedData = cached.extracted_json as { title?: string, events: CalendarEvent[] }
-      if (Array.isArray(parsedData)) {
-        // 古いキャッシュフォーマットへの後方互換
-        events = parsedData
-        pdfTitle = undefined
-      } else {
+    if (inputMode === 'manual') {
+      if (!manualInstruction?.trim() || !fiscalYearStart || !fiscalYearEnd) {
+        throw new Error('Manual instruction and fiscal year range are required')
+      }
+
+      pdfHash = createHash('sha256')
+        .update(JSON.stringify({
+          inputMode,
+          manualInstruction: manualInstruction.trim(),
+          fiscalYearStart,
+          fiscalYearEnd,
+          language,
+        }))
+        .digest('hex')
+      console.info('[handler] manual hash:', pdfHash)
+
+      const cacheKey = `${pdfHash}_${language}`
+      const { data: cached } = await supabase
+        .from('parsed_pdfs')
+        .select('extracted_json')
+        .eq('pdf_hash', cacheKey)
+        .maybeSingle()
+
+      if (cached) {
+        console.info('[handler] manual cache hit, skip parsing')
+        const parsedData = cached.extracted_json as { title?: string, events: CalendarEvent[] }
         events = parsedData.events || []
         pdfTitle = parsedData.title
+      } else {
+        const parseResult = await parseManualGarbageInstruction(
+          manualInstruction.trim(),
+          fiscalYearStart,
+          fiscalYearEnd,
+          language,
+        )
+        events = parseResult.events
+        pdfTitle = parseResult.title
+        console.info('[handler] manual parsed events count:', events.length, 'title:', pdfTitle)
+
+        await supabase.from('parsed_pdfs').upsert({
+          pdf_hash: cacheKey,
+          extracted_json: { title: pdfTitle, events },
+        })
+      }
+
+      if (events.length === 0) {
+        throw new Error(
+          language === 'en'
+            ? 'No calendar events could be generated from the text instruction. Please make the rule more specific.'
+            : '入力指示から登録できる予定を生成できませんでした。曜日や収集種別が分かるように、もう少し具体的に入力してください。',
+        )
       }
     } else {
-      // ── 4. LLM で PDF 解析（Strategy パターン） ──────────────────
-      const parser = createPdfParser(event.parserMode ?? 'garbage', language)
-      const parseResult = await parser.parse(pdfBuffer, mimeType)
-      events = parseResult.events
-      pdfTitle = parseResult.title
-      console.info('[handler] parsed events count:', events.length, 'title:', pdfTitle)
+      // ── 1. R2 から PDF をダウンロード ──────────────────────────────
+      const s3Response = await r2.send(
+        new GetObjectCommand({
+          Bucket: process.env.R2_BUCKET_NAME!,
+          Key: r2ObjectKey,
+        }),
+      )
 
-      // 解析結果をキャッシュに保存
-      await supabase.from('parsed_pdfs').upsert({
-        pdf_hash: cacheKey,
-        extracted_json: { title: pdfTitle, events },
-      })
+      const pdfBuffer = Buffer.from(
+        await s3Response.Body!.transformToByteArray(),
+      )
+
+      // アップロードされたファイルの MIME タイプを判定（PDF / 画像）
+      const mimeType = resolveMimeType(r2ObjectKey, s3Response.ContentType)
+      console.info('[handler] mimeType:', mimeType)
+
+      // ── 2. ファイルハッシュ計算 ────────────────────────────────────
+      pdfHash = createHash('sha256').update(pdfBuffer).digest('hex')
+      console.info('[handler] pdfHash:', pdfHash)
+
+      // ── 3. キャッシュチェック（再解析防止） ──────────────────────
+      // 言語ごとに異なる解析結果になるため、キーに language を含める
+      const cacheKey = `${pdfHash}_${language}`
+      const { data: cached } = await supabase
+        .from('parsed_pdfs')
+        .select('extracted_json')
+        .eq('pdf_hash', cacheKey)
+        .maybeSingle()
+
+      if (cached) {
+        console.info('[handler] cache hit, skip parsing')
+        const parsedData = cached.extracted_json as { title?: string, events: CalendarEvent[] }
+        if (Array.isArray(parsedData)) {
+          // 古いキャッシュフォーマットへの後方互換
+          events = parsedData
+          pdfTitle = undefined
+        } else {
+          events = parsedData.events || []
+          pdfTitle = parsedData.title
+        }
+      } else {
+        // ── 4. LLM で PDF 解析（Strategy パターン） ──────────────────
+        const parser = createPdfParser(event.parserMode ?? 'garbage', language)
+        const parseResult = await parser.parse(pdfBuffer, mimeType)
+        events = parseResult.events
+        pdfTitle = parseResult.title
+        console.info('[handler] parsed events count:', events.length, 'title:', pdfTitle)
+
+        // 解析結果をキャッシュに保存
+        await supabase.from('parsed_pdfs').upsert({
+          pdf_hash: cacheKey,
+          extracted_json: { title: pdfTitle, events },
+        })
+      }
     }
 
     // ── 5. Supabase からリフレッシュトークンを取得 ────────────────
@@ -248,10 +328,16 @@ export const handler = async (event: LambdaPayload): Promise<void> => {
     }
   } catch (err) {
     let message = err instanceof Error ? err.message : String(err)
+    let errorCode: JobErrorCode = 'UNKNOWN'
     console.error('[handler] error:', message, err)
+
+    if (err instanceof CalendarIntegrationError) {
+      errorCode = err.code
+    }
 
     // カレンダー形式でないファイルが送信された場合
     if (err instanceof NotACalendarError) {
+      errorCode = 'NOT_A_CALENDAR'
       message = language === 'en'
         ? 'The uploaded file does not appear to be a calendar or schedule. Please upload a garbage collection calendar or event schedule (PDF or photo).'
         : 'カレンダー形式のファイルではありませんでした。ゴミ出しカレンダーや行事予定表などのPDF・写真をアップロードしてください。'
@@ -259,6 +345,7 @@ export const handler = async (event: LambdaPayload): Promise<void> => {
 
     // ゴミ収集カレンダー以外の予定表が送信された場合
     if (err instanceof NotAGarbageCalendarError) {
+      errorCode = 'NOT_A_GARBAGE_CALENDAR'
       message = language === 'en'
         ? 'This file does not appear to be a garbage collection calendar. If it is a school schedule, shift roster, or other event calendar, please upload it again using the "General Schedule" option.'
         : 'このファイルはゴミ収集カレンダーではないようです。学校行事予定表・シフト表・地域イベントカレンダーなどの場合は、「汎用予定」を選択して再度アップロードしてください。'
@@ -266,6 +353,7 @@ export const handler = async (event: LambdaPayload): Promise<void> => {
 
     // Gemini APIの一時的なエラー（503やfetch failed）をユーザーフレンドリーなメッセージに書き換える
     if (message.includes('503 Service Unavailable') || message.includes('high demand') || message.includes('fetch failed')) {
+      errorCode = 'GEMINI_TEMPORARY'
       message = language === 'en'
         ? 'AI server is currently experiencing high demand and is temporarily unavailable. Please wait a few minutes and try again.'
         : '現在AIサーバーが混み合っており、一時的に利用できない状態です。数分〜数十分ほど時間を置いてから再度お試しください。'
@@ -275,6 +363,9 @@ export const handler = async (event: LambdaPayload): Promise<void> => {
     await supabase.from('jobs').update({
       status: 'error',
       error_message: message,
+      result_data: {
+        error_code: errorCode,
+      },
     }).eq('id', jobId)
 
     // エラー通知メール送信（失敗しても無視）
