@@ -5,7 +5,7 @@ import { Resend } from 'resend'
 import type { LambdaPayload, CalendarEvent } from './types'
 import { createPdfParser } from './parsers/factory'
 import { parseManualGarbageInstruction } from './parsers/gemini'
-import { NotACalendarError, NotAGarbageCalendarError } from './parsers/base'
+import { NotACalendarError } from './parsers/base'
 import {
   refreshAccessToken,
   batchInsertGarbageEvents,
@@ -36,7 +36,6 @@ function resolveMimeType(objectKey: string, contentType?: string): string {
 type JobErrorCode =
   | CalendarIntegrationErrorCode
   | 'NOT_A_CALENDAR'
-  | 'NOT_A_GARBAGE_CALENDAR'
   | 'GEMINI_TEMPORARY'
   | 'UNKNOWN'
 
@@ -163,6 +162,9 @@ export const handler = async (event: LambdaPayload): Promise<void> => {
   } = event
   console.info('[handler] start', { jobId, userId, r2ObjectKey, language, eventTime, timezone, inputMode })
 
+  // 判定されたカレンダー種別（後で DB に保存）
+  let resolvedParserMode: 'garbage' | 'general' = 'garbage'
+
   try {
     let events: CalendarEvent[]
     let pdfTitle: string | undefined
@@ -193,9 +195,10 @@ export const handler = async (event: LambdaPayload): Promise<void> => {
 
       if (cached) {
         console.info('[handler] manual cache hit, skip parsing')
-        const parsedData = cached.extracted_json as { title?: string, events: CalendarEvent[] }
+        const parsedData = cached.extracted_json as { title?: string, events: CalendarEvent[], parserMode?: string }
         events = parsedData.events || []
         pdfTitle = parsedData.title
+        resolvedParserMode = 'garbage'
       } else {
         const parseResult = await parseManualGarbageInstruction(
           manualInstruction.trim(),
@@ -205,11 +208,12 @@ export const handler = async (event: LambdaPayload): Promise<void> => {
         )
         events = parseResult.events
         pdfTitle = parseResult.title
+        resolvedParserMode = 'garbage'
         console.info('[handler] manual parsed events count:', events.length, 'title:', pdfTitle)
 
         await supabase.from('parsed_pdfs').upsert({
           pdf_hash: cacheKey,
-          extracted_json: { title: pdfTitle, events },
+          extracted_json: { title: pdfTitle, events, parserMode: resolvedParserMode },
         })
       }
 
@@ -252,27 +256,30 @@ export const handler = async (event: LambdaPayload): Promise<void> => {
 
       if (cached) {
         console.info('[handler] cache hit, skip parsing')
-        const parsedData = cached.extracted_json as { title?: string, events: CalendarEvent[] }
+        const parsedData = cached.extracted_json as { title?: string, events: CalendarEvent[], parserMode?: string }
         if (Array.isArray(parsedData)) {
-          // 古いキャッシュフォーマットへの後方互換
+          // 古いキャッシュフォーマットへの後方互換（ゴミカレ既定）
           events = parsedData
           pdfTitle = undefined
+          resolvedParserMode = 'garbage'
         } else {
           events = parsedData.events || []
           pdfTitle = parsedData.title
+          resolvedParserMode = (parsedData.parserMode === 'general' ? 'general' : 'garbage')
         }
       } else {
-        // ── 4. LLM で PDF 解析（Strategy パターン） ──────────────────
-        const parser = createPdfParser(event.parserMode ?? 'garbage', language)
+        // ── 4. LLM で PDF 解析（自動判定パーサー） ───────────────────
+        const parser = createPdfParser(language)
         const parseResult = await parser.parse(pdfBuffer, mimeType)
         events = parseResult.events
         pdfTitle = parseResult.title
-        console.info('[handler] parsed events count:', events.length, 'title:', pdfTitle)
+        resolvedParserMode = parseResult.parserMode ?? 'garbage'
+        console.info('[handler] parsed events count:', events.length, 'title:', pdfTitle, 'mode:', resolvedParserMode)
 
-        // 解析結果をキャッシュに保存
+        // 解析結果をキャッシュに保存（判定モードも含める）
         await supabase.from('parsed_pdfs').upsert({
           pdf_hash: cacheKey,
-          extracted_json: { title: pdfTitle, events },
+          extracted_json: { title: pdfTitle, events, parserMode: resolvedParserMode },
         })
       }
     }
@@ -303,11 +310,12 @@ export const handler = async (event: LambdaPayload): Promise<void> => {
     )
     console.info('[handler] calendar insert result:', { inserted, skipped })
 
-    // ── 8. ジョブを completed に更新 ──────────────────────────────
+    // ── 8. ジョブを completed に更新（判定されたカレンダー種別も保存）──
     await supabase.from('jobs').update({
       status: 'completed',
       pdf_hash: pdfHash,
       pdf_title: pdfTitle,
+      parser_mode: resolvedParserMode,
       result_data: {
         calendar_event_count: inserted,
         skipped_count: skipped,
@@ -341,14 +349,6 @@ export const handler = async (event: LambdaPayload): Promise<void> => {
       message = language === 'en'
         ? 'The uploaded file does not appear to be a calendar or schedule. Please upload a garbage collection calendar or event schedule (PDF or photo).'
         : 'カレンダー形式のファイルではありませんでした。ゴミ出しカレンダーや行事予定表などのPDF・写真をアップロードしてください。'
-    }
-
-    // ゴミ収集カレンダー以外の予定表が送信された場合
-    if (err instanceof NotAGarbageCalendarError) {
-      errorCode = 'NOT_A_GARBAGE_CALENDAR'
-      message = language === 'en'
-        ? 'This file does not appear to be a garbage collection calendar. If it is a school schedule, shift roster, or other event calendar, please upload it again using the "General Schedule" option.'
-        : 'このファイルはゴミ収集カレンダーではないようです。学校行事予定表・シフト表・地域イベントカレンダーなどの場合は、「汎用予定」を選択して再度アップロードしてください。'
     }
 
     // Gemini APIの一時的なエラー（503やfetch failed）をユーザーフレンドリーなメッセージに書き換える

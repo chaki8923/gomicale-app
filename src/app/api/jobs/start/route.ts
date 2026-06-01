@@ -175,7 +175,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  const body = await request.json() as { jobId: string; parserMode?: string; language?: string; eventTime?: string; timezone?: string }
+  const body = await request.json() as { jobId: string; language?: string; eventTime?: string; timezone?: string }
   if (!body.jobId) {
     return NextResponse.json({ error: 'jobId is required' }, { status: 400 })
   }
@@ -249,12 +249,11 @@ export async function POST(request: NextRequest) {
     )
   }
 
-  // status を processing に更新、parser_mode も保存
+  // status を processing に更新（parser_mode は Lambda の判定後に書き込む）
   await supabase
     .from('jobs')
     .update({
       status: 'processing' as const,
-      parser_mode: body.parserMode ?? 'garbage',
     })
     .eq('id', job.id)
 
@@ -264,7 +263,6 @@ export async function POST(request: NextRequest) {
     jobId:       job.id,
     userId:      user.id,
     r2ObjectKey: job.r2_object_key,
-    parserMode:  body.parserMode ?? 'garbage',
     language,
     eventTime:   body.eventTime,
     timezone:    body.timezone,

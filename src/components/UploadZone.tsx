@@ -4,8 +4,6 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { useTranslations, useLocale, type TranslationValues } from 'next-intl'
 import { Button } from '@/components/ui/Button'
 
-type ParserMode = 'garbage' | 'general'
-
 const ACCEPTED_TYPES = ['application/pdf', 'image/jpeg', 'image/png', 'image/webp']
 
 interface UploadZoneProps {
@@ -29,7 +27,6 @@ export function UploadZone({ onUploadComplete }: UploadZoneProps) {
   const [progress, setProgress] = useState(0)
   const [error, setError] = useState<string | null>(null)
   const [isDragOver, setIsDragOver] = useState(false)
-  const [parserMode, setParserMode] = useState<ParserMode>('garbage')
   const [eventTime, setEventTime] = useState<string>('')
   const [isTimePickerOpen, setIsTimePickerOpen] = useState(false)
   const timePickerRef = useRef<HTMLDivElement>(null)
@@ -43,11 +40,6 @@ export function UploadZone({ onUploadComplete }: UploadZoneProps) {
     if (isTimePickerOpen) document.addEventListener('mousedown', handleOutside)
     return () => document.removeEventListener('mousedown', handleOutside)
   }, [isTimePickerOpen])
-
-  const modeConfig: Record<ParserMode, { label: string; description: string }> = {
-    garbage: { label: t('garbageLabel'), description: t('garbageDesc') },
-    general: { label: t('generalLabel'), description: t('generalDesc') },
-  }
 
   const processFile = useCallback(async (file: File) => {
     if (!ACCEPTED_TYPES.includes(file.type)) {
@@ -84,7 +76,7 @@ export function UploadZone({ onUploadComplete }: UploadZoneProps) {
       const startRes = await fetch('/api/jobs/start', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ jobId, parserMode, language: locale, eventTime, timezone }),
+        body: JSON.stringify({ jobId, language: locale, eventTime, timezone }),
       })
       if (!startRes.ok) {
         let detailMessage: string | null = null
@@ -103,7 +95,7 @@ export function UploadZone({ onUploadComplete }: UploadZoneProps) {
       setState('error')
       setError(err instanceof Error ? err.message : t('errorUnexpected'))
     }
-  }, [onUploadComplete, parserMode, locale, t, eventTime])
+  }, [onUploadComplete, locale, t, eventTime])
 
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault()
@@ -146,30 +138,6 @@ export function UploadZone({ onUploadComplete }: UploadZoneProps) {
         </div>
       )}
     <div className="w-full space-y-3">
-      {/* モード選択 */}
-      <div className="flex gap-2">
-        {(Object.keys(modeConfig) as ParserMode[]).map((mode) => (
-          <Button
-            key={mode}
-            type="button"
-            onClick={() => { if (!isLoading) setParserMode(mode) }}
-            disabled={isLoading}
-            className={`
-              flex-1 py-2 px-3 rounded-xl text-sm font-medium border transition-all
-              ${parserMode === mode
-                ? 'bg-teal-500 text-white border-teal-500 shadow-sm'
-                : 'bg-white text-gray-500 border-gray-200 hover:border-teal-300 hover:text-teal-600'
-              }
-              ${isLoading ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer'}
-            `}
-          >
-            {modeConfig[mode].label}
-          </Button>
-        ))}
-      </div>
-
-      <p className="text-xs text-gray-400 px-1">{modeConfig[parserMode].description}</p>
-
       {/* 時間指定 */}
       <div className="px-1 py-1">
         <p className="text-sm font-medium text-gray-700 mb-2">{t('timeLabel')}</p>

@@ -21,13 +21,3 @@ export class NotACalendarError extends Error {
   }
 }
 
-/**
- * ゴミ収集カレンダーモードでアップロードされた PDF が
- * カレンダー・予定表ではあるがゴミ収集カレンダーではない場合にスローされるエラー
- */
-export class NotAGarbageCalendarError extends Error {
-  constructor() {
-    super('NOT_A_GARBAGE_CALENDAR')
-    this.name = 'NotAGarbageCalendarError'
-  }
-}

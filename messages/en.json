@@ -202,10 +202,6 @@
     }
   },
   "upload": {
-    "garbageLabel": "Garbage Calendar",
-    "garbageDesc": "Analyzes municipality garbage collection calendar PDFs and registers collection dates to Google Calendar.",
-    "generalLabel": "General Schedule PDF",
-    "generalDesc": "Analyzes schedule tables, event calendars, and other PDFs with dates and events.",
     "dropzone": "Drag & drop a PDF or photo here, or click to select",
     "dropzoneHint": "PDF or image (JPEG/PNG/WebP) · Max 20MB",
     "timeLabel": "Event time (optional)",

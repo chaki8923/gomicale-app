@@ -27,4 +27,5 @@ export type GarbageEvent = CalendarEvent
 export interface ParseResult {
   title?: string
   events: CalendarEvent[]
+  parserMode?: ParserMode
 }

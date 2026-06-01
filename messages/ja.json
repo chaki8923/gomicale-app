@@ -202,10 +202,6 @@
     }
   },
   "upload": {
-    "garbageLabel": "ゴミ出しカレンダー",
-    "garbageDesc": "自治体のゴミ収集カレンダーPDFを解析し、収集日をGoogleカレンダーに登録します。",
-    "generalLabel": "汎用予定PDF",
-    "generalDesc": "スケジュール表・行事予定表など、日付と予定が記載されたPDFを解析して登録します。",
     "dropzone": "PDF・写真をドラッグ&ドロップ、またはクリックして選択",
     "dropzoneHint": "PDF・画像（JPEG/PNG/WebP）・最大20MB",
     "timeLabel": "登録時間（任意）",
