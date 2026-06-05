@@ -23,9 +23,9 @@
       "loginNote": "Google authentication is required to register to Google Calendar"
     },
     "hero": {
-      "subtitle": "Auto-register & import PDF schedules to Google Calendar",
-      "description": "Just upload your PDF garbage collection calendar, shift schedule, or event list. AI analyzes the schedule and bulk-imports events to Google Calendar.",
-      "check1": "Just upload a PDF",
+      "subtitle": "Auto-register & import PDF, photo & image schedules to Google Calendar",
+      "description": "Just upload your PDF, photo, or image of a garbage collection calendar, shift schedule, or event list. AI analyzes the schedule and bulk-imports events to Google Calendar.",
+      "check1": "Upload a PDF, photo, or image",
       "check2": "AI extracts the schedule automatically",
       "check3": "Bulk-import to Google Calendar",
       "check4": "Instant garbage sorting via LINE with a photo",
@@ -33,8 +33,8 @@
     },
     "slides": {
       "upload": {
-        "heading": "Upload your PDF — that's all it takes",
-        "body": "Drag and drop the garbage collection calendar, school schedule, or shift roster PDF. No matter how complex the layout, AI will read the schedule automatically.",
+        "heading": "Upload your PDF, photo, or image — that's all it takes",
+        "body": "Drag and drop the garbage collection calendar, school schedule, or shift roster — PDF, photo, or image. No matter how complex the layout, AI will read the schedule automatically.",
         "note": "No more manual entry or copy mistakes"
       },
       "ai": {
@@ -45,7 +45,7 @@
       "calendar": {
         "heading": "Automatically import PDF schedules to Google Calendar",
         "body": "Extracted data is automatically bulk-imported to your Google Calendar. Any date and schedule written in the PDF can be converted and registered.",
-        "note": "Works with PDFs beyond just garbage collection calendars"
+        "note": "Works with PDFs, photos, and images beyond just garbage collection calendars"
       },
       "cta": {
         "heading": "Say goodbye to manual entry",
@@ -59,9 +59,9 @@
     "static": {
       "whatIs": {
         "title": "What is GomiCale?",
-        "subtitle": "Just upload a PDF and your garbage collection schedule is automatically registered to Google Calendar",
-        "step1Title": "STEP 1: Upload PDF",
-        "step1Body": "Drag and drop the PDF garbage collection calendar distributed by your municipality. Compatible with school annual schedules and any PDF with dates.",
+        "subtitle": "Just upload a PDF, photo, or image and your garbage collection schedule is automatically registered to Google Calendar",
+        "step1Title": "STEP 1: Upload PDF, Photo, or Image",
+        "step1Body": "Drag and drop the PDF, photo, or image of your garbage collection calendar. Works with school annual schedules and any PDF, photo, or image containing dates. Photos taken with your smartphone work too.",
         "step2Title": "STEP 2: AI Analyzes Automatically",
         "step2Body": "Complex rules like \"Plastic bottles every 1st and 3rd Wednesday\" are accurately read by AI. No more manual entry mistakes.",
         "step3Title": "STEP 3: Auto-register to Calendar",
@@ -97,7 +97,7 @@
       },
       "useCases": {
         "title": "Use Cases",
-        "subtitle": "Works with any PDF schedule — not just garbage collection calendars.",
+        "subtitle": "Works with any PDF, photo, or image schedule — not just garbage collection calendars.",
     "cases": [
       {
         "title": "Garbage Collection Calendars",
@@ -127,10 +127,10 @@
         "author": "GomiCale Creator"
       },
       "benefits": {
-        "title": "Benefits of Automated PDF Calendar Registration",
+        "title": "Benefits of Automated PDF, Photo & Image Calendar Registration",
         "point1": {
           "title": "Zero Manual Data Entry",
-          "body": "Many people are used to looking at PDF calendars distributed by schools or municipalities and manually typing each event into their smartphone calendars. With GomiCale, simply uploading a PDF file allows our advanced AI to read the schedule and batch register everything to Google Calendar in seconds.",
+          "body": "Many people are used to looking at PDF calendars distributed by schools or municipalities and manually typing each event into their smartphone calendars. With GomiCale, simply uploading a PDF file or a photo/image allows our advanced AI to read the schedule and batch register everything to Google Calendar in seconds.",
           "extend": "In dual-income households, couples often split garbage duty. Those who used to check a paper calendar on the fridge to see whose turn it is can now get reminders on their smartphones via Google Calendar, preventing missed collections."
         },
         "point2": {
@@ -159,8 +159,8 @@
     }
   },
   "dashboard": {
-    "uploadTitle": "Upload Garbage Collection Calendar",
-    "uploadDescription": "Upload a PDF garbage collection calendar distributed by your municipality. AI will read the schedule and automatically register it to Google Calendar.",
+    "uploadTitle": "Upload Garbage Collection Calendar (PDF, Photo, or Image)",
+    "uploadDescription": "Upload a PDF, photo, or image of the garbage collection calendar distributed by your municipality. AI will read the schedule and automatically register it to Google Calendar.",
     "processingTitle": "Processing Status",
     "historyTitle": "Registration History",
     "emptyTitle": "No registration history yet",

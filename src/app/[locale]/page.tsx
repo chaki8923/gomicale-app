@@ -26,21 +26,21 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 const howToJsonLd = {
   '@context': 'https://schema.org',
   '@type': 'HowTo',
-  name: 'PDFの予定表をGoogleカレンダーに自動登録・インポートする方法',
-  description: 'ゴミ出しカレンダー、シフト表、行事予定表などのPDFをアップロードするだけで、AIがスケジュールを解析し、Googleカレンダーに一括登録・インポートする無料ツールの使い方。',
+  name: 'PDF・写真・画像の予定表をGoogleカレンダーに自動登録・インポートする方法',
+  description: 'ゴミ出しカレンダー、シフト表、行事予定表などのPDFや写真・画像をアップロードするだけで、AIがスケジュールを解析し、Googleカレンダーに一括登録・インポートする無料ツールの使い方。',
   totalTime: 'PT1M',
   step: [
     {
       '@type': 'HowToStep',
       position: 1,
-      name: 'PDFをアップロードしてインポート開始',
-      text: 'Googleアカウントでログイン後、ゴミ出しカレンダーやシフト表などのPDFをドラッグ＆ドロップ、またはファイル選択でアップロードします。これでインポート準備が完了します。',
+      name: 'PDF・写真・画像をアップロードしてインポート開始',
+      text: 'Googleアカウントでログイン後、ゴミ出しカレンダーやシフト表などのPDFや写真・画像ファイルをドラッグ＆ドロップ、またはファイル選択でアップロードします。スマートフォンで撮影した写真もそのまま使えます。',
     },
     {
       '@type': 'HowToStep',
       position: 2,
       name: 'AIがスケジュールとルールを自動解析・変換',
-      text: 'AIがPDF内の日付、曜日、予定を自動で読み取り、カレンダー形式に変換します。「第1・第3水曜はペットボトル」などの複雑なルールも正確に抽出してスケジュール化します。',
+      text: 'AIがPDFや写真・画像内の日付、曜日、予定を自動で読み取り、カレンダー形式に変換します。「第1・第3水曜はペットボトル」などの複雑なルールも正確に抽出してスケジュール化します。',
     },
     {
       '@type': 'HowToStep',
@@ -56,7 +56,7 @@ const websiteJsonLd = {
   '@type': 'WebSite',
   name: 'ゴミカレ',
   url: 'https://gomicale.jp',
-  description: 'PDFのゴミ出しカレンダー、シフト表、行事予定表などをAIが解析し、Googleカレンダーに一括自動登録・インポートする無料スケジュール変換サービス。',
+  description: 'PDFや写真・画像のゴミ出しカレンダー、シフト表、行事予定表などをAIが解析し、Googleカレンダーに一括自動登録・インポートする無料スケジュール変換サービス。',
   potentialAction: {
     '@type': 'SearchAction',
     target: {

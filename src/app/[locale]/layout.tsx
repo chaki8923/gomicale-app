@@ -54,9 +54,9 @@ export async function generateMetadata({
   const { locale } = await params
 
   if (locale === 'en') {
-    const title = 'Import PDF Schedules to Google Calendar Automatically | GomiCale'
+    const title = 'Import PDF, Photos & Images to Google Calendar Automatically | GomiCale'
     const description =
-      'Upload your Japan garbage collection PDF, shift schedule, or event calendar. AI reads the PDF and bulk-imports all events to Google Calendar for free.'
+      'Upload your Japan garbage collection PDF, photo, or image. AI reads the file and bulk-imports all events to Google Calendar for free. Works with shift schedules, school event calendars, and any photo of a schedule.'
     return {
       ...sharedMetadata,
       title: {
@@ -69,6 +69,8 @@ export async function generateMetadata({
         'Japan garbage collection calendar',
         'Tokyo garbage disposal',
         'PDF to Google Calendar',
+        'photo to Google Calendar',
+        'image to Google Calendar',
         'Japan waste sorting app',
         'Japan trash schedule',
         'bulky waste disposal Japan',
@@ -76,6 +78,8 @@ export async function generateMetadata({
         'garbage sorting guide Japan',
         'Japan recycling schedule',
         'PDF schedule importer',
+        'photo schedule import',
+        'image calendar import',
         'Google Calendar import Japan',
       ],
       authors: [{ name: 'GomiCale' }],
@@ -104,9 +108,9 @@ export async function generateMetadata({
     }
   }
 
-  const title = 'PDFの予定をGoogleカレンダーに自動登録・インポート | ゴミカレ'
+  const title = 'PDF・写真・画像の予定をGoogleカレンダーに自動登録 | ゴミカレ'
   const description =
-    'PDFのゴミ出しカレンダー、シフト表、行事予定表などをAIが解析し、Googleカレンダーに一括自動登録・インポート。手入力の手間をゼロにする無料スケジュール変換サービスです。'
+    'PDFや写真・画像のゴミ出しカレンダー、シフト表、行事予定表などをAIが解析し、Googleカレンダーに一括自動登録・インポート。写真を撮るだけで予定を登録できる無料スケジュール変換サービスです。'
   return {
     ...sharedMetadata,
     title: {
@@ -117,6 +121,8 @@ export async function generateMetadata({
     keywords: [
       'PDF', 'Googleカレンダー', 'カレンダー登録', '自動登録', 'インポート', '取り込み', '変換', 'スケジュール',
       'ゴミ出しカレンダー', '予定表', 'シフト表', 'AI解析', '予定抽出',
+      '写真 Googleカレンダー', '画像 Googleカレンダー', '写真 カレンダー登録', '画像 予定登録',
+      '写真 予定表', 'ゴミ出しカレンダー 写真', 'スマホ写真 カレンダー',
     ],
     authors: [{ name: 'ゴミカレ' }],
     openGraph: {
