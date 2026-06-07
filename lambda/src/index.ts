@@ -130,6 +130,18 @@ async function sendErrorEmail(
   }
 }
 
+// JST 基準・4月開始の年度範囲を返す
+function getCurrentFiscalYearRange(): { fiscalYearStart: string; fiscalYearEnd: string } {
+  const nowJst = new Date(Date.now() + 9 * 60 * 60 * 1000)
+  const year  = nowJst.getUTCFullYear()
+  const month = nowJst.getUTCMonth() + 1
+  const fiscalStartYear = month >= 4 ? year : year - 1
+  return {
+    fiscalYearStart: `${fiscalStartYear}-04-01`,
+    fiscalYearEnd:   `${fiscalStartYear + 1}-03-31`,
+  }
+}
+
 // Cloudflare R2 は S3 互換 API を使用
 const r2 = new S3Client({
   region: 'auto',
@@ -246,8 +258,10 @@ export const handler = async (event: LambdaPayload): Promise<void> => {
       console.info('[handler] pdfHash:', pdfHash)
 
       // ── 3. キャッシュチェック（再解析防止） ──────────────────────
-      // 言語ごとに異なる解析結果になるため、キーに language を含める
-      const cacheKey = `${pdfHash}_${language}`
+      // 言語ごと・年度ごとに結果が異なるため、キーに language と fiscalYearStart を含める
+      // （繰り返しルール展開は年度依存。格子カレンダーは年度関係なく安全側に倒す）
+      const { fiscalYearStart: pdfFiscalStart, fiscalYearEnd: pdfFiscalEnd } = getCurrentFiscalYearRange()
+      const cacheKey = `${pdfHash}_${language}_${pdfFiscalStart}`
       const { data: cached } = await supabase
         .from('parsed_pdfs')
         .select('extracted_json')
@@ -269,7 +283,8 @@ export const handler = async (event: LambdaPayload): Promise<void> => {
         }
       } else {
         // ── 4. LLM で PDF 解析（自動判定パーサー） ───────────────────
-        const parser = createPdfParser(language)
+        // 年度範囲を渡すことで、繰り返しルール文章も具体日付に展開される
+        const parser = createPdfParser(language, pdfFiscalStart, pdfFiscalEnd)
         const parseResult = await parser.parse(pdfBuffer, mimeType)
         events = parseResult.events
         pdfTitle = parseResult.title
