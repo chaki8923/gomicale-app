@@ -81,7 +81,9 @@ async function sendCompletionEmail(
           <img
             src="${APP_URL}/seiza_oba.png"
             alt="ゴミカレキャラクター"
-            style="display:block;width:90%;max-width:100%;margin:0 auto"
+            width="640"
+            height="420"
+            style="display:block;width:90%;max-width:100%;height:auto;aspect-ratio:640/420;margin:0 auto"
           />
         </div>
         <p style="color:#9ca3af;font-size:12px;margin-top:24px">ゴミカレ</p>
