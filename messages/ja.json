@@ -175,6 +175,13 @@
     "statusCompleted": "完了",
     "statusError": "エラー",
     "statusProcessing": "処理中",
+    "calendarGate": {
+      "bannerTitle": "Googleカレンダーへのアクセス権限がありません",
+      "bannerDescription": "カレンダーへのアクセスが許可されていないため、PDFアップロードと手入力登録が利用できません。下のボタンから再認可して、カレンダーへのアクセスを許可してください。",
+      "bannerButton": "Googleを再認可する",
+      "lockCardTitle": "カレンダーへのアクセス権限が必要です",
+      "lockCardDescription": "Googleカレンダーへのアクセスを許可すると利用できます。"
+    },
     "lineLink": {
       "title": "LINE 連携",
       "subtitle": "LINE でゴミ名や写真を送るだけで分別結果が届きます",

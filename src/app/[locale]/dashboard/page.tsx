@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation'
-import { getSupabaseServerClient } from '@/lib/supabase/server'
+import { getSupabaseServerClient, getSupabaseServiceClient } from '@/lib/supabase/server'
 import { DashboardClient } from './DashboardClient'
 import type { Job } from '@/types/database'
 import type { UnreadReply } from '@/components/InquiryReplyModal'
@@ -15,11 +15,15 @@ export const metadata: Metadata = {
 
 export default async function DashboardPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ locale: string }>
+  searchParams: Promise<Record<string, string | string[] | undefined>>
 }) {
   const { locale } = await params
+  const resolvedSearchParams = await searchParams
   const supabase = await getSupabaseServerClient()
+  const serviceClient = getSupabaseServiceClient()
 
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect(`/${locale}`)
@@ -68,6 +72,20 @@ export default async function DashboardPage({
   const userAvatarUrl =
     (user.user_metadata?.avatar_url as string | undefined) ?? ''
 
+  // Google Calendar スコープフラグを取得（Service Role で RLS バイパス）
+  const { data: integration } = await serviceClient
+    .from('user_integrations')
+    .select('google_calendar_scope_ok')
+    .eq('user_id', user.id)
+    .single()
+
+  // null/undefined = 未判定 → ブロックしない。false のときのみハードブロック
+  const calendarScopeMissing = integration?.google_calendar_scope_ok === false
+
+  // auth/callback で付与された query param でも強制表示
+  const calendarPermissionRequired =
+    resolvedSearchParams['calendar_permission'] === 'required'
+
   return (
     <DashboardClient
       userEmail={user.email ?? ''}
@@ -76,6 +94,8 @@ export default async function DashboardPage({
       userAvatarUrl={userAvatarUrl}
       initialJobs={(jobs ?? []) as Job[]}
       unreadReplies={unreadReplies}
+      calendarScopeMissing={calendarScopeMissing}
+      calendarPermissionRequired={calendarPermissionRequired}
     />
   )
 }

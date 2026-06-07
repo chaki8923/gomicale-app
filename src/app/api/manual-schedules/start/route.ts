@@ -248,11 +248,25 @@ export async function POST(request: NextRequest) {
   }
 
   let preflightFailure: PreflightFailure | null = null
+  let preflightAccessToken: string | null = null
   try {
-    const accessToken = await refreshGoogleAccessToken(integration.google_refresh_token_enc)
-    preflightFailure = await checkGoogleCalendarScope(accessToken)
+    preflightAccessToken = await refreshGoogleAccessToken(integration.google_refresh_token_enc)
+    preflightFailure = await checkGoogleCalendarScope(preflightAccessToken)
   } catch (err) {
     preflightFailure = err as PreflightFailure
+  }
+
+  // preflight 結果を google_calendar_scope_ok フラグに反映する
+  if (preflightFailure?.errorCode === JOB_ERROR_CODES.GOOGLE_CALENDAR_SCOPE_MISSING) {
+    await serviceClient
+      .from('user_integrations')
+      .update({ google_calendar_scope_ok: false })
+      .eq('user_id', user.id)
+  } else if (preflightAccessToken && preflightFailure === null) {
+    await serviceClient
+      .from('user_integrations')
+      .update({ google_calendar_scope_ok: true })
+      .eq('user_id', user.id)
   }
 
   const isBlockingFailure =

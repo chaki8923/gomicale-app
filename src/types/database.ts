@@ -246,6 +246,7 @@ export type Database = {
         Row: {
           created_at: string
           google_access_token_enc: string | null
+          google_calendar_scope_ok: boolean | null
           google_refresh_token_enc: string | null
           id: string
           line_user_id: string | null
@@ -256,6 +257,7 @@ export type Database = {
         Insert: {
           created_at?: string
           google_access_token_enc?: string | null
+          google_calendar_scope_ok?: boolean | null
           google_refresh_token_enc?: string | null
           id?: string
           line_user_id?: string | null
@@ -266,6 +268,7 @@ export type Database = {
         Update: {
           created_at?: string
           google_access_token_enc?: string | null
+          google_calendar_scope_ok?: boolean | null
           google_refresh_token_enc?: string | null
           id?: string
           line_user_id?: string | null
@@ -420,6 +423,15 @@ export const Constants = {
 export type JobStatus = Database["public"]["Enums"]["job_status"]
 export type Job = Database["public"]["Tables"]["jobs"]["Row"]
 export type UserIntegration = Database["public"]["Tables"]["user_integrations"]["Row"]
+
+/** google_calendar_scope_ok フラグの意味 */
+export type CalendarScopeStatus = 'allowed' | 'denied' | 'unknown'
+
+export function resolveCalendarScopeStatus(flag: boolean | null | undefined): CalendarScopeStatus {
+  if (flag === false) return 'denied'
+  if (flag === true) return 'allowed'
+  return 'unknown'
+}
 export type ParsedPdf = Database["public"]["Tables"]["parsed_pdfs"]["Row"]
 export type LineLinkCode = Database["public"]["Tables"]["line_link_codes"]["Row"]
 export type GarbageEvent = {
