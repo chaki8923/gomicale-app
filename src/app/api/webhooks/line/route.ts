@@ -126,21 +126,43 @@ async function fetchParsedDataWithLang(
   supabase: ReturnType<typeof getSupabaseServiceClient>,
   pdfHash: string
 ): Promise<{ events: CalendarEvent[]; lang: Lang } | null> {
-  for (const [suffix, lang] of [['_en', 'en'], ['_ja', 'ja'], ['', 'ja']] as [string, Lang][]) {
-    const { data } = await supabase
-      .from('parsed_pdfs')
-      .select('extracted_json')
-      .eq('pdf_hash', `${pdfHash}${suffix}`)
-      .single()
-    if (data) {
-      const extracted = data.extracted_json as unknown
-      const events: CalendarEvent[] = Array.isArray(extracted)
-        ? (extracted as CalendarEvent[])
-        : ((extracted as { events?: CalendarEvent[] })?.events ?? [])
-      return { events, lang }
+  // {hash}% の前方一致で一括取得（新形式 {hash}_{lang}_{fiscalYear}、旧形式 {hash}_{lang}、bare {hash} をすべて拾う）
+  const { data: rows } = await supabase
+    .from('parsed_pdfs')
+    .select('pdf_hash, extracted_json')
+    .like('pdf_hash', `${pdfHash}%`)
+    .order('created_at', { ascending: false })
+
+  if (!rows || rows.length === 0) return null
+
+  // サフィックスから優先度と言語を決定（en=0 > ja=1 > bare=2、それ以外はスキップ）
+  type Candidate = { priority: number; lang: Lang; extracted: unknown }
+  const candidates: Candidate[] = []
+
+  for (const row of rows) {
+    const suffix = row.pdf_hash.slice(pdfHash.length)
+    if (suffix.startsWith('_en')) {
+      candidates.push({ priority: 0, lang: 'en', extracted: row.extracted_json })
+    } else if (suffix.startsWith('_ja')) {
+      candidates.push({ priority: 1, lang: 'ja', extracted: row.extracted_json })
+    } else if (suffix === '') {
+      candidates.push({ priority: 2, lang: 'ja', extracted: row.extracted_json })
     }
+    // それ以外のサフィックスはスキップ
   }
-  return null
+
+  if (candidates.length === 0) return null
+
+  // 最小優先度を採用（同点は created_at 降順で先頭の行を使う＝rows の順序で先に出てくるもの）
+  candidates.sort((a, b) => a.priority - b.priority)
+  const best = candidates[0]
+
+  const extracted = best.extracted as unknown
+  const events: CalendarEvent[] = Array.isArray(extracted)
+    ? (extracted as CalendarEvent[])
+    : ((extracted as { events?: CalendarEvent[] })?.events ?? [])
+
+  return { events, lang: best.lang }
 }
 
 // ============================================================

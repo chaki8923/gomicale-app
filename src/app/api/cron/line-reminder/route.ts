@@ -41,27 +41,46 @@ async function sendPushMessage(to: string, text: string): Promise<void> {
 }
 
 /**
- * parsed_pdfs を _en → _ja → bare の順で検索し、イベントと言語を返す
+ * parsed_pdfs を {hash}% 前方一致で一括取得し、en > ja > bare の優先順位で返す。
+ * 新形式 {hash}_{lang}_{fiscalYear}、旧形式 {hash}_{lang}、bare {hash} をすべて拾える。
  */
 async function fetchParsedDataWithLang(
   supabase: ReturnType<typeof getSupabaseServiceClient>,
   pdfHash: string
 ): Promise<{ events: CalendarEvent[]; lang: Lang } | null> {
-  for (const [suffix, lang] of [['_en', 'en'], ['_ja', 'ja'], ['', 'ja']] as [string, Lang][]) {
-    const { data } = await supabase
-      .from('parsed_pdfs')
-      .select('extracted_json')
-      .eq('pdf_hash', `${pdfHash}${suffix}`)
-      .single()
-    if (data) {
-      const extracted = data.extracted_json as unknown
-      const events: CalendarEvent[] = Array.isArray(extracted)
-        ? (extracted as CalendarEvent[])
-        : ((extracted as { events?: CalendarEvent[] })?.events ?? [])
-      return { events, lang }
+  const { data: rows } = await supabase
+    .from('parsed_pdfs')
+    .select('pdf_hash, extracted_json')
+    .like('pdf_hash', `${pdfHash}%`)
+    .order('created_at', { ascending: false })
+
+  if (!rows || rows.length === 0) return null
+
+  type Candidate = { priority: number; lang: Lang; extracted: unknown }
+  const candidates: Candidate[] = []
+
+  for (const row of rows) {
+    const suffix = row.pdf_hash.slice(pdfHash.length)
+    if (suffix.startsWith('_en')) {
+      candidates.push({ priority: 0, lang: 'en', extracted: row.extracted_json })
+    } else if (suffix.startsWith('_ja')) {
+      candidates.push({ priority: 1, lang: 'ja', extracted: row.extracted_json })
+    } else if (suffix === '') {
+      candidates.push({ priority: 2, lang: 'ja', extracted: row.extracted_json })
     }
   }
-  return null
+
+  if (candidates.length === 0) return null
+
+  candidates.sort((a, b) => a.priority - b.priority)
+  const best = candidates[0]
+
+  const extracted = best.extracted as unknown
+  const events: CalendarEvent[] = Array.isArray(extracted)
+    ? (extracted as CalendarEvent[])
+    : ((extracted as { events?: CalendarEvent[] })?.events ?? [])
+
+  return { events, lang: best.lang }
 }
 
 export async function GET(request: NextRequest) {
