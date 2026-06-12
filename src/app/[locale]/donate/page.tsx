@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import { Link } from '@/i18n/navigation'
+import { PageViewTracker } from '@/components/PageViewTracker'
 import { DonateClient } from './DonateClient'
 
 export const metadata: Metadata = {
@@ -10,6 +11,8 @@ export const metadata: Metadata = {
 
 export default function DonatePage() {
   return (
+    <>
+      <PageViewTracker path="/donate" />
     <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center px-4 py-16">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
@@ -34,5 +37,6 @@ export default function DonatePage() {
         </div>
       </div>
     </div>
+    </>
   )
 }

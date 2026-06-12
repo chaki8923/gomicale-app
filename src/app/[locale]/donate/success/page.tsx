@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import { Link } from '@/i18n/navigation'
+import { PageViewTracker } from '@/components/PageViewTracker'
 
 export const metadata: Metadata = {
   title: 'ご支援ありがとうございます | ゴミカレ',
@@ -8,6 +9,8 @@ export const metadata: Metadata = {
 
 export default function DonateSuccessPage() {
   return (
+    <>
+      <PageViewTracker path="/donate/success" />
     <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center px-4 py-16">
       <div className="w-full max-w-md text-center">
         <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-teal-50 mb-6">
@@ -40,5 +43,6 @@ export default function DonateSuccessPage() {
         </div>
       </div>
     </div>
+    </>
   )
 }

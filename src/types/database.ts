@@ -191,6 +191,39 @@ export type Database = {
         }
         Relationships: []
       }
+      page_views: {
+        Row: {
+          id: string
+          path: string
+          locale: string | null
+          device_type: string
+          os: string | null
+          browser: string | null
+          referrer: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          path: string
+          locale?: string | null
+          device_type?: string
+          os?: string | null
+          browser?: string | null
+          referrer?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          path?: string
+          locale?: string | null
+          device_type?: string
+          os?: string | null
+          browser?: string | null
+          referrer?: string | null
+          created_at?: string
+        }
+        Relationships: []
+      }
       parsed_pdfs: {
         Row: {
           created_at: string
