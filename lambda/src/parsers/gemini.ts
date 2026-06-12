@@ -7,6 +7,63 @@ import type { PdfParser } from './base'
 import { NotACalendarError } from './base'
 import type { CalendarEvent, Language, ParseResult } from '../types'
 
+// ─────────────────────────────────────────────
+// プロンプト（日本語）
+// ─────────────────────────────────────────────
+
+/**
+ * 対象期間（年度）が渡された場合の繰り返しルール展開セクションを生成する。
+ * 格子状カレンダーではなく文章でルールが書かれたファイル向け。
+ */
+function buildRecurringRulesSection(fiscalYearStart: string, fiscalYearEnd: string): string {
+  return `
+### 収集曜日ルールのみが書かれた分別パンフレット・お知らせの場合
+
+格子状のカレンダーではなく、「毎週火曜日は燃えるゴミ」「第2・第4月曜日は燃えないごみ」のような
+収集曜日ルールが文章・表・箇条書きで記載されている場合も、isCalendar: true, isGarbageCalendar: true として扱う。
+
+対象期間内の全ての該当日を展開して events に出力すること。
+
+対象期間:
+- 開始日: ${fiscalYearStart}
+- 終了日: ${fiscalYearEnd}
+
+展開ルール:
+- 「毎週○曜日」: 対象期間内のその曜日を全て列挙する
+- 「第2・第4○曜日」: 各月の第2・第4の該当曜日のみ出力する
+- 「第1・第3○曜日」: 各月の第1・第3の該当曜日のみ出力する
+- 曜日・第n曜日の判定は日本時間（JST）のカレンダーとして扱う
+- 1つの日付に複数の収集種別がある場合は別々のオブジェクトとして出力する
+- 対象期間外の日付は絶対に出力しない
+
+出力形式は「ゴミ収集カレンダーの場合」と同じ。
+`.trim()
+}
+
+function buildRecurringRulesSectionEn(fiscalYearStart: string, fiscalYearEnd: string): string {
+  return `
+### If the file contains only recurring collection day rules (not a grid calendar)
+
+If the file contains recurring rules written as text, lists, or tables — such as
+"Burnables every Tuesday", "Non-burnables on the 2nd and 4th Monday" — treat it as
+isCalendar: true, isGarbageCalendar: true and expand all matching dates within the target period.
+
+Target period:
+- Start: ${fiscalYearStart}
+- End: ${fiscalYearEnd}
+
+Expansion rules:
+- "Every [weekday]": list all occurrences of that weekday within the target period
+- "2nd and 4th [weekday]": only the 2nd and 4th occurrences of that weekday each month
+- "1st and 3rd [weekday]": only the 1st and 3rd occurrences each month
+- Use Japan Standard Time (JST) when determining weekday occurrences
+- If multiple collection types fall on the same date, output them as separate objects
+- Never output dates outside the target period
+
+Use the same output format as "garbage collection calendar" above.
+`.trim()
+}
+
 /**
  * 統合プロンプト（日本語）
  * Gemini がファイルを解析し、カレンダー種別を自動判定しながら予定を抽出する。
@@ -14,11 +71,16 @@ import type { CalendarEvent, Language, ParseResult } from '../types'
  * - isGarbageCalendar: true → ゴミ収集カレンダー (description 付き)
  * - isGarbageCalendar: false → 一般予定表 (date + title のみ)
  */
-const AUTO_PROMPT = `
+function buildAutoPrompt(fiscalYearStart?: string, fiscalYearEnd?: string): string {
+  const recurringSection = (fiscalYearStart && fiscalYearEnd)
+    ? `\n\n${buildRecurringRulesSection(fiscalYearStart, fiscalYearEnd)}`
+    : ''
+
+  return `
 あなたはファイル（PDFまたは画像）から予定を抽出するAIです。
 
 ## Step 1: ファイル種別を判定する
-添付ファイルが「スケジュール表・予定表・カレンダー」のいずれでもない場合（例: 契約書・請求書・マニュアル・写真集など）は、
+添付ファイルが「スケジュール表・予定表・カレンダー・収集曜日ルール」のいずれでもない場合（例: 契約書・請求書・写真集など）は、
 他の処理を行わず以下のJSONのみを返してください：
 { "isCalendar": false }
 
@@ -46,7 +108,7 @@ const AUTO_PROMPT = `
 - 各週は「日付の行」と「収集種別の行」が交互に並ぶことが多い
 - description はPDFに収集品目の内訳・説明が記載されている場合のみ設定すること。記載がなければ空文字 "" にすること
 - 1つの日付に複数の収集種別がある場合は別々のオブジェクトとして出力すること
-- 年が記載されていない場合は近隣セルの年・月から推定すること
+- 年が記載されていない場合は近隣セルの年・月から推定すること${recurringSection}
 
 ### ゴミ収集カレンダー以外の予定表（学校行事・地域イベント・シフト表など）の場合
 
@@ -71,12 +133,18 @@ const AUTO_PROMPT = `
 - events 内の title が空になる場合は絶対に出力しないこと（そのエントリ自体を除外すること）
 - 上記のJSON構造以外は一切出力しないこと
 `.trim()
+}
 
-const AUTO_PROMPT_EN = `
+function buildAutoPromptEn(fiscalYearStart?: string, fiscalYearEnd?: string): string {
+  const recurringSection = (fiscalYearStart && fiscalYearEnd)
+    ? `\n\n${buildRecurringRulesSectionEn(fiscalYearStart, fiscalYearEnd)}`
+    : ''
+
+  return `
 You are an AI that extracts schedule information from files (PDF or image).
 
 ## Step 1: Determine the file type
-If the attached file is NOT a schedule, calendar, or event table (e.g., a contract, invoice, manual, or photo book),
+If the attached file is NOT a schedule, calendar, event table, or collection day rules (e.g., a contract, invoice, or photo book),
 return ONLY the following JSON without any other processing:
 { "isCalendar": false }
 
@@ -101,7 +169,7 @@ Notes:
 - Multiple months may be arranged side by side
 - description only if the file lists specific items; otherwise use empty string ""
 - If multiple collection types occur on one date, output them as separate objects
-- If the year is not shown, estimate from surrounding dates
+- If the year is not shown, estimate from surrounding dates${recurringSection}
 
 ### If it is a general schedule (school events, community calendar, shift roster, etc.)
 
@@ -125,6 +193,11 @@ Notes:
 - Never output an empty title inside events (exclude the entire entry)
 - Output only the JSON object, nothing else
 `.trim()
+}
+
+// ─────────────────────────────────────────────
+// Gemini モデル生成
+// ─────────────────────────────────────────────
 
 function createGeminiModel() {
   const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!)
@@ -147,7 +220,17 @@ function isDateInRange(date: string, start: string, end: string): boolean {
   return date >= start && date <= end
 }
 
-async function parseWithAutoPrompt(prompt: string, fileBuffer: Buffer, mimeType: string): Promise<ParseResult> {
+// ─────────────────────────────────────────────
+// 自動判定パーサー
+// ─────────────────────────────────────────────
+
+async function parseWithAutoPrompt(
+  prompt: string,
+  fileBuffer: Buffer,
+  mimeType: string,
+  fiscalYearStart?: string,
+  fiscalYearEnd?: string,
+): Promise<ParseResult> {
   const model = createGeminiModel()
   const base64Data = fileBuffer.toString('base64')
 
@@ -180,6 +263,7 @@ async function parseWithAutoPrompt(prompt: string, fileBuffer: Buffer, mimeType:
   }
 
   const isGarbage = raw.isGarbageCalendar === true
+  const hasFiscalRange = !!(fiscalYearStart && fiscalYearEnd)
 
   const events: CalendarEvent[] = (raw.events || [])
     .map((item) => {
@@ -195,6 +279,17 @@ async function parseWithAutoPrompt(prompt: string, fileBuffer: Buffer, mimeType:
         console.warn('[gemini] skipping event with empty field:', ev)
         return false
       }
+      // 対象期間が指定されている場合: ISO 形式チェック＋期間内フィルタ
+      if (hasFiscalRange) {
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(ev.date)) {
+          console.warn('[gemini] skipping event with invalid date format:', ev)
+          return false
+        }
+        if (!isDateInRange(ev.date, fiscalYearStart!, fiscalYearEnd!)) {
+          console.warn('[gemini] skipping out-of-range event:', ev)
+          return false
+        }
+      }
       return true
     })
 
@@ -204,6 +299,10 @@ async function parseWithAutoPrompt(prompt: string, fileBuffer: Buffer, mimeType:
     parserMode: isGarbage ? 'garbage' : 'general',
   }
 }
+
+// ─────────────────────────────────────────────
+// 手入力プロンプト（既存）
+// ─────────────────────────────────────────────
 
 function buildManualInstructionPrompt(
   instruction: string,
@@ -316,12 +415,22 @@ export async function parseManualGarbageInstruction(
   }
 }
 
+// ─────────────────────────────────────────────
+// GeminiAutoParser クラス
+// ─────────────────────────────────────────────
+
 export class GeminiAutoParser implements PdfParser {
-  constructor(private readonly language: Language = 'ja') {}
+  constructor(
+    private readonly language: Language = 'ja',
+    private readonly fiscalYearStart?: string,
+    private readonly fiscalYearEnd?: string,
+  ) {}
 
   async parse(fileBuffer: Buffer, mimeType: string): Promise<ParseResult> {
-    const prompt = this.language === 'en' ? AUTO_PROMPT_EN : AUTO_PROMPT
-    return parseWithAutoPrompt(prompt, fileBuffer, mimeType)
+    const prompt = this.language === 'en'
+      ? buildAutoPromptEn(this.fiscalYearStart, this.fiscalYearEnd)
+      : buildAutoPrompt(this.fiscalYearStart, this.fiscalYearEnd)
+    return parseWithAutoPrompt(prompt, fileBuffer, mimeType, this.fiscalYearStart, this.fiscalYearEnd)
   }
 }
 

@@ -175,6 +175,13 @@
     "statusCompleted": "Completed",
     "statusError": "Error",
     "statusProcessing": "Processing",
+    "calendarGate": {
+      "bannerTitle": "Google Calendar access permission missing",
+      "bannerDescription": "PDF upload and manual schedule input are unavailable because calendar access has not been granted. Please re-authorize using the button below to allow access.",
+      "bannerButton": "Re-authorize Google",
+      "lockCardTitle": "Calendar access permission required",
+      "lockCardDescription": "Allow access to Google Calendar to use this feature."
+    },
     "lineLink": {
       "title": "LINE Integration",
       "subtitle": "Send garbage names or photos via LINE to get sorting results instantly",

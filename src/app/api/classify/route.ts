@@ -159,38 +159,41 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'no_garbage_calendar' }, { status: 404 })
   }
 
-  // parsed_pdfs から extracted_json を取得（_ja → _en の順でフォールバック）
-  const hashWithLang = `${job.pdf_hash}_${locale}`
-  const hashFallback = `${job.pdf_hash}_${locale === 'ja' ? 'en' : 'ja'}`
-
-  let parsedData = await serviceClient
+  // parsed_pdfs を {hash}% 前方一致で一括取得（新形式 {hash}_{lang}_{fiscalYear}、旧形式 {hash}_{lang}、bare をすべて拾う）
+  const { data: parsedRows } = await serviceClient
     .from('parsed_pdfs')
-    .select('extracted_json')
-    .eq('pdf_hash', hashWithLang)
-    .single()
+    .select('pdf_hash, extracted_json')
+    .like('pdf_hash', `${job.pdf_hash}%`)
+    .order('created_at', { ascending: false })
 
-  if (!parsedData.data) {
-    parsedData = await serviceClient
-      .from('parsed_pdfs')
-      .select('extracted_json')
-      .eq('pdf_hash', hashFallback)
-      .single()
-  }
-
-  // hash にサフィックスがないパターンにも対応
-  if (!parsedData.data) {
-    parsedData = await serviceClient
-      .from('parsed_pdfs')
-      .select('extracted_json')
-      .eq('pdf_hash', job.pdf_hash)
-      .single()
-  }
-
-  if (!parsedData.data) {
+  if (!parsedRows || parsedRows.length === 0) {
     return NextResponse.json({ error: 'no_garbage_calendar' }, { status: 404 })
   }
 
-  const extracted = parsedData.data.extracted_json as any
+  // リクエストの locale を最優先（0）、もう一方の言語（1）、bare（2）の順で選択
+  const altLocale = locale === 'ja' ? 'en' : 'ja'
+  type ParseCandidate = { priority: number; extracted: unknown }
+  const parseCandidates: ParseCandidate[] = []
+
+  for (const row of parsedRows) {
+    const suffix = row.pdf_hash.slice(job.pdf_hash.length)
+    if (suffix.startsWith(`_${locale}`)) {
+      parseCandidates.push({ priority: 0, extracted: row.extracted_json })
+    } else if (suffix.startsWith(`_${altLocale}`)) {
+      parseCandidates.push({ priority: 1, extracted: row.extracted_json })
+    } else if (suffix === '') {
+      parseCandidates.push({ priority: 2, extracted: row.extracted_json })
+    }
+  }
+
+  if (parseCandidates.length === 0) {
+    return NextResponse.json({ error: 'no_garbage_calendar' }, { status: 404 })
+  }
+
+  parseCandidates.sort((a, b) => a.priority - b.priority)
+  const bestParsed = parseCandidates[0]
+
+  const extracted = bestParsed.extracted as { events?: CalendarEvent[] } | CalendarEvent[]
   const events: CalendarEvent[] = Array.isArray(extracted)
     ? extracted
     : (extracted?.events || [])

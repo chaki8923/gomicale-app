@@ -30,9 +30,20 @@ interface DashboardClientProps {
   userAvatarUrl: string
   initialJobs: Job[]
   unreadReplies: UnreadReply[]
+  calendarScopeMissing: boolean
+  calendarPermissionRequired: boolean
 }
 
-export function DashboardClient({ userEmail, userId, userName, userAvatarUrl, initialJobs, unreadReplies }: DashboardClientProps) {
+export function DashboardClient({
+  userEmail,
+  userId,
+  userName,
+  userAvatarUrl,
+  initialJobs,
+  unreadReplies,
+  calendarScopeMissing,
+  calendarPermissionRequired,
+}: DashboardClientProps) {
   const router = useRouter()
   const t = useTranslations('dashboard')
   const tCommon = useTranslations('common')
@@ -41,7 +52,10 @@ export function DashboardClient({ userEmail, userId, userName, userAvatarUrl, in
   const [activeJobIds, setActiveJobIds] = useState<string[]>([])
 
   const [isHistoryOpen, setIsHistoryOpen] = useState(false)
-  const [isCalendarModalOpen, setIsCalendarModalOpen] = useState(false)
+  // スコープ欠落 or callback query param があれば初期表示でモーダルを開く
+  const [isCalendarModalOpen, setIsCalendarModalOpen] = useState(
+    calendarScopeMissing || calendarPermissionRequired,
+  )
   const [isReplyModalOpen, setIsReplyModalOpen] = useState(unreadReplies.length > 0)
 
   const handleUploadComplete = useCallback((jobId: string) => {
@@ -119,14 +133,47 @@ export function DashboardClient({ userEmail, userId, userName, userAvatarUrl, in
         </aside>
 
         <main className="flex-1 max-w-2xl mx-auto px-4 py-10 space-y-8">
+
+          {/* カレンダー権限欠落バナー（ハードブロック） */}
+          {calendarScopeMissing && (
+            <div className="rounded-xl border border-red-200 bg-red-50 px-5 py-4 flex flex-col sm:flex-row sm:items-start gap-4">
+              <div className="flex-shrink-0 w-9 h-9 rounded-full bg-red-100 flex items-center justify-center">
+                <svg className="w-5 h-5 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+                </svg>
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-bold text-red-700 mb-1">{t('calendarGate.bannerTitle')}</p>
+                <p className="text-xs text-red-600">{t('calendarGate.bannerDescription')}</p>
+              </div>
+              <button
+                onClick={() => setIsCalendarModalOpen(true)}
+                className="shrink-0 px-4 py-2 text-sm font-semibold text-white bg-red-500 hover:bg-red-600 active:bg-red-700 rounded-xl transition shadow-sm cursor-pointer"
+              >
+                {t('calendarGate.bannerButton')}
+              </button>
+            </div>
+          )}
+
         <section>
           <h2 className="text-lg font-semibold text-gray-800 mb-3">{t('uploadTitle')}</h2>
           <p className="text-sm text-gray-500 mb-4">{t('uploadDescription')}</p>
-          <UploadZone onUploadComplete={handleUploadComplete} />
+          {calendarScopeMissing ? (
+            <LockedCard
+              title={t('calendarGate.lockCardTitle')}
+              description={t('calendarGate.lockCardDescription')}
+              onUnlock={() => setIsCalendarModalOpen(true)}
+              buttonLabel={t('calendarGate.bannerButton')}
+            />
+          ) : (
+            <UploadZone onUploadComplete={handleUploadComplete} />
+          )}
         </section>
 
         <section>
-          <ManualScheduleInput onStart={handleUploadComplete} />
+          {calendarScopeMissing ? null : (
+            <ManualScheduleInput onStart={handleUploadComplete} />
+          )}
         </section>
 
         {activeJobIds.length > 0 && (
@@ -295,6 +342,35 @@ export function DashboardClient({ userEmail, userId, userName, userAvatarUrl, in
         </div>
         <p className="text-center text-xs text-gray-300 mt-3">{tCommon('copyright', { year: new Date().getFullYear() })}</p>
       </footer>
+    </div>
+  )
+}
+
+interface LockedCardProps {
+  title: string
+  description: string
+  onUnlock: () => void
+  buttonLabel: string
+}
+
+function LockedCard({ title, description, onUnlock, buttonLabel }: LockedCardProps) {
+  return (
+    <div className="rounded-xl border-2 border-dashed border-red-200 bg-red-50 px-6 py-8 flex flex-col items-center gap-4 text-center">
+      <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center">
+        <svg className="w-6 h-6 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
+        </svg>
+      </div>
+      <div>
+        <p className="text-sm font-semibold text-red-700 mb-1">{title}</p>
+        <p className="text-xs text-red-500">{description}</p>
+      </div>
+      <button
+        onClick={onUnlock}
+        className="px-5 py-2 text-sm font-semibold text-white bg-red-500 hover:bg-red-600 active:bg-red-700 rounded-xl transition shadow-sm cursor-pointer"
+      >
+        {buttonLabel}
+      </button>
     </div>
   )
 }
