@@ -6,7 +6,6 @@ import { getSupabaseBrowserClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/Button'
 import { UploadZone } from '@/components/UploadZone'
 import { JobStatusCard } from '@/components/JobStatusCard'
-import { AdBanner } from '@/components/AdBanner'
 import type { Job } from '@/types/database'
 
 interface DashboardClientProps {
@@ -54,13 +53,6 @@ export function DashboardClient({ userEmail, initialJobs }: DashboardClientProps
       </header>
 
       <div className="flex">
-        {/* 左側 sticky 広告（PC のみ表示） */}
-        <aside className="hidden xl:block w-[140px] shrink-0">
-          <div className="sticky top-20 flex justify-center pt-10">
-            <AdBanner id="tall_120x600" />
-          </div>
-        </aside>
-
         <main className="flex-1 max-w-2xl mx-auto px-4 py-10 space-y-8">
         {/* アップロードセクション */}
         <section>
@@ -155,9 +147,6 @@ export function DashboardClient({ userEmail, initialJobs }: DashboardClientProps
           </div>
         )}
 
-        <div className="pt-4 flex flex-col items-center gap-4">
-          <AdBanner id="gomicale_468x60" />
-        </div>
       </main>
       </div>
 

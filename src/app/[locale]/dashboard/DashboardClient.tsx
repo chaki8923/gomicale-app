@@ -10,7 +10,6 @@ import { Button } from '@/components/ui/Button'
 import { UploadZone } from '@/components/UploadZone'
 import { ManualScheduleInput } from '@/components/ManualScheduleInput'
 import { JobStatusCard } from '@/components/JobStatusCard'
-import { AdBanner } from '@/components/AdBanner'
 import { LanguageSwitcher } from '@/components/LanguageSwitcher'
 import { GarbageClassifier } from './GarbageClassifier'
 import { LineLinkManager } from './LineLinkManager'
@@ -125,13 +124,6 @@ export function DashboardClient({
       </header>
 
       <div className="flex">
-        {/* 左側 sticky 広告（PC のみ表示） */}
-        <aside className="hidden xl:block w-[140px] shrink-0">
-          <div className="sticky top-20 flex justify-center pt-10">
-            <AdBanner id="tall_120x600" />
-          </div>
-        </aside>
-
         <main className="flex-1 max-w-2xl mx-auto px-4 py-10 space-y-8">
 
           {/* カレンダー権限欠落バナー（ハードブロック） */}
@@ -322,9 +314,6 @@ export function DashboardClient({
           <LineLinkManager hasCompletedJob={initialJobs.some((j) => j.status === 'completed')} />
         </section>
 
-        <div className="pt-4 flex flex-col items-center gap-4">
-          <AdBanner id="gomicale_468x60" />
-        </div>
       </main>
       </div>
 

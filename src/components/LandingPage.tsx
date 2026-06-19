@@ -10,7 +10,6 @@ import { Link } from '@/i18n/navigation'
 import 'swiper/css'
 import 'swiper/css/pagination'
 import { GoogleLoginButton } from './GoogleLoginButton'
-import { AdBanner } from './AdBanner'
 import { LanguageSwitcher } from './LanguageSwitcher'
 import { Button } from './ui/Button'
 
@@ -247,13 +246,6 @@ function StaticContent() {
   return (
     <div className="bg-gray-50">
       <div className="flex">
-        {/* 左側 sticky 広告（PC のみ表示） */}
-        <aside className="hidden xl:block w-[140px] shrink-0">
-          <div className="sticky top-20 flex justify-center pt-20">
-            <AdBanner id="tall_120x600" />
-          </div>
-        </aside>
-
         <div className="flex-1 min-w-0">
       {/* サービス詳細説明 */}
       <section className="mx-auto max-w-3xl px-6 py-20">
@@ -352,9 +344,6 @@ function StaticContent() {
             </Link>
           </div>
 
-          <div className="mx-auto max-w-3xl pt-8 pb-4 flex flex-col items-center gap-4">
-            <AdBanner id="gomicale_468x60" />
-          </div>
         </div>
       </section>
 
@@ -519,10 +508,6 @@ function CtaSlide({ onScrollDown }: { onScrollDown?: () => void }) {
             </span>
           </Button>
         )}
-      </div>
-
-      <div className="w-full px-4 pb-2 flex flex-col items-center gap-4">
-        <AdBanner id="gomicale_468x60" />
       </div>
 
       <footer className="w-full py-4 text-center text-xs text-teal-700/60">

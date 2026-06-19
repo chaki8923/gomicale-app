@@ -1,7 +1,6 @@
 import { useTranslations, useLocale } from 'next-intl'
 import { Link } from '@/i18n/navigation'
 import Image from 'next/image'
-import { AdBanner } from './AdBanner'
 import type { BlogPost } from '@/lib/microcms'
 
 // ─── SVG アイコン ───────────────────────────────────────────
@@ -63,13 +62,6 @@ export function LandingPageStaticContent({ blogPosts = [] }: Props) {
   return (
     <div className="bg-gray-50" id="static-content">
       <div className="flex">
-        {/* 左側 sticky 広告（PC のみ表示） */}
-        <aside className="hidden xl:block w-[140px] shrink-0">
-          <div className="sticky top-20 flex justify-center pt-20">
-            <AdBanner id="tall_120x600" />
-          </div>
-        </aside>
-
         <div className="flex-1 min-w-0">
       {/* サービス詳細説明 */}
       <section className="mx-auto max-w-3xl px-6 py-20">
@@ -279,9 +271,6 @@ export function LandingPageStaticContent({ blogPosts = [] }: Props) {
             </Link>
           </div>
 
-          <div className="mx-auto max-w-3xl pt-8 pb-4 flex flex-col items-center gap-4">
-            <AdBanner id="gomicale_468x60" />
-          </div>
         </div>
       </section>
 
