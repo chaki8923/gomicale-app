@@ -107,7 +107,7 @@ async function sendCompletionEmail(
 
   const lineSectionHtml = lineLinkCode ? `
         <div style="border:1px solid #d1fae5;border-radius:8px;padding:16px;margin-top:16px;background:#f0fdf4">
-          <p style="margin:0 0 8px;color:#065f46;font-size:14px;font-weight:bold">📱 LINEでゴミ分別・収集日通知を受け取る</p>
+          <p style="margin:0 0 8px;color:#065f46;font-size:14px;font-weight:bold">LINEでゴミ分別・収集日通知を受け取る</p>
           <p style="margin:0 0 12px;color:#374151;font-size:13px;line-height:1.6">
             ゴミカレのLINE Botと連携すると、写真や文字を送るだけでゴミの分類と次回の収集日をすぐにお知らせします。
           </p>
