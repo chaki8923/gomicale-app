@@ -39,10 +39,62 @@ type JobErrorCode =
   | 'GEMINI_TEMPORARY'
   | 'UNKNOWN'
 
+// LINE 連携済みかどうかを確認する（user_integrations と line_links の両方を確認）
+async function isLineLinked(userId: string): Promise<boolean> {
+  try {
+    const { data: integration } = await supabase
+      .from('user_integrations')
+      .select('line_user_id')
+      .eq('user_id', userId)
+      .maybeSingle()
+    if (integration?.line_user_id) return true
+
+    const { data: lineLink } = await supabase
+      .from('line_links')
+      .select('id')
+      .eq('user_id', userId)
+      .maybeSingle()
+    return !!lineLink
+  } catch (err) {
+    console.warn('[isLineLinked] error, assuming not linked:', err)
+    return false
+  }
+}
+
+// LINE 連携用6桁コードをメール向けに発行する（有効期限24時間）
+async function issueLineLinkCode(userId: string): Promise<string | null> {
+  try {
+    // 既存コードを削除（1ユーザー1コード）
+    await supabase
+      .from('line_link_codes')
+      .delete()
+      .eq('user_id', userId)
+
+    const code = String(Math.floor(100000 + Math.random() * 900000))
+    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString() // 24時間後
+
+    const { data, error } = await supabase
+      .from('line_link_codes')
+      .insert({ user_id: userId, code, expires_at: expiresAt })
+      .select('code')
+      .single()
+
+    if (error || !data) {
+      console.warn('[issueLineLinkCode] insert failed:', error?.message)
+      return null
+    }
+    return data.code
+  } catch (err) {
+    console.warn('[issueLineLinkCode] error:', err)
+    return null
+  }
+}
+
 async function sendCompletionEmail(
   toEmail: string,
   inserted: number,
   skipped: number,
+  lineLinkCode?: string,
 ): Promise<void> {
   const apiKey = process.env.RESEND_API_KEY
   const fromEmail = process.env.APP_FROM_EMAIL ?? 'ゴミカレ <onboarding@resend.dev>'
@@ -50,6 +102,34 @@ async function sendCompletionEmail(
     console.warn('[email] RESEND_API_KEY not set, skipping email')
     return
   }
+
+  const lineBotAddUrl = process.env.LINE_BOT_ADD_URL ?? 'https://lin.ee/4F3CioD'
+
+  const lineSectionHtml = lineLinkCode ? `
+        <div style="border:1px solid #d1fae5;border-radius:8px;padding:16px;margin-top:16px;background:#f0fdf4">
+          <p style="margin:0 0 8px;color:#065f46;font-size:14px;font-weight:bold">📱 LINEでゴミ分別・収集日通知を受け取る</p>
+          <p style="margin:0 0 12px;color:#374151;font-size:13px;line-height:1.6">
+            ゴミカレのLINE Botと連携すると、写真や文字を送るだけでゴミの分類と次回の収集日をすぐにお知らせします。
+          </p>
+          <div style="text-align:center;margin-bottom:12px">
+            <a href="${lineBotAddUrl}"
+              style="display:inline-block;background:#06c755;color:#fff;text-decoration:none;padding:10px 24px;border-radius:8px;font-size:14px;font-weight:bold">
+              LINE Botを友だち追加する
+            </a>
+          </div>
+          <div style="background:#fff;border:1px solid #d1fae5;border-radius:8px;padding:12px;text-align:center;margin-bottom:10px">
+            <p style="margin:0 0 4px;color:#6b7280;font-size:11px">連携コード（友だち追加後にBotへ送信）</p>
+            <p style="margin:0;color:#0d9488;font-size:32px;font-weight:bold;letter-spacing:6px">${lineLinkCode}</p>
+          </div>
+          <ol style="margin:0;padding-left:18px;color:#374151;font-size:12px;line-height:1.8">
+            <li>上のボタンからゴミカレ LINE Botを友だち追加</li>
+            <li>LINEのトーク画面で上の6桁コードを送信</li>
+            <li>連携完了！写真やテキストを送るだけでゴミ分別できます</li>
+          </ol>
+          <p style="margin:10px 0 0;color:#9ca3af;font-size:11px;text-align:right">※ コードの有効期限は24時間です</p>
+        </div>
+  ` : ''
+
   const resend = new Resend(apiKey)
   const { error } = await resend.emails.send({
     from: fromEmail,
@@ -65,6 +145,7 @@ async function sendCompletionEmail(
           <p style="margin:0;color:#065f46;font-size:18px;font-weight:bold">${inserted}件 登録完了</p>
           ${skipped > 0 ? `<p style="margin:4px 0 0;color:#6b7280;font-size:13px">（${skipped}件は既存のためスキップ）</p>` : ''}
         </div>
+        ${lineSectionHtml}
         <div style="border:1px solid #e5e7eb;border-radius:8px;padding:16px;margin-top:16px;text-align:center">
         <p style="margin:0 0 4px;color:#374151;font-size:14px;font-weight:bold">
         このサービスが役に立ちましたか？
@@ -346,7 +427,15 @@ export const handler = async (event: LambdaPayload): Promise<void> => {
     try {
       const { data: { user: authUser } } = await supabase.auth.admin.getUserById(userId)
       if (authUser?.email) {
-        await sendCompletionEmail(authUser.email, inserted, skipped)
+        // ゴミ出しカレンダーかつ LINE 未連携のユーザーにのみコードを発行してメールに添付
+        let lineLinkCode: string | undefined
+        if (resolvedParserMode === 'garbage') {
+          const linked = await isLineLinked(userId)
+          if (!linked) {
+            lineLinkCode = (await issueLineLinkCode(userId)) ?? undefined
+          }
+        }
+        await sendCompletionEmail(authUser.email, inserted, skipped, lineLinkCode)
       }
     } catch (emailErr) {
       console.warn('[handler] email notification failed:', emailErr)
