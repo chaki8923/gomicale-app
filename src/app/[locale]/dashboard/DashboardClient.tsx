@@ -266,10 +266,12 @@ export function DashboardClient({
                             const isCalendarErrorByMessage =
                               typeof job.error_message === 'string' &&
                               job.error_message.includes(CALENDAR_PERMISSION_ERROR_MARKER)
-                            return !(isCalendarErrorByCode || isCalendarErrorByMessage)
-                          })() && (
-                            <p className="text-sm text-red-400">{t('errorPrefix')}{job.error_message}</p>
-                          )}
+                            if (isCalendarErrorByCode || isCalendarErrorByMessage) return null
+                            const displayMessage = errorCode === 'UNKNOWN' || errorCode === null
+                              ? t('unknownError')
+                              : job.error_message
+                            return <p className="text-sm text-red-400">{t('errorPrefix')}{displayMessage}</p>
+                          })()}
                           {(job.status === 'pending' || job.status === 'processing') && (
                             <p className="text-sm text-blue-500">{t('processing')}</p>
                           )}

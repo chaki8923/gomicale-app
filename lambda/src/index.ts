@@ -465,6 +465,14 @@ export const handler = async (event: LambdaPayload): Promise<void> => {
         : '現在AIサーバーが混み合っており、一時的に利用できない状態です。数分〜数十分ほど時間を置いてから再度お試しください。'
     }
 
+    // Gemini レスポンスの JSON パース失敗（出力トークン超過による途中切れ等）
+    if (err instanceof SyntaxError && message.includes('JSON at position')) {
+      errorCode = 'GEMINI_PARSE_ERROR'
+      message = language === 'en'
+        ? 'The AI could not extract all events from this file. The calendar may contain too many entries. Please try uploading a file covering a shorter period.'
+        : 'AIがファイルから予定を正常に抽出できませんでした。カレンダーの収集件数が多すぎる可能性があります。期間を絞ったファイルをお試しください。'
+    }
+
     // ジョブを error に更新
     await supabase.from('jobs').update({
       status: 'error',

@@ -171,6 +171,7 @@
     "registeredSuffix": "events registered",
     "skipped": "({count} skipped as duplicates)",
     "errorPrefix": "Error: ",
+    "unknownError": "An unknown error occurred",
     "processing": "Processing...",
     "statusCompleted": "Completed",
     "statusError": "Error",
