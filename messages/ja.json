@@ -171,6 +171,7 @@
     "registeredSuffix": "登録済み",
     "skipped": "（{count}件は既存のためスキップ）",
     "errorPrefix": "エラー: ",
+    "unknownError": "不明なエラーが発生しました",
     "processing": "処理中...",
     "statusCompleted": "完了",
     "statusError": "エラー",

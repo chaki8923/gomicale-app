@@ -212,6 +212,7 @@ function createGeminiModel() {
     generationConfig: {
       responseMimeType: 'application/json',
       temperature: 0,
+      maxOutputTokens: 65536,
     },
   })
 }
@@ -244,18 +245,29 @@ async function parseWithAutoPrompt(
     },
   ])
 
+  const candidate = result.response.candidates?.[0]
+  const finishReason = candidate?.finishReason
   const text = result.response.text().trim()
+  console.info('[gemini] finishReason=%s responseChars=%d usage=%o',
+    finishReason, text.length, result.response.usageMetadata)
 
   const match = text.match(/\{[\s\S]*\}/)
   if (!match) {
     throw new Error(`Gemini returned unexpected format: ${text.slice(0, 200)}`)
   }
 
-  const raw = JSON.parse(match[0]) as {
+  let raw: {
     isCalendar?: boolean
     isGarbageCalendar?: boolean
     title?: string
     events?: Array<Record<string, string>>
+  }
+  try {
+    raw = JSON.parse(match[0]) as typeof raw
+  } catch (e) {
+    console.error('[gemini] JSON parse failed. finishReason=%s tail=%s',
+      finishReason, match[0].slice(-300))
+    throw e
   }
 
   if ('isCalendar' in raw && raw.isCalendar === false) {

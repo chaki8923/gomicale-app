@@ -132,7 +132,9 @@ export function JobStatusCard({ jobId, onComplete }: JobStatusCardProps) {
 
           {job.status === 'error' && !isCalendarPermissionError && (
             <p className="text-sm text-red-500 mt-2 break-all">
-              {job.error_message ?? t('unknownError')}
+              {errorCode === 'UNKNOWN' || errorCode === null
+                ? t('unknownError')
+                : job.error_message ?? t('unknownError')}
             </p>
           )}
 
