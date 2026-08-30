@@ -45,7 +45,7 @@ export function CalendarPermissionModal({ isOpen, onClose, locale }: CalendarPer
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4"
       onClick={handleBackdropClick}
     >
-      <div className="relative w-full max-w-md rounded-2xl bg-white shadow-xl overflow-hidden">
+      <div className="relative w-full max-w-lg rounded-2xl bg-white shadow-xl overflow-hidden">
         {/* ヘッダー */}
         <div className="bg-red-50 px-6 pt-6 pb-4 border-b border-red-100">
           <div className="flex items-start gap-3">
@@ -94,13 +94,13 @@ export function CalendarPermissionModal({ isOpen, onClose, locale }: CalendarPer
           <button
             onClick={handleReauthorize}
             disabled={isReauthing}
-            className="w-full sm:w-auto px-5 py-2.5 text-sm font-medium text-white bg-teal-500 hover:bg-teal-600 disabled:opacity-70 disabled:cursor-not-allowed rounded-xl transition"
+            className="w-full sm:w-auto px-5 py-2.5 text-sm font-medium text-white bg-teal-500 hover:bg-teal-600 disabled:opacity-70 disabled:cursor-not-allowed rounded-xl transition whitespace-nowrap"
           >
             {isReauthing ? t('calendarPermissionReauthing') : t('calendarPermissionReauthorize')}
           </button>
           <button
             onClick={handleLogout}
-            className="w-full sm:w-auto px-5 py-2.5 text-sm font-medium text-white bg-red-500 hover:bg-red-600 rounded-xl transition"
+            className="w-full sm:w-auto px-5 py-2.5 text-sm font-medium text-white bg-red-500 hover:bg-red-600 rounded-xl transition whitespace-nowrap"
           >
             {t('calendarPermissionLogout')}
           </button>
