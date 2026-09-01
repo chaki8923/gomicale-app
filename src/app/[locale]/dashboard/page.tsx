@@ -4,6 +4,7 @@ import { DashboardClient } from './DashboardClient'
 import type { Job } from '@/types/database'
 import type { UnreadReply } from '@/components/InquiryReplyModal'
 import type { Metadata } from 'next'
+import { hasSupportCooldownExpired } from '@/lib/support-server'
 
 export const metadata: Metadata = {
   title: 'Dashboard',
@@ -34,6 +35,29 @@ export default async function DashboardPage({
     .eq('user_id', user.id)
     .order('created_at', { ascending: false })
     .limit(10)
+
+  const { data: completedJobs, count: successfulJobCount } = await supabase
+    .from('jobs')
+    .select('id', { count: 'exact' })
+    .eq('user_id', user.id)
+    .eq('status', 'completed')
+    .order('created_at', { ascending: false })
+    .limit(1)
+
+  const { data: latestSupportPayment } = await serviceClient
+    .from('support_payments')
+    .select('paid_at')
+    .eq('user_id', user.id)
+    .eq('status', 'paid')
+    .gte('amount', 500)
+    .order('paid_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
+  const completedCount = successfulJobCount ?? 0
+  const isSupportMilestone = completedCount === 1 || (completedCount > 0 && completedCount % 5 === 0)
+  const supporterSince = latestSupportPayment?.paid_at ?? null
+  const supportCooldownExpired = hasSupportCooldownExpired(supporterSince)
 
   // 最終既読日時を取得（なければ epoch）
   const { data: readData } = await supabase
@@ -96,6 +120,10 @@ export default async function DashboardPage({
       unreadReplies={unreadReplies}
       calendarScopeMissing={calendarScopeMissing}
       calendarPermissionRequired={calendarPermissionRequired}
+      isSupporter={Boolean(supporterSince)}
+      showSupportPrompt={isSupportMilestone && supportCooldownExpired}
+      successfulJobCount={completedCount}
+      supportJobId={completedJobs?.[0]?.id}
     />
   )
 }

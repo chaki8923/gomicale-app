@@ -16,6 +16,7 @@ import { LineLinkManager } from './LineLinkManager'
 import { CalendarPermissionModal } from '@/components/CalendarPermissionModal'
 import { InquiryPanel } from '@/components/InquiryPanel'
 import { InquiryReplyModal } from '@/components/InquiryReplyModal'
+import { SupportCard } from '@/components/SupportCard'
 import { getJobErrorCode, isCalendarReauthErrorCode, type JobResultDataLike } from '@/lib/job-errors'
 import type { Job } from '@/types/database'
 import type { UnreadReply } from '@/components/InquiryReplyModal'
@@ -31,6 +32,10 @@ interface DashboardClientProps {
   unreadReplies: UnreadReply[]
   calendarScopeMissing: boolean
   calendarPermissionRequired: boolean
+  isSupporter: boolean
+  showSupportPrompt: boolean
+  successfulJobCount: number
+  supportJobId?: string
 }
 
 export function DashboardClient({
@@ -42,11 +47,16 @@ export function DashboardClient({
   unreadReplies,
   calendarScopeMissing,
   calendarPermissionRequired,
+  isSupporter,
+  showSupportPrompt,
+  successfulJobCount,
+  supportJobId,
 }: DashboardClientProps) {
   const router = useRouter()
   const t = useTranslations('dashboard')
   const tCommon = useTranslations('common')
   const tJobStatus = useTranslations('jobStatus')
+  const tSupport = useTranslations('support')
   const locale = useLocale()
   const [activeJobIds, setActiveJobIds] = useState<string[]>([])
 
@@ -112,6 +122,11 @@ export function DashboardClient({
                 </span>
               )}
               <span className="text-sm text-gray-500">{userName}</span>
+              {isSupporter && (
+                <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-bold text-amber-700 ring-1 ring-amber-200">
+                  {tSupport('supporterBadge')}
+                </span>
+              )}
             </div>
             <Button
               onClick={handleLogout}
@@ -298,6 +313,14 @@ export function DashboardClient({
               </div>
             )}
           </section>
+        )}
+
+        {showSupportPrompt && (
+          <SupportCard
+            source="job_completed"
+            milestoneKey={`job-completed-${successfulJobCount}`}
+            jobId={supportJobId}
+          />
         )}
 
         {activeJobIds.length === 0 && initialJobs.length === 0 && (

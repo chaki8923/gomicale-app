@@ -5,6 +5,7 @@ import Image from 'next/image'
 import { useLocale, useTranslations } from 'next-intl'
 import { getSodaiGomiSearchUrl } from '@/lib/sodai-gomi-urls'
 import { Button } from '@/components/ui/Button'
+import { SupportCard } from '@/components/SupportCard'
 
 type NextDate = {
   date: string
@@ -341,6 +342,13 @@ export function GarbageClassifier() {
                 {t('sodaiGomiSearchButton')}
               </a>
             </div>
+          )}
+
+          {result.streak && [3, 10].includes(result.streak.total_classifications) && (
+            <SupportCard
+              source="classification_milestone"
+              milestoneKey={`classification-${result.streak.total_classifications}`}
+            />
           )}
         </div>
       )}

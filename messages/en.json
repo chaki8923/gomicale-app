@@ -15,6 +15,35 @@
     "sitemap": "Sitemap",
     "copyright": "© {year} GomiCale"
   },
+  "support": {
+    "metadataTitle": "Support GomiCale development | GomiCale",
+    "metadataDescription": "Support the operation and development of GomiCale. All features remain free to use.",
+    "pageTitle": "Support GomiCale development",
+    "pageDescription": "GomiCale is a free service built and operated independently. If it has helped you, your support will fund continued operation and improvements.",
+    "amountsLabel": "Choose a support amount",
+    "selectedAmount": "Selected amount",
+    "supportAmount": "Support with ¥{amount}",
+    "supportDefault": "Support with ¥{amount}",
+    "chooseAmount": "Choose another amount",
+    "processing": "Processing...",
+    "secureCheckout": "You will continue to Stripe's secure checkout. Credit and debit cards are accepted.",
+    "error": "We couldn't start checkout. Please try again in a moment.",
+    "dismiss": "Dismiss support message",
+    "backToTop": "Back to Home",
+    "backToDashboard": "Go to Dashboard",
+    "successTitle": "Thank you for your support!",
+    "successDescription": "Your payment has been confirmed. Your support will help maintain and improve GomiCale.",
+    "pendingTitle": "Confirming your payment",
+    "pendingDescription": "We haven't confirmed the payment yet. Please check your dashboard again shortly. You don't need to pay again.",
+    "signature": "— GomiCale developer",
+    "supporterBadge": "Supporter",
+    "cta": {
+      "jobTitle": "Your calendar import is complete",
+      "jobDescription": "If GomiCale helped, would you support its next improvements and continued operation?",
+      "classificationTitle": "Thanks for using the sorting checker",
+      "classificationDescription": "If it has been useful, your support will help keep GomiCale improving."
+    }
+  },
   "landing": {
     "header": {
       "faq": "FAQ",
