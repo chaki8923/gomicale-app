@@ -202,7 +202,7 @@ Notes:
 function createGeminiModel() {
   const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!)
   return genAI.getGenerativeModel({
-    model: process.env.GEMINI_MODEL ?? 'gemini-3.1-pro-preview',
+    model: process.env.GEMINI_MODEL ?? 'gemini-3.8-flash',
     safetySettings: [
       {
         category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT,
