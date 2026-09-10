@@ -681727,6 +681727,34 @@ Notes:
 - Output only the JSON object, nothing else
 `.trim();
 }
+function repairTruncatedJson(jsonStr) {
+  let braces = 0;
+  let brackets = 0;
+  let inString = false;
+  let i = 0;
+  while (i < jsonStr.length) {
+    const ch = jsonStr[i];
+    if (inString) {
+      if (ch === "\\") {
+        i += 2;
+        continue;
+      }
+      if (ch === '"') inString = false;
+    } else {
+      if (ch === '"') inString = true;
+      else if (ch === "{") braces++;
+      else if (ch === "}") braces--;
+      else if (ch === "[") brackets++;
+      else if (ch === "]") brackets--;
+    }
+    i++;
+  }
+  let result = jsonStr.trimEnd();
+  if (result.endsWith(",")) result = result.slice(0, -1);
+  for (let j = 0; j < brackets; j++) result += "]";
+  for (let j = 0; j < braces; j++) result += "}";
+  return result;
+}
 function createGeminiModel() {
   const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
   return genAI.getGenerativeModel({
@@ -681781,7 +681809,13 @@ async function parseWithAutoPrompt(prompt, fileBuffer, mimeType, fiscalYearStart
       finishReason,
       match[0].slice(-300)
     );
-    throw e;
+    const repaired = repairTruncatedJson(match[0]);
+    console.info(
+      "[gemini] Attempting JSON repair. originalLen=%d repairedLen=%d",
+      match[0].length,
+      repaired.length
+    );
+    raw = JSON.parse(repaired);
   }
   if ("isCalendar" in raw && raw.isCalendar === false) {
     throw new NotACalendarError();

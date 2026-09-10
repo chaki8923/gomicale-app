@@ -15,6 +15,35 @@
     "sitemap": "サイトマップ",
     "copyright": "© {year} ゴミカレ"
   },
+  "support": {
+    "metadataTitle": "ゴミカレの開発を応援する | ゴミカレ",
+    "metadataDescription": "ゴミカレの運営・開発を支援できます。機能はこれまでどおり無料で利用できます。",
+    "pageTitle": "ゴミカレの開発を応援する",
+    "pageDescription": "ゴミカレは個人で開発・運営している無料サービスです。役に立ったと感じたら、今後の運営と改善を支援していただけるとうれしいです。",
+    "amountsLabel": "支援金額を選択してください",
+    "selectedAmount": "選択中の金額",
+    "supportAmount": "¥{amount}で開発を支援する",
+    "supportDefault": "¥{amount}で支援する",
+    "chooseAmount": "金額を選ぶ",
+    "processing": "処理中...",
+    "secureCheckout": "Stripeの安全な決済ページに移動します。クレジットカード・デビットカードが利用できます。",
+    "error": "決済を開始できませんでした。時間をおいてもう一度お試しください。",
+    "dismiss": "支援案内を閉じる",
+    "backToTop": "トップページに戻る",
+    "backToDashboard": "ダッシュボードへ",
+    "successTitle": "ご支援ありがとうございます！",
+    "successDescription": "決済を確認しました。いただいたご支援は、サービスの維持と改善に大切に使わせていただきます。",
+    "pendingTitle": "決済を確認しています",
+    "pendingDescription": "決済完了をまだ確認できていません。少し時間をおいてからダッシュボードをご確認ください。二重に決済する必要はありません。",
+    "signature": "— ゴミカレ 開発者",
+    "supporterBadge": "サポーター",
+    "cta": {
+      "jobTitle": "カレンダー登録、おつかれさまでした",
+      "jobDescription": "ゴミカレが役に立ったら、次の改善とサービス継続をワンコインで応援していただけませんか？",
+      "classificationTitle": "分別チェックを活用していただき、ありがとうございます",
+      "classificationDescription": "便利だと感じたら、ゴミカレの開発継続を応援していただけるとうれしいです。"
+    }
+  },
   "landing": {
     "header": {
       "faq": "よくある質問",

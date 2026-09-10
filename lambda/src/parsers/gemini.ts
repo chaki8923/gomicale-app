@@ -196,6 +196,43 @@ Notes:
 }
 
 // ─────────────────────────────────────────────
+// JSON 修復ユーティリティ
+// ─────────────────────────────────────────────
+
+/**
+ * Gemini の thinking モデルが稀に末尾の `]` / `}` を省略したまま
+ * finishReason=STOP を返すことがある。
+ * このユーティリティは未閉じのブラケット・ブレースをカウントして補完する。
+ */
+function repairTruncatedJson(jsonStr: string): string {
+  let braces = 0
+  let brackets = 0
+  let inString = false
+  let i = 0
+
+  while (i < jsonStr.length) {
+    const ch = jsonStr[i]
+    if (inString) {
+      if (ch === '\\') { i += 2; continue }
+      if (ch === '"') inString = false
+    } else {
+      if (ch === '"') inString = true
+      else if (ch === '{') braces++
+      else if (ch === '}') braces--
+      else if (ch === '[') brackets++
+      else if (ch === ']') brackets--
+    }
+    i++
+  }
+
+  let result = jsonStr.trimEnd()
+  if (result.endsWith(',')) result = result.slice(0, -1)
+  for (let j = 0; j < brackets; j++) result += ']'
+  for (let j = 0; j < braces; j++) result += '}'
+  return result
+}
+
+// ─────────────────────────────────────────────
 // Gemini モデル生成
 // ─────────────────────────────────────────────
 
@@ -267,7 +304,11 @@ async function parseWithAutoPrompt(
   } catch (e) {
     console.error('[gemini] JSON parse failed. finishReason=%s tail=%s',
       finishReason, match[0].slice(-300))
-    throw e
+    // finishReason=STOP でも末尾の ] / } が欠落する場合があるため修復を試みる
+    const repaired = repairTruncatedJson(match[0])
+    console.info('[gemini] Attempting JSON repair. originalLen=%d repairedLen=%d',
+      match[0].length, repaired.length)
+    raw = JSON.parse(repaired) as typeof raw
   }
 
   if ('isCalendar' in raw && raw.isCalendar === false) {

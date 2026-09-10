@@ -242,6 +242,84 @@ export type Database = {
         }
         Relationships: []
       }
+      revenue_events: {
+        Row: {
+          amount: number | null
+          created_at: string
+          event_name: string
+          id: string
+          job_id: string | null
+          metadata: Json
+          source: string
+          stripe_session_id: string | null
+          user_id: string | null
+        }
+        Insert: {
+          amount?: number | null
+          created_at?: string
+          event_name: string
+          id?: string
+          job_id?: string | null
+          metadata?: Json
+          source: string
+          stripe_session_id?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          amount?: number | null
+          created_at?: string
+          event_name?: string
+          id?: string
+          job_id?: string | null
+          metadata?: Json
+          source?: string
+          stripe_session_id?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      support_payments: {
+        Row: {
+          amount: number
+          created_at: string
+          currency: string
+          id: string
+          job_id: string | null
+          locale: string
+          paid_at: string | null
+          source: string
+          status: string
+          stripe_session_id: string
+          user_id: string | null
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          currency?: string
+          id?: string
+          job_id?: string | null
+          locale?: string
+          paid_at?: string | null
+          source?: string
+          status?: string
+          stripe_session_id: string
+          user_id?: string | null
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          currency?: string
+          id?: string
+          job_id?: string | null
+          locale?: string
+          paid_at?: string | null
+          source?: string
+          status?: string
+          stripe_session_id?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       user_streaks: {
         Row: {
           id: string
