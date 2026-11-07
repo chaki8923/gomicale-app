@@ -1,3 +1,5 @@
+import type { ErrorEmailDelivery } from '@/lib/admin-error-email-types'
+
 export type Json =
   | string
   | number
@@ -14,6 +16,18 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_error_emails: {
+        Row: ErrorEmailDelivery
+        Insert: Omit<ErrorEmailDelivery, 'id' | 'created_at' | 'sent_at' | 'provider_message_id' | 'error_code'> & {
+          id?: string
+          created_at?: string
+          sent_at?: string | null
+          provider_message_id?: string | null
+          error_code?: string | null
+        }
+        Update: Partial<ErrorEmailDelivery>
+        Relationships: []
+      }
       inquiry_reply_reads: {
         Row: {
           user_id: string
@@ -391,7 +405,10 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      latest_admin_error_emails: {
+        Row: ErrorEmailDelivery
+        Relationships: []
+      }
     }
     Functions: {
       [_ in never]: never

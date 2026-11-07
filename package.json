@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test:admin-emails": "node --test tests/admin-error-emails.test.cjs"
   },
   "dependencies": {
     "@aws-sdk/client-lambda": "^3.995.0",
@@ -26,6 +27,7 @@
     "react-icons": "^5.6.0",
     "react-markdown": "^10.1.0",
     "resend": "^6.9.3",
+    "server-only": "0.0.1",
     "stripe": "^22.1.0",
     "swiper": "^12.1.2",
     "tailwindcss-animate": "^1.0.7"

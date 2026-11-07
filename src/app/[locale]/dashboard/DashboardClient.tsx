@@ -24,6 +24,7 @@ import type { UnreadReply } from '@/components/InquiryReplyModal'
 const CALENDAR_PERMISSION_ERROR_MARKER = 'Googleカレンダーへのアクセス権限'
 
 interface DashboardClientProps {
+  isAdmin: boolean
   userEmail: string
   userId: string
   userName: string
@@ -39,6 +40,7 @@ interface DashboardClientProps {
 }
 
 export function DashboardClient({
+  isAdmin,
   userEmail,
   userId,
   userName,
@@ -107,6 +109,11 @@ export function DashboardClient({
           </div>
           <div className="flex items-center gap-4">
             <LanguageSwitcher />
+            {isAdmin && (
+              <Link href="/admin/error-emails" className="text-sm font-semibold text-teal-700 hover:text-teal-900">
+                {t('adminErrorEmails')}
+              </Link>
+            )}
             <div className="hidden sm:flex items-center gap-2">
               {userAvatarUrl ? (
                 <Image

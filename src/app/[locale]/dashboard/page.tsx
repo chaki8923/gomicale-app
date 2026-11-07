@@ -5,6 +5,8 @@ import type { Job } from '@/types/database'
 import type { UnreadReply } from '@/components/InquiryReplyModal'
 import type { Metadata } from 'next'
 import { hasSupportCooldownExpired } from '@/lib/support-server'
+import { getAdminEmail } from '@/lib/admin-auth'
+import { isAdminUser } from '@/lib/admin-identity'
 
 export const metadata: Metadata = {
   title: 'Dashboard',
@@ -112,6 +114,7 @@ export default async function DashboardPage({
 
   return (
     <DashboardClient
+      isAdmin={isAdminUser(user, getAdminEmail())}
       userEmail={user.email ?? ''}
       userId={user.id}
       userName={userName}

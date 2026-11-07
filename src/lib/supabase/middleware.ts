@@ -35,7 +35,7 @@ export async function updateSession(request: NextRequest) {
   const rawPathname = request.nextUrl.pathname
   const pathnameWithoutLocale = rawPathname.replace(/^\/[a-z]{2}(\/|$)/, '/')
 
-  const protectedPaths = ['/dashboard']
+  const protectedPaths = ['/dashboard', '/admin']
   const isProtected = protectedPaths.some((path) =>
     pathnameWithoutLocale.startsWith(path),
   )
