@@ -675821,100 +675821,6 @@ function shouldShowDeprecationWarning() {
 }
 if (shouldShowDeprecationWarning()) console.warn("\u26A0\uFE0F  Node.js 18 and below are deprecated and will no longer be supported in future versions of @supabase/supabase-js. Please upgrade to Node.js 20 or later. For more information, visit: https://github.com/orgs/supabase/discussions/37217");
 
-// ../shared/calendar-import.ts
-var STANDARD_EVENT_COLORS = Object.fromEntries([
-  "#a4bdfc",
-  "#7ae7bf",
-  "#dbadff",
-  "#ff887c",
-  "#fbd75b",
-  "#ffb878",
-  "#46d6db",
-  "#e1e1e1",
-  "#5484ed",
-  "#51b749",
-  "#dc2127"
-].map((background, i) => [String(i + 1), { background, foreground: "#1d1d1d" }]));
-function normalizeColor(value) {
-  return typeof value === "string" && /^#[0-9a-f]{6}$/i.test(value) ? value.toLowerCase() : null;
-}
-function colorLab(hex) {
-  const rgb = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255).map((v) => v <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4);
-  const [r, g, b] = rgb;
-  const xyz = [
-    (r * 0.4124564 + g * 0.3575761 + b * 0.1804375) / 0.95047,
-    r * 0.2126729 + g * 0.7151522 + b * 0.072175,
-    (r * 0.0193339 + g * 0.119192 + b * 0.9503041) / 1.08883
-  ].map((v) => v > 216 / 24389 ? Math.cbrt(v) : (24389 / 27 * v + 16) / 116);
-  return [116 * xyz[1] - 16, 500 * (xyz[0] - xyz[1]), 200 * (xyz[1] - xyz[2])];
-}
-function nearestColor(hex, colors = STANDARD_EVENT_COLORS) {
-  if (!normalizeColor(hex)) return null;
-  const lab = colorLab(hex);
-  return Object.entries(colors).filter(([, v]) => normalizeColor(v.background)).map(([id, v]) => ({ id, distance: colorLab(v.background).reduce((sum, n, i) => sum + (n - lab[i]) ** 2, 0) })).sort((a, b) => a.distance - b.distance)[0]?.id ?? null;
-}
-function validDate(date) {
-  return typeof date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(date) && date >= "1900-01-01" && date <= "2200-12-31" && Number.isFinite(Date.parse(date + "T00:00:00Z")) && (/* @__PURE__ */ new Date(date + "T00:00:00Z")).toISOString().slice(0, 10) === date;
-}
-function createSourceEvents(events, typeColors = {}) {
-  const seen = /* @__PURE__ */ new Set();
-  return events.filter((e) => {
-    const key = `${e.date}::${e.title.trim()}`;
-    if (!validDate(e.date) || !e.title.trim() || seen.has(key)) return false;
-    seen.add(key);
-    return true;
-  }).sort((a, b) => a.date.localeCompare(b.date)).map((e, i) => {
-    const sourceColor = normalizeColor(typeColors[e.title]);
-    return { ...e, id: String(i), category: e.title, sourceColor, colorId: nearestColor(sourceColor), included: true };
-  });
-}
-
-// ../shared/google-calendars.ts
-var GoogleAccessError = class extends Error {
-  constructor(code, status = 409) {
-    super(code);
-    this.code = code;
-    this.status = status;
-  }
-};
-async function googleJson(accessToken, path) {
-  const response = await fetch(`https://www.googleapis.com/calendar/v3/${path}`, {
-    headers: { Authorization: `Bearer ${accessToken}` },
-    signal: AbortSignal.timeout(2e4)
-  });
-  if (!response.ok) {
-    if (response.status === 401) throw new GoogleAccessError("GOOGLE_REAUTH_REQUIRED");
-    if (response.status === 403) {
-      const body = await response.json().catch(() => ({}));
-      const reason = body.error?.errors?.[0]?.reason;
-      if (reason === "rateLimitExceeded" || reason === "userRateLimitExceeded") throw new GoogleAccessError("GOOGLE_API_TEMPORARY", 503);
-      throw new GoogleAccessError("GOOGLE_CALENDAR_SCOPE_MISSING");
-    }
-    if (response.status === 404) throw new GoogleAccessError("CALENDAR_NOT_FOUND");
-    throw new GoogleAccessError("GOOGLE_API_TEMPORARY", 503);
-  }
-  return response.json();
-}
-async function getOwnedCalendars(accessToken) {
-  const calendars = [];
-  let pageToken = "";
-  const seen = /* @__PURE__ */ new Set();
-  do {
-    if (seen.has(pageToken)) throw new GoogleAccessError("GOOGLE_API_TEMPORARY", 503);
-    seen.add(pageToken);
-    const data = await googleJson(
-      accessToken,
-      `users/me/calendarList?minAccessRole=owner&maxResults=250${pageToken ? "&pageToken=" + encodeURIComponent(pageToken) : ""}`
-    );
-    calendars.push(...(data.items ?? []).filter((c) => c.id && c.accessRole === "owner" && !c.deleted).map((c) => ({ id: c.id, summary: c.summary || c.id, primary: !!c.primary })));
-    pageToken = data.nextPageToken ?? "";
-  } while (pageToken);
-  return calendars.sort((a, b) => Number(b.primary) - Number(a.primary) || a.summary.localeCompare(b.summary));
-}
-
-// src/index.ts
-var import_crypto6 = require("crypto");
-
 // node_modules/postal-mime/src/decode-strings.js
 var textEncoder = new TextEncoder();
 var base64Chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
@@ -680680,6 +680586,205 @@ var Resend = class {
   }
 };
 
+// src/import-followup.ts
+var ImportFollowupError = class extends Error {
+  constructor(code) {
+    super(code);
+    this.code = code;
+    this.name = "ImportFollowupError";
+  }
+};
+var escapeHtml2 = (value) => value.replace(/[&<>"']/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[char]);
+function buildReadyEmail(email, jobId, language, title, appUrl) {
+  const url = `${appUrl.replace(/\/$/, "")}/${language}/jobs/${encodeURIComponent(jobId)}/review`;
+  const subject = language === "en" ? "[GomiCale] Your calendar is ready to review" : "\u3010\u30B4\u30DF\u30AB\u30EC\u3011\u89E3\u6790\u304C\u5B8C\u4E86\u3057\u307E\u3057\u305F\u3002\u5185\u5BB9\u3092\u78BA\u8A8D\u3057\u3066\u767B\u9332\u3057\u3066\u304F\u3060\u3055\u3044";
+  const text = language === "en" ? `Your calendar has been analyzed and is ready to review.
+${title ?? ""}
+
+Events have not been added to Google Calendar yet.
+Choose your calendar, check dates, names and colors, then press Import to Google Calendar.
+
+Review your calendar:
+${url}
+
+Sign in with the Google account you used to upload the file. Your draft is saved so you can return later.` : `\u30AB\u30EC\u30F3\u30C0\u30FC\u306E\u89E3\u6790\u304C\u5B8C\u4E86\u3057\u3001\u78BA\u8A8D\u306E\u6E96\u5099\u304C\u3067\u304D\u307E\u3057\u305F\u3002
+${title ?? ""}
+
+Google\u30AB\u30EC\u30F3\u30C0\u30FC\u3078\u306E\u767B\u9332\u306F\u307E\u3060\u884C\u3063\u3066\u3044\u307E\u305B\u3093\u3002
+\u767B\u9332\u5148\u30FB\u65E5\u4ED8\u30FB\u4E88\u5B9A\u540D\u30FB\u8272\u3092\u78BA\u8A8D\u3057\u3001\u300CGoogle\u30AB\u30EC\u30F3\u30C0\u30FC\u3078\u767B\u9332\u300D\u3092\u62BC\u3057\u3066\u304F\u3060\u3055\u3044\u3002
+
+\u5185\u5BB9\u3092\u78BA\u8A8D\u3057\u3066\u767B\u9332\uFF1A
+${url}
+
+\u30A2\u30C3\u30D7\u30ED\u30FC\u30C9\u6642\u3068\u540C\u3058Google\u30A2\u30AB\u30A6\u30F3\u30C8\u3067\u30ED\u30B0\u30A4\u30F3\u3057\u3066\u304F\u3060\u3055\u3044\u3002\u78BA\u8A8D\u5185\u5BB9\u306F\u4FDD\u5B58\u3055\u308C\u3066\u3044\u308B\u305F\u3081\u3001\u3042\u3068\u304B\u3089\u518D\u958B\u3067\u304D\u307E\u3059\u3002`;
+  return {
+    from: process.env.APP_FROM_EMAIL ?? "\u30B4\u30DF\u30AB\u30EC <noreply@gomicale.jp>",
+    to: email,
+    subject,
+    text,
+    html: `<div style="font-family:sans-serif;max-width:560px;margin:0 auto;padding:24px"><h2>${escapeHtml2(subject)}</h2><p style="white-space:pre-line;line-height:1.8">${escapeHtml2(text)}</p><a href="${escapeHtml2(url)}" style="display:inline-block;background:#0f766e;color:white;padding:14px 20px;border-radius:10px;text-decoration:none">${language === "en" ? "Review and import" : "\u5185\u5BB9\u3092\u78BA\u8A8D\u3057\u3066\u767B\u9332"}</a></div>`
+  };
+}
+async function getTask(db, jobId) {
+  const { error } = await db.from("calendar_import_tasks").upsert({ job_id: jobId }, { onConflict: "job_id", ignoreDuplicates: true });
+  if (error) throw new ImportFollowupError("TASK_SAVE_FAILED");
+  const { data, error: loadError } = await db.from("calendar_import_tasks").select("*").eq("job_id", jobId).single();
+  if (loadError || !data) throw new ImportFollowupError("TASK_LOAD_FAILED");
+  return data;
+}
+async function sendReadyEmail(db, review, title, appUrl) {
+  if (review.registration_mode === "auto" || review.state !== "ready") return;
+  let task = await getTask(db, review.job_id);
+  if (task.email_status === "sent") return;
+  if (!task.email_payload) {
+    const { data: { user }, error } = await db.auth.admin.getUserById(review.user_id);
+    if (error || !user?.email) throw new ImportFollowupError("RECIPIENT_UNAVAILABLE");
+    const payload = buildReadyEmail(user.email, review.job_id, review.language, title, appUrl);
+    const { error: saveError } = await db.from("calendar_import_tasks").update({ email_payload: payload, email_first_attempt_at: (/* @__PURE__ */ new Date()).toISOString() }).eq("job_id", review.job_id).is("email_payload", null);
+    if (saveError) throw new ImportFollowupError("EMAIL_SAVE_FAILED");
+    task = await getTask(db, review.job_id);
+  }
+  if (!task.email_payload || !task.email_first_attempt_at) throw new ImportFollowupError("EMAIL_SAVE_FAILED");
+  if (Date.now() - Date.parse(task.email_first_attempt_at) >= 24 * 60 * 60 * 1e3) {
+    await db.from("calendar_import_tasks").update({ email_status: "failed", email_error_code: "IDEMPOTENCY_EXPIRED" }).eq("job_id", review.job_id);
+    return;
+  }
+  try {
+    if (!process.env.RESEND_API_KEY) throw new ImportFollowupError("EMAIL_NOT_CONFIGURED");
+    const { data, error } = await new Resend(process.env.RESEND_API_KEY).emails.send(task.email_payload, { idempotencyKey: `calendar-review-ready/${review.job_id}` });
+    if (error || !data?.id) throw new ImportFollowupError("EMAIL_PROVIDER_REJECTED");
+    const { error: saveError } = await db.from("calendar_import_tasks").update({ email_status: "sent", email_provider_id: data.id, email_sent_at: (/* @__PURE__ */ new Date()).toISOString(), email_error_code: null }).eq("job_id", review.job_id);
+    if (saveError) throw new ImportFollowupError("EMAIL_RESULT_SAVE_FAILED");
+  } catch (error) {
+    const code = error instanceof ImportFollowupError ? error.code : "EMAIL_DELIVERY_UNCONFIRMED";
+    await db.from("calendar_import_tasks").update({ email_status: "failed", email_error_code: code }).eq("job_id", review.job_id).neq("email_status", "sent");
+    throw new ImportFollowupError(code);
+  }
+}
+async function dispatchConfirmedImport(db, review, appUrl, onTerminalFailure) {
+  if (!review.confirmed || review.state !== "registering") return;
+  const task = await getTask(db, review.job_id);
+  const initialAttempts = task.dispatch_attempts ?? 0;
+  for (let attempts = initialAttempts; attempts < 3; attempts++) {
+    try {
+      const response = await fetch(`${appUrl.replace(/\/$/, "")}/api/internal/calendar-imports/dispatch`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${task.dispatch_token}` },
+        body: JSON.stringify({ jobId: review.job_id }),
+        signal: AbortSignal.timeout(2e4)
+      });
+      if (!response.ok) throw new ImportFollowupError("AUTO_DISPATCH_FAILED");
+      return;
+    } catch {
+      const next = attempts + 1;
+      await db.from("calendar_import_tasks").update({ dispatch_attempts: next }).eq("job_id", review.job_id).eq("dispatch_attempts", attempts);
+      if (next >= 3) {
+        const { data: failed } = await db.from("calendar_imports").update({ state: "error", error: "AUTO_DISPATCH_FAILED" }).eq("job_id", review.job_id).eq("state", "registering").is("lease_token", null).select("job_id").maybeSingle();
+        if (failed) {
+          await db.from("jobs").update({ status: "error", error_message: "AUTO_DISPATCH_FAILED", result_data: { review_available: true, registration_mode: "auto" } }).eq("id", review.job_id);
+          await onTerminalFailure?.();
+        }
+        throw new ImportFollowupError("AUTO_DISPATCH_FAILED");
+      }
+      await new Promise((resolve) => setTimeout(resolve, 500 * next));
+    }
+  }
+}
+
+// ../shared/calendar-import.ts
+var STANDARD_EVENT_COLORS = Object.fromEntries([
+  "#a4bdfc",
+  "#7ae7bf",
+  "#dbadff",
+  "#ff887c",
+  "#fbd75b",
+  "#ffb878",
+  "#46d6db",
+  "#e1e1e1",
+  "#5484ed",
+  "#51b749",
+  "#dc2127"
+].map((background, i) => [String(i + 1), { background, foreground: "#1d1d1d" }]));
+function normalizeColor(value) {
+  return typeof value === "string" && /^#[0-9a-f]{6}$/i.test(value) ? value.toLowerCase() : null;
+}
+function colorLab(hex) {
+  const rgb = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255).map((v) => v <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4);
+  const [r, g, b] = rgb;
+  const xyz = [
+    (r * 0.4124564 + g * 0.3575761 + b * 0.1804375) / 0.95047,
+    r * 0.2126729 + g * 0.7151522 + b * 0.072175,
+    (r * 0.0193339 + g * 0.119192 + b * 0.9503041) / 1.08883
+  ].map((v) => v > 216 / 24389 ? Math.cbrt(v) : (24389 / 27 * v + 16) / 116);
+  return [116 * xyz[1] - 16, 500 * (xyz[0] - xyz[1]), 200 * (xyz[1] - xyz[2])];
+}
+function nearestColor(hex, colors = STANDARD_EVENT_COLORS) {
+  if (!normalizeColor(hex)) return null;
+  const lab = colorLab(hex);
+  return Object.entries(colors).filter(([, v]) => normalizeColor(v.background)).map(([id, v]) => ({ id, distance: colorLab(v.background).reduce((sum, n, i) => sum + (n - lab[i]) ** 2, 0) })).sort((a, b) => a.distance - b.distance)[0]?.id ?? null;
+}
+function validDate(date) {
+  return typeof date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(date) && date >= "1900-01-01" && date <= "2200-12-31" && Number.isFinite(Date.parse(date + "T00:00:00Z")) && (/* @__PURE__ */ new Date(date + "T00:00:00Z")).toISOString().slice(0, 10) === date;
+}
+function createSourceEvents(events, typeColors = {}) {
+  const seen = /* @__PURE__ */ new Set();
+  return events.filter((e) => {
+    const key = `${e.date}::${e.title.trim()}`;
+    if (!validDate(e.date) || !e.title.trim() || seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  }).sort((a, b) => a.date.localeCompare(b.date)).map((e, i) => {
+    const sourceColor = normalizeColor(typeColors[e.title]);
+    return { ...e, id: String(i), category: e.title, sourceColor, colorId: nearestColor(sourceColor), included: true };
+  });
+}
+
+// ../shared/google-calendars.ts
+var GoogleAccessError = class extends Error {
+  constructor(code, status = 409) {
+    super(code);
+    this.code = code;
+    this.status = status;
+  }
+};
+async function googleJson(accessToken, path) {
+  const response = await fetch(`https://www.googleapis.com/calendar/v3/${path}`, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+    signal: AbortSignal.timeout(2e4)
+  });
+  if (!response.ok) {
+    if (response.status === 401) throw new GoogleAccessError("GOOGLE_REAUTH_REQUIRED");
+    if (response.status === 403) {
+      const body = await response.json().catch(() => ({}));
+      const reason = body.error?.errors?.[0]?.reason;
+      if (reason === "rateLimitExceeded" || reason === "userRateLimitExceeded") throw new GoogleAccessError("GOOGLE_API_TEMPORARY", 503);
+      throw new GoogleAccessError("GOOGLE_CALENDAR_SCOPE_MISSING");
+    }
+    if (response.status === 404) throw new GoogleAccessError("CALENDAR_NOT_FOUND");
+    throw new GoogleAccessError("GOOGLE_API_TEMPORARY", 503);
+  }
+  return response.json();
+}
+async function getOwnedCalendars(accessToken) {
+  const calendars = [];
+  let pageToken = "";
+  const seen = /* @__PURE__ */ new Set();
+  do {
+    if (seen.has(pageToken)) throw new GoogleAccessError("GOOGLE_API_TEMPORARY", 503);
+    seen.add(pageToken);
+    const data = await googleJson(
+      accessToken,
+      `users/me/calendarList?minAccessRole=owner&maxResults=250${pageToken ? "&pageToken=" + encodeURIComponent(pageToken) : ""}`
+    );
+    calendars.push(...(data.items ?? []).filter((c) => c.id && c.accessRole === "owner" && !c.deleted).map((c) => ({ id: c.id, summary: c.summary || c.id, primary: !!c.primary })));
+    pageToken = data.nextPageToken ?? "";
+  } while (pageToken);
+  return calendars.sort((a, b) => Number(b.primary) - Number(a.primary) || a.summary.localeCompare(b.summary));
+}
+
+// src/index.ts
+var import_crypto6 = require("crypto");
+
 // node_modules/@google/generative-ai/dist/index.mjs
 var SchemaType;
 (function(SchemaType2) {
@@ -682275,6 +682380,12 @@ function addEmojiToTitle(title) {
 
 // src/calendar/client.ts
 var CALENDAR_ID = "primary";
+var ImportTimeBudgetError = class extends Error {
+  constructor() {
+    super("Import continues in a fresh worker");
+    this.name = "ImportTimeBudgetError";
+  }
+};
 var CalendarIntegrationError = class extends Error {
   constructor(code, message) {
     super(message);
@@ -682384,7 +682495,7 @@ async function refreshAccessToken(refreshToken) {
 async function batchInsertGarbageEvents(accessToken, events, _pdfHash, eventTime, timezone, calendarId = CALENDAR_ID, calendar = createCalendarClient(accessToken), progress) {
   let inserted = 0;
   for (const ev of events) {
-    if (progress?.shouldStop?.()) throw new CalendarIntegrationError("GOOGLE_API_TEMPORARY", "Import paused before timeout. Retry to continue.");
+    if (progress?.shouldStop?.()) throw new ImportTimeBudgetError();
     const eventId = buildCalendarEventId({ date: ev.date, garbageType: ev.title });
     const requestBody = {
       summary: addEmojiToTitle(ev.title),
@@ -682455,7 +682566,7 @@ async function issueLineLinkCode(userId) {
 }
 async function sendCompletionEmail(toEmail, inserted, skipped, lineLinkCode) {
   const apiKey = process.env.RESEND_API_KEY;
-  const fromEmail = process.env.APP_FROM_EMAIL ?? "\u30B4\u30DF\u30AB\u30EC <onboarding@resend.dev>";
+  const fromEmail = process.env.APP_FROM_EMAIL ?? "\u30B4\u30DF\u30AB\u30EC <noreply@gomicale.jp>";
   if (!apiKey) {
     console.warn("[email] RESEND_API_KEY not set, skipping email");
     return;
@@ -682534,7 +682645,7 @@ async function sendCompletionEmail(toEmail, inserted, skipped, lineLinkCode) {
 }
 async function sendErrorEmail(toEmail, errorMessage) {
   const apiKey = process.env.RESEND_API_KEY;
-  const fromEmail = process.env.APP_FROM_EMAIL ?? "\u30B4\u30DF\u30AB\u30EC <onboarding@resend.dev>";
+  const fromEmail = process.env.APP_FROM_EMAIL ?? "\u30B4\u30DF\u30AB\u30EC <noreply@gomicale.jp>";
   if (!apiKey) {
     console.warn("[email] RESEND_API_KEY not set, skipping email");
     return;
@@ -682551,7 +682662,7 @@ async function sendErrorEmail(toEmail, errorMessage) {
           PDF\u306E\u89E3\u6790\u307E\u305F\u306FGoogle\u30AB\u30EC\u30F3\u30C0\u30FC\u3078\u306E\u767B\u9332\u4E2D\u306B\u30A8\u30E9\u30FC\u304C\u767A\u751F\u3057\u307E\u3057\u305F\u3002
         </p>
         <div style="background:#fef2f2;border-radius:8px;padding:16px;margin-bottom:16px">
-          <p style="margin:0;color:#991b1b;font-size:13px;word-break:break-all">${errorMessage}</p>
+          <p style="margin:0;color:#991b1b;font-size:13px;word-break:break-all">${escapeHtml2(errorMessage)}</p>
         </div>
         <p style="color:#9ca3af;font-size:12px;margin-top:24px">\u30B4\u30DF\u30AB\u30EC</p>
       </div>
@@ -682586,6 +682697,20 @@ var supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY,
   { auth: { autoRefreshToken: false, persistSession: false } }
 );
+async function dispatchRegistration(review) {
+  return dispatchConfirmedImport(supabase, review, APP_URL, async () => {
+    try {
+      const { data: { user } } = await supabase.auth.admin.getUserById(review.user_id);
+      if (user?.email) await sendErrorEmail(user.email, "\u767B\u9332\u3092\u958B\u59CB\u3067\u304D\u307E\u305B\u3093\u3067\u3057\u305F\u3002\u30C0\u30C3\u30B7\u30E5\u30DC\u30FC\u30C9\u306E\u767B\u9332\u5C65\u6B74\u304B\u3089\u518D\u8A66\u884C\u3057\u3066\u304F\u3060\u3055\u3044\u3002");
+    } catch {
+      console.warn("[dispatch] error notification failed");
+    }
+  });
+}
+async function runImportFollowup(review, title) {
+  if (review.registration_mode !== "auto") return sendReadyEmail(supabase, review, title, APP_URL);
+  return dispatchRegistration(review);
+}
 async function registerImport(event, context) {
   const token = (0, import_crypto6.randomUUID)();
   const { data, error: claimError } = await supabase.rpc("claim_calendar_import", { p_job_id: event.jobId, p_user_id: event.userId, p_token: token });
@@ -682598,8 +682723,12 @@ async function registerImport(event, context) {
     const { data: integration } = await supabase.from("user_integrations").select("google_refresh_token_enc").eq("user_id", event.userId).single();
     if (!integration?.google_refresh_token_enc) throw new CalendarIntegrationError("GOOGLE_REAUTH_REQUIRED", "Google reauthentication required");
     const accessToken = await refreshAccessToken(integration.google_refresh_token_enc);
-    const calendars = await getOwnedCalendars(accessToken);
-    if (!calendars.some((c) => c.id === review.confirmed.calendarId)) throw new Error("CALENDAR_NOT_FOUND");
+    if (review.registration_mode === "auto") {
+      if (review.confirmed.calendarId !== "primary") throw new Error("CALENDAR_NOT_FOUND");
+    } else {
+      const calendars = await getOwnedCalendars(accessToken);
+      if (!calendars.some((c) => c.id === review.confirmed.calendarId)) throw new Error("CALENDAR_NOT_FOUND");
+    }
     const confirmed = review.confirmed;
     const selected = confirmed.events.filter((e) => e.included);
     await batchInsertGarbageEvents(
@@ -682631,19 +682760,36 @@ async function registerImport(event, context) {
       console.warn("[register] completion notification failed");
     }
   } catch (error) {
+    if (error instanceof ImportTimeBudgetError) {
+      const { data: released, error: releaseError } = await supabase.from("calendar_imports").update({ lease_token: null, lease_until: null }).eq("job_id", event.jobId).eq("state", "registering").eq("lease_token", token).select("*").maybeSingle();
+      if (releaseError) throw releaseError;
+      if (released) await dispatchRegistration(released);
+      return;
+    }
     const message = error instanceof CalendarIntegrationError || error instanceof GoogleAccessError ? error.code : error instanceof Error ? error.message : "Registration failed";
     const { data: failed } = await supabase.from("calendar_imports").update({ state: "error", error: message, lease_token: null, lease_until: null }).eq("job_id", event.jobId).eq("state", "registering").eq("lease_token", token).select("job_id").maybeSingle();
-    if (failed) await supabase.from("jobs").update({ status: "error", error_message: message, result_data: { review_available: true } }).eq("id", event.jobId);
+    if (failed) {
+      await supabase.from("jobs").update({ status: "error", error_message: message, result_data: { review_available: true, registration_mode: review.registration_mode } }).eq("id", event.jobId);
+      try {
+        const { data: { user } } = await supabase.auth.admin.getUserById(event.userId);
+        if (user?.email) await sendErrorEmail(user.email, message);
+      } catch {
+        console.warn("[register] error notification failed");
+      }
+    }
     console.error("[register] failed", event.jobId, message);
   }
 }
 var handler = async (event, context) => {
-  if (event.action === "health") return { protocol: "calendar-review-v1", revision: 2 };
+  if (event.action === "health") return { protocol: "calendar-review-v1", revision: 3, readyEmailConfigured: !!process.env.RESEND_API_KEY, testSender: /@resend\.dev/i.test(process.env.APP_FROM_EMAIL ?? "") };
   if (event.action === "register") return registerImport(event, context);
   if (event.action === "analyze") {
-    const { data: review } = await supabase.from("calendar_imports").select("state,user_id").eq("job_id", event.jobId).single();
-    const { data: job } = await supabase.from("jobs").select("user_id,r2_object_key").eq("id", event.jobId).single();
-    if (!review || review.state !== "analyzing" || review.user_id !== event.userId || job?.user_id !== event.userId || job.r2_object_key !== event.r2ObjectKey) return;
+    const { data: review } = await supabase.from("calendar_imports").select("*").eq("job_id", event.jobId).single();
+    const { data: job } = await supabase.from("jobs").select("user_id,r2_object_key,pdf_title").eq("id", event.jobId).single();
+    if (!review || review.user_id !== event.userId || job?.user_id !== event.userId || job.r2_object_key !== event.r2ObjectKey) return;
+    if (review.state === "ready") return runImportFollowup(review, job.pdf_title);
+    if (review.state === "registering" && review.registration_mode === "auto") return runImportFollowup(review, job.pdf_title);
+    if (review.state !== "analyzing") return;
   }
   const {
     jobId,
@@ -682764,6 +682910,9 @@ var handler = async (event, context) => {
         p_mode: resolvedParserMode
       });
       if (error) throw error;
+      const { data: prepared, error: preparedError } = await supabase.from("calendar_imports").select("*").eq("job_id", jobId).eq("user_id", userId).single();
+      if (preparedError) throw new ImportFollowupError("PREPARED_IMPORT_LOAD_FAILED");
+      await runImportFollowup(prepared, pdfTitle ?? null);
       return;
     }
     const { data: integration, error: tokenError } = await supabase.from("user_integrations").select("google_refresh_token_enc").eq("user_id", userId).single();
@@ -682809,6 +682958,7 @@ var handler = async (event, context) => {
       console.warn("[handler] email notification failed:", emailErr);
     }
   } catch (err) {
+    if (err instanceof ImportFollowupError) throw err;
     let message = err instanceof Error ? err.message : String(err);
     let errorCode = "UNKNOWN";
     console.error("[handler] error:", message, err);

@@ -1,3 +1,4 @@
+import type { CalendarImportTask } from '../../shared/calendar-import-task'
 import type { CalendarImport } from '../../shared/calendar-import'
 import type { ErrorEmailDelivery } from '@/lib/admin-error-email-types'
 
@@ -17,6 +18,12 @@ export type Database = {
   }
   public: {
     Tables: {
+      calendar_import_tasks: {
+        Row: CalendarImportTask
+        Insert: Pick<CalendarImportTask, 'job_id'> & Partial<CalendarImportTask>
+        Update: Partial<CalendarImportTask>
+        Relationships: []
+      }
       calendar_imports: {
         Row: { [K in keyof CalendarImport]: CalendarImport[K] }
         Insert: Pick<CalendarImport, 'job_id' | 'user_id' | 'draft' | 'language'> & Partial<CalendarImport>

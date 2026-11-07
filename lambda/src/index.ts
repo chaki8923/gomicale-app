@@ -1,5 +1,6 @@
 import { S3Client, GetObjectCommand } from '@aws-sdk/client-s3'
 import { createClient } from '@supabase/supabase-js'
+import { sendReadyEmail, dispatchConfirmedImport, ImportFollowupError, escapeHtml } from './import-followup'
 import { createSourceEvents, type CalendarImport } from '../../shared/calendar-import'
 import { getOwnedCalendars, GoogleAccessError } from '../../shared/google-calendars'
 import { createHash, randomUUID } from 'crypto'
@@ -12,6 +13,7 @@ import {
   refreshAccessToken,
   batchInsertGarbageEvents,
   CalendarIntegrationError,
+  ImportTimeBudgetError,
   type CalendarIntegrationErrorCode,
 } from './calendar/client'
 
@@ -100,7 +102,7 @@ async function sendCompletionEmail(
   lineLinkCode?: string,
 ): Promise<void> {
   const apiKey = process.env.RESEND_API_KEY
-  const fromEmail = process.env.APP_FROM_EMAIL ?? 'ゴミカレ <onboarding@resend.dev>'
+  const fromEmail = process.env.APP_FROM_EMAIL ?? 'ゴミカレ <noreply@gomicale.jp>'
   if (!apiKey) {
     console.warn('[email] RESEND_API_KEY not set, skipping email')
     return
@@ -186,7 +188,7 @@ async function sendErrorEmail(
   errorMessage: string,
 ): Promise<void> {
   const apiKey = process.env.RESEND_API_KEY
-  const fromEmail = process.env.APP_FROM_EMAIL ?? 'ゴミカレ <onboarding@resend.dev>'
+  const fromEmail = process.env.APP_FROM_EMAIL ?? 'ゴミカレ <noreply@gomicale.jp>'
   if (!apiKey) {
     console.warn('[email] RESEND_API_KEY not set, skipping email')
     return
@@ -203,7 +205,7 @@ async function sendErrorEmail(
           PDFの解析またはGoogleカレンダーへの登録中にエラーが発生しました。
         </p>
         <div style="background:#fef2f2;border-radius:8px;padding:16px;margin-bottom:16px">
-          <p style="margin:0;color:#991b1b;font-size:13px;word-break:break-all">${errorMessage}</p>
+          <p style="margin:0;color:#991b1b;font-size:13px;word-break:break-all">${escapeHtml(errorMessage)}</p>
         </div>
         <p style="color:#9ca3af;font-size:12px;margin-top:24px">ゴミカレ</p>
       </div>
@@ -245,6 +247,19 @@ const supabase = createClient(
   { auth: { autoRefreshToken: false, persistSession: false } },
 )
 
+async function dispatchRegistration(review: CalendarImport): Promise<void> {
+  return dispatchConfirmedImport(supabase,review,APP_URL,async () => {
+    try {
+      const { data: { user } } = await supabase.auth.admin.getUserById(review.user_id)
+      if (user?.email) await sendErrorEmail(user.email,'登録を開始できませんでした。ダッシュボードの登録履歴から再試行してください。')
+    } catch { console.warn('[dispatch] error notification failed') }
+  })
+}
+async function runImportFollowup(review: CalendarImport, title: string | null): Promise<void> {
+  if (review.registration_mode !== 'auto') return sendReadyEmail(supabase,review,title,APP_URL)
+  return dispatchRegistration(review)
+}
+
 async function registerImport(event: LambdaPayload, context?: { getRemainingTimeInMillis(): number }): Promise<void> {
   const token = randomUUID()
   const { data, error: claimError } = await supabase.rpc('claim_calendar_import', { p_job_id: event.jobId, p_user_id: event.userId, p_token: token })
@@ -257,8 +272,12 @@ async function registerImport(event: LambdaPayload, context?: { getRemainingTime
     const { data: integration } = await supabase.from('user_integrations').select('google_refresh_token_enc').eq('user_id', event.userId).single()
     if (!integration?.google_refresh_token_enc) throw new CalendarIntegrationError('GOOGLE_REAUTH_REQUIRED', 'Google reauthentication required')
     const accessToken = await refreshAccessToken(integration.google_refresh_token_enc)
-    const calendars = await getOwnedCalendars(accessToken)
-    if (!calendars.some(c => c.id === review.confirmed!.calendarId)) throw new Error('CALENDAR_NOT_FOUND')
+    if (review.registration_mode === 'auto') {
+      if (review.confirmed.calendarId !== 'primary') throw new Error('CALENDAR_NOT_FOUND')
+    } else {
+      const calendars = await getOwnedCalendars(accessToken)
+      if (!calendars.some(c => c.id === review.confirmed!.calendarId)) throw new Error('CALENDAR_NOT_FOUND')
+    }
     const confirmed = review.confirmed
     const selected = confirmed.events.filter(e => e.included)
     await batchInsertGarbageEvents(accessToken, selected.slice(review.registered_count), job.pdf_hash ?? '',
@@ -281,22 +300,40 @@ async function registerImport(event: LambdaPayload, context?: { getRemainingTime
       }
     } catch { console.warn('[register] completion notification failed') }
   } catch (error) {
+    if (error instanceof ImportTimeBudgetError) {
+      // Keep the immutable selection/checkpoint and continue with a fresh execution
+      // budget, even if the user has already closed the browser.
+      const { data: released, error: releaseError } = await supabase.from('calendar_imports').update({ lease_token: null, lease_until: null })
+        .eq('job_id',event.jobId).eq('state','registering').eq('lease_token',token).select('*').maybeSingle()
+      if (releaseError) throw releaseError
+      if (released) await dispatchRegistration(released as CalendarImport)
+      return
+    }
     const message = error instanceof CalendarIntegrationError || error instanceof GoogleAccessError
       ? error.code : error instanceof Error ? error.message : 'Registration failed'
     const { data: failed } = await supabase.from('calendar_imports').update({ state: 'error', error: message, lease_token: null, lease_until: null })
       .eq('job_id', event.jobId).eq('state','registering').eq('lease_token',token).select('job_id').maybeSingle()
-    if (failed) await supabase.from('jobs').update({ status: 'error', error_message: message, result_data: { review_available: true } }).eq('id', event.jobId)
+    if (failed) {
+      await supabase.from('jobs').update({ status: 'error', error_message: message, result_data: { review_available: true, registration_mode: review.registration_mode } }).eq('id', event.jobId)
+      try {
+        const { data: { user } } = await supabase.auth.admin.getUserById(event.userId)
+        if (user?.email) await sendErrorEmail(user.email,message)
+      } catch { console.warn('[register] error notification failed') }
+    }
     console.error('[register] failed', event.jobId, message)
   }
 }
 
 export const handler = async (event: LambdaPayload, context?: { getRemainingTimeInMillis(): number }): Promise<unknown> => {
-  if (event.action === 'health') return { protocol: 'calendar-review-v1', revision: 2 }
+  if (event.action === 'health') return { protocol: 'calendar-review-v1', revision: 3, readyEmailConfigured: !!process.env.RESEND_API_KEY, testSender: /@resend\.dev/i.test(process.env.APP_FROM_EMAIL ?? '') }
   if (event.action === 'register') return registerImport(event, context)
   if (event.action === 'analyze') {
-    const { data: review } = await supabase.from('calendar_imports').select('state,user_id').eq('job_id',event.jobId).single()
-    const { data: job } = await supabase.from('jobs').select('user_id,r2_object_key').eq('id',event.jobId).single()
-    if (!review || review.state !== 'analyzing' || review.user_id !== event.userId || job?.user_id !== event.userId || job.r2_object_key !== event.r2ObjectKey) return
+    const { data: review } = await supabase.from('calendar_imports').select('*').eq('job_id',event.jobId).single()
+    const { data: job } = await supabase.from('jobs').select('user_id,r2_object_key,pdf_title').eq('id',event.jobId).single()
+    if (!review || review.user_id !== event.userId || job?.user_id !== event.userId || job.r2_object_key !== event.r2ObjectKey) return
+    if (review.state === 'ready') return runImportFollowup(review as CalendarImport,job.pdf_title)
+    if (review.state === 'registering' && review.registration_mode === 'auto') return runImportFollowup(review as CalendarImport,job.pdf_title)
+    if (review.state !== 'analyzing') return
   }
   const {
     jobId,
@@ -449,7 +486,10 @@ export const handler = async (event: LambdaPayload, context?: { getRemainingTime
       const { error } = await supabase.rpc('prepare_calendar_review', { p_job_id: jobId, p_user_id: userId,
         p_events: sourceEvents, p_hash: pdfHash, p_title: pdfTitle ?? null, p_mode: resolvedParserMode })
       if (error) throw error
-      return // No tokens, calendar writes, completion emails, or LINE codes before confirmation.
+      const { data: prepared, error: preparedError } = await supabase.from('calendar_imports').select('*').eq('job_id',jobId).eq('user_id',userId).single()
+      if (preparedError) throw new ImportFollowupError('PREPARED_IMPORT_LOAD_FAILED')
+      await runImportFollowup(prepared as CalendarImport,pdfTitle ?? null)
+      return // Review mode never writes events until confirmation; auto dispatches a fresh worker.
     }
 
     // ── 5. Supabase からリフレッシュトークンを取得 ────────────────
@@ -511,6 +551,7 @@ export const handler = async (event: LambdaPayload, context?: { getRemainingTime
       console.warn('[handler] email notification failed:', emailErr)
     }
   } catch (err) {
+    if (err instanceof ImportFollowupError) throw err // Retry follow-up without repeating analysis.
     let message = err instanceof Error ? err.message : String(err)
     let errorCode: JobErrorCode = 'UNKNOWN'
     console.error('[handler] error:', message, err)

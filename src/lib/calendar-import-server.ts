@@ -66,15 +66,17 @@ export async function invokeProcessor(payload: object) {
   const result = await client.send(new InvokeCommand({ FunctionName: process.env.LAMBDA_FUNCTION_NAME!, InvocationType: 'Event', Payload: Buffer.from(JSON.stringify(payload)) }))
   if (result.StatusCode !== 202) throw new ImportError('PROCESSOR_UNAVAILABLE', 503)
 }
-export async function startAnalysis(userId: string, job: { id: string; r2_object_key: string }, body: { language?: unknown; eventTime?: unknown; timezone?: unknown }, extra: object = {}) {
+export async function startAnalysis(userId: string, job: { id: string; r2_object_key: string }, body: { language?: unknown; eventTime?: unknown; timezone?: unknown; registrationMode?: unknown }, extra: object = {}) {
   const db = getSupabaseServiceClient()
   const settings = validateSettings(body)
+  const registrationMode = body.registrationMode ?? 'review'
+  if (registrationMode !== 'review' && registrationMode !== 'auto') throw new ImportError('INVALID_REGISTRATION_MODE')
   const language = body.language === 'en' ? 'en' : 'ja'
-  const { error } = await db.from('calendar_imports').insert({ job_id: job.id, user_id: userId, language,
+  const { error } = await db.from('calendar_imports').insert({ job_id: job.id, user_id: userId, language, registration_mode: registrationMode,
     draft: { events: [], calendarId: '', ...settings } })
   if (error?.code === '23505') throw new ImportError('ALREADY_STARTED', 409)
   if (error) throw error
-  const { error: jobError } = await db.from('jobs').update({ status: 'processing' }).eq('id', job.id).eq('user_id', userId)
+  const { error: jobError } = await db.from('jobs').update({ status: 'processing', result_data: { registration_mode: registrationMode } }).eq('id', job.id).eq('user_id', userId)
   if (jobError) throw jobError
   try {
     await invokeProcessor({ ...extra, action: 'analyze', jobId: job.id, userId, r2ObjectKey: job.r2_object_key, language, ...settings })

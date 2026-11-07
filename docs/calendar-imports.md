@@ -1,17 +1,23 @@
 # Calendar review imports
 
-All new PDF, image, and manual imports use `analyze → ready → register → completed`.
-The job status is a UI projection; `calendar_imports` is the canonical, service-only
-record. It contains the original source, editable draft, revision, immutable confirmed
-snapshot, worker lease, and registration checkpoint. Shared `parsed_pdfs` entries
-contain only parser output and use a `_colors_v1` cache suffix.
+PDF, image, and manual inputs now offer two modes before submission:
 
-The review page is `/{locale}/jobs/{jobId}/review`, reachable from job status and
-history. It lists only owned calendars, defaults to the previously selected calendar
-(or primary on first use), autosaves after 500 ms, and requires a final confirmation.
-The Calendar API validates the chosen calendar again at confirmation and in the worker.
-Detected colors are matched with CIELAB / CIE76 distance to Google event colors;
-unreadable or monochrome categories stay unspecified. Users can override each color.
+- **Automatic import** (UI default): analyzed events and detected colors are frozen
+  and imported to the authenticated user's primary calendar. No review is required.
+- **Review and customize**: analysis saves a draft; a localized readiness email links
+  to `/{locale}/jobs/{jobId}/review`. No calendar writes occur before confirmation.
+
+Older API callers that omit `registrationMode` keep review mode. Both start APIs accept
+`registrationMode: 'auto' | 'review'` and reject unknown values. The canonical record is
+`calendar_imports`; the job status is a UI projection. User edits stay out of the shared
+parser cache. The review page defaults to the previous owned calendar or primary,
+autosaves after 500 ms, and revalidates ownership before import. Auto mode uses only
+primary, so it does not require calendar-list permission. Its retry/status page is read-only.
+
+Color selection shows an actual swatch and a translated color name in both the closed
+control and its options, with keyboard navigation and category/individual overrides.
+The upload warning opens before the presign request. It blocks duplicate submissions
+through file transfer and analysis acceptance, then explains that the browser can close.
 
 New users grant `calendar.events` and `calendar.calendarlist.readonly`. Existing users
 can use **Update Google permissions** on the review page, allow calendar access, and
@@ -21,8 +27,9 @@ new completed jobs, with shared-cache fallback for older jobs.
 
 ## Release
 
-1. Apply `supabase/migrations/20261107123255_calendar_import_review.sql` before Lambda
-   and Web. This migration was applied to production project `fsmajfntzicwrfxjqwwz`.
+1. Apply `supabase/migrations/20261107123255_calendar_import_review.sql` and
+   `supabase/migrations/20261107131554_registration_mode_and_ready_emails.sql` before Lambda
+   and Web. These migrations were applied to production project `fsmajfntzicwrfxjqwwz`.
    RLS is enabled; `anon` and `authenticated` cannot access this table or its worker
    functions. The migration is additive and may remain during rollback.
 2. Run `npm --prefix lambda ci`, `npx tsc --noEmit -p lambda/tsconfig.json`, and
@@ -46,8 +53,9 @@ new completed jobs, with shared-cache fallback for older jobs.
    cat /tmp/gomicale-calendar-health.json
    ```
 
-   Expected health result: `{"protocol":"calendar-review-v1","revision":2}`. Invoke health only
-   after the new code is deployed. No calendar or email operations occur in health.
+   Expected health result: `{"protocol":"calendar-review-v1","revision":3,"readyEmailConfigured":true,"testSender":false}`. Invoke health only
+   after the new code is deployed. Readiness notifications require the existing Resend
+   key and a verified sender; the fallback is `noreply@gomicale.jp`. No calendar or email operations occur in health.
    This Lambda also accepts legacy action-less calls from the old Web during rollout.
 4. Push Web to `main` only after the worker is ready. Confirm Vercel deployment success
    and the new review route. Do not run customer calendar writes or mail sends as smoke
@@ -66,8 +74,8 @@ color, and time. All-day ends are exclusive and timed ends can cross midnight.
 
 Every 25 successful writes a checkpoint is persisted. Failed writes are errors, never
 successes or skips. A retry uses the same frozen content, resumes at the checkpoint,
-and safely replays any intervening writes. A worker near its execution deadline stops
-with a retryable failure. A lost/hard-timed-out worker can be retried after lease expiry.
+and safely replays any intervening writes. A worker near its execution deadline releases its lease and dispatches a fresh worker
+from the checkpoint, so long registrations continue after the browser closes. A lost/hard-timed-out worker can be retried after lease expiry.
 Registration progress and retry are shown on the same review page. Completion and the
 job's completed projection commit atomically before mail or LINE codes can be issued.
 
@@ -88,3 +96,29 @@ for JA/EN mobile layouts, pagination, autosave/restoration, exclusions, time set
 and confirmation gating. A live sample-image Gemini smoke test could not complete
 because the local key returned `API_KEY_INVALID`; mocked parser tests cover valid,
 invalid, and absent color output. This does not verify the model's visual accuracy.
+
+## Notification and background dispatch
+
+`calendar_import_tasks` is service-only with RLS and no browser grants. It holds the
+immutable readiness email payload, first attempt time, result/provider ID, and a random
+per-job dispatch credential. `GET review` exposes only `ready_email_status`, never the
+email payload or dispatch token. Analysis completion emails are separate from completion
+and failure emails; they do not issue LINE codes.
+
+The readiness email uses a fixed Resend idempotency key per job. Async delivery retries
+read the saved payload instead of reparsing or reconstructing mail. Unconfirmed requests
+older than the provider's 24-hour window are not resent automatically. Failed delivery
+is visible on the review page. Existing completed/ready jobs are not bulk-emailed.
+
+Auto analysis dispatches registration through `POST /api/internal/calendar-imports/dispatch`.
+Only the worker's private per-job bearer credential is accepted; the server derives the
+owner from the canonical record and requires an already confirmed snapshot. This uses
+the existing Web invocation credentials, without adding IAM permission to the Lambda role.
+The same route resumes time-limited confirmed imports. Dispatch retries are bounded and
+exhaustion becomes an actionable error with the frozen selection preserved.
+
+Revision 3 validation covered both registration modes, preserved behavior for old callers,
+readiness mail retry/deduplication, private dispatch credentials, continuation checkpoints,
+mobile/English color controls, and upload warnings during a deliberately stalled presign
+request. A synthetic readiness email to Resend's test mailbox reached the `delivered`
+event. No customer emails or live Google Calendar writes were used for verification.

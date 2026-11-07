@@ -2,6 +2,8 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useTranslations, useLocale, type TranslationValues } from 'next-intl'
+import { RegistrationModeSelector } from '@/components/RegistrationModeSelector'
+import type { RegistrationMode } from '../../shared/calendar-import'
 import { Button } from '@/components/ui/Button'
 
 const ACCEPTED_TYPES = ['application/pdf', 'image/jpeg', 'image/png', 'image/webp']
@@ -10,7 +12,7 @@ interface UploadZoneProps {
   onUploadComplete: (jobId: string) => void
 }
 
-type UploadState = 'idle' | 'uploading' | 'starting' | 'done' | 'error'
+type UploadState = 'idle' | 'preparing' | 'uploading' | 'starting' | 'done' | 'error'
 
 const TIME_OPTIONS = Array.from({ length: 48 }, (_, i) => {
   const h = String(Math.floor(i / 2)).padStart(2, '0')
@@ -29,6 +31,8 @@ export function UploadZone({ onUploadComplete }: UploadZoneProps) {
   const [isDragOver, setIsDragOver] = useState(false)
   const [eventTime, setEventTime] = useState<string>('')
   const [isTimePickerOpen, setIsTimePickerOpen] = useState(false)
+  const [registrationMode, setRegistrationMode] = useState<RegistrationMode>('auto')
+  const busyRef = useRef(false)
   const timePickerRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -42,6 +46,7 @@ export function UploadZone({ onUploadComplete }: UploadZoneProps) {
   }, [isTimePickerOpen])
 
   const processFile = useCallback(async (file: File) => {
+    if (busyRef.current) return
     if (!ACCEPTED_TYPES.includes(file.type)) {
       setError(t('errorFileType'))
       return
@@ -51,6 +56,9 @@ export function UploadZone({ onUploadComplete }: UploadZoneProps) {
       return
     }
 
+    busyRef.current = true
+    setState('preparing')
+    setIsTimePickerOpen(false)
     setError(null)
     setProgress(0)
 
@@ -76,7 +84,7 @@ export function UploadZone({ onUploadComplete }: UploadZoneProps) {
       const startRes = await fetch('/api/jobs/start', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ jobId, language: locale, eventTime, timezone }),
+        body: JSON.stringify({ jobId, language: locale, eventTime, timezone, registrationMode }),
       })
       if (!startRes.ok) {
         let detailMessage: string | null = null
@@ -94,8 +102,8 @@ export function UploadZone({ onUploadComplete }: UploadZoneProps) {
     } catch (err) {
       setState('error')
       setError(err instanceof Error ? err.message : t('errorUnexpected'))
-    }
-  }, [onUploadComplete, locale, t, eventTime])
+    } finally { busyRef.current = false }
+  }, [onUploadComplete, locale, t, eventTime, registrationMode])
 
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault()
@@ -110,12 +118,13 @@ export function UploadZone({ onUploadComplete }: UploadZoneProps) {
     e.target.value = ''
   }, [processFile])
 
-  const isLoading = ['uploading', 'starting'].includes(state)
+  const isLoading = ['preparing', 'uploading', 'starting'].includes(state)
 
   useEffect(() => {
     if (!isLoading) return
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
       e.preventDefault()
+      e.returnValue = ''
     }
     window.addEventListener('beforeunload', handleBeforeUnload)
     return () => window.removeEventListener('beforeunload', handleBeforeUnload)
@@ -124,7 +133,7 @@ export function UploadZone({ onUploadComplete }: UploadZoneProps) {
   return (
     <>
       {isLoading && (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm">
+        <div role="dialog" aria-modal="true" aria-label={t('processingModalTitle')} className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm">
           <div className="mx-4 w-full max-w-sm rounded-2xl bg-white p-8 shadow-2xl text-center">
             <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-yellow-100">
               <svg className="h-9 w-9 text-yellow-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -133,11 +142,14 @@ export function UploadZone({ onUploadComplete }: UploadZoneProps) {
             </div>
             <h2 className="mb-2 text-xl font-bold text-gray-900">{t('processingModalTitle')}</h2>
             <p className="mb-1 text-base font-semibold text-red-600">{t('processingModalWarning')}</p>
-            <p className="text-sm text-gray-500">{t('processingModalBody')}</p>
+            <p className="text-sm leading-6 text-gray-500">{t('processingModalBody')}</p>
+            <p role="status" className="mt-4 text-sm font-semibold text-teal-700">{state === 'preparing' ? t('presigning') : state === 'uploading' ? t('uploading', { progress }) : t('starting')}</p>
           </div>
         </div>
       )}
     <div className="w-full space-y-3">
+      <RegistrationModeSelector value={registrationMode} onChange={mode => { setRegistrationMode(mode); if (state === 'done') setState('idle') }} disabled={isLoading} />
+      {state === 'done' && <div role="status" className="rounded-xl border border-teal-200 bg-teal-50 p-4 text-sm leading-7 text-teal-900">{t('accepted')} {t(registrationMode === 'review' ? 'acceptedReview' : 'acceptedAuto')}</div>}
       {/* 時間指定 */}
       <div className="px-1 py-1">
         <p className="text-sm font-medium text-gray-700 mb-2">{t('timeLabel')}</p>
@@ -268,6 +280,7 @@ export function UploadZone({ onUploadComplete }: UploadZoneProps) {
           <div className="flex flex-col items-center gap-3">
             <div className="w-10 h-10 border-4 border-teal-500 border-t-transparent rounded-full animate-spin" />
             <p className="text-sm text-gray-500">
+              {state === 'preparing' && t('presigning')}
               {state === 'uploading' && t('uploading', { progress })}
               {state === 'starting' && t('starting')}
             </p>

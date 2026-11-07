@@ -2,19 +2,22 @@
 
 import { useState } from 'react'
 import { useLocale, useTranslations } from 'next-intl'
+import { RegistrationModeSelector } from '@/components/RegistrationModeSelector'
+import type { RegistrationMode } from '../../shared/calendar-import'
 import { Button } from '@/components/ui/Button'
 
 interface ManualScheduleInputProps {
   onStart: (jobId: string) => void
 }
 
-type SubmitState = 'idle' | 'submitting' | 'error'
+type SubmitState = 'idle' | 'submitting' | 'done' | 'error'
 
 const MAX_INSTRUCTION_LENGTH = 2000
 
 export function ManualScheduleInput({ onStart }: ManualScheduleInputProps) {
   const t = useTranslations('manualSchedule')
   const locale = useLocale()
+  const [registrationMode, setRegistrationMode] = useState<RegistrationMode>('auto')
   const [instruction, setInstruction] = useState('')
   const [state, setState] = useState<SubmitState>('idle')
   const [error, setError] = useState<string | null>(null)
@@ -41,6 +44,7 @@ export function ManualScheduleInput({ onStart }: ManualScheduleInputProps) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           instruction: trimmedInstruction,
+          registrationMode,
           language: locale,
           timezone,
         }),
@@ -59,7 +63,7 @@ export function ManualScheduleInput({ onStart }: ManualScheduleInputProps) {
 
       const body = await res.json() as { jobId: string }
       setInstruction('')
-      setState('idle')
+      setState('done')
       onStart(body.jobId)
     } catch (err) {
       setState('error')
@@ -74,6 +78,8 @@ export function ManualScheduleInput({ onStart }: ManualScheduleInputProps) {
         <p className="mt-1 text-sm text-gray-500">{t('description')}</p>
       </div>
 
+      <RegistrationModeSelector value={registrationMode} onChange={mode => { setRegistrationMode(mode); if (state === 'done') setState('idle') }} disabled={isSubmitting} />
+      {state === 'done' && <p role="status" className="rounded-xl bg-teal-50 p-4 text-sm leading-7 text-teal-800">{t(registrationMode === 'review' ? 'acceptedReview' : 'acceptedAuto')}</p>}
       <div className="rounded-xl bg-teal-50 px-4 py-3 text-xs text-teal-700">
         <p className="font-semibold">{t('exampleLabel')}</p>
         <p className="mt-1">{t('example')}</p>
@@ -82,7 +88,7 @@ export function ManualScheduleInput({ onStart }: ManualScheduleInputProps) {
       <div className="space-y-2">
         <textarea
           value={instruction}
-          onChange={(e) => setInstruction(e.target.value)}
+          onChange={(e) => { setInstruction(e.target.value); if (state === 'done') setState('idle') }}
           placeholder={t('placeholder')}
           disabled={isSubmitting}
           maxLength={MAX_INSTRUCTION_LENGTH + 200}
@@ -106,7 +112,7 @@ export function ManualScheduleInput({ onStart }: ManualScheduleInputProps) {
         disabled={!trimmedInstruction || isSubmitting || remaining < 0}
         className="w-full rounded-xl bg-teal-500 px-5 py-3 text-sm font-semibold text-white transition hover:bg-teal-600 disabled:cursor-not-allowed disabled:opacity-60"
       >
-        {isSubmitting ? t('submitting') : t('submit')}
+        {isSubmitting ? t('submitting') : t(registrationMode === 'auto' ? 'submitAuto' : 'submit')}
       </Button>
     </div>
   )

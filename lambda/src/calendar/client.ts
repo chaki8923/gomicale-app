@@ -13,6 +13,10 @@ export type CalendarIntegrationErrorCode =
   | 'GOOGLE_API_TEMPORARY'
   | 'GOOGLE_OAUTH_CONFIG_ERROR'
 
+export class ImportTimeBudgetError extends Error {
+  constructor() { super('Import continues in a fresh worker'); this.name = 'ImportTimeBudgetError' }
+}
+
 export class CalendarIntegrationError extends Error {
   constructor(
     public code: CalendarIntegrationErrorCode,
@@ -156,7 +160,7 @@ export async function batchInsertGarbageEvents(
 ): Promise<{ inserted: number; skipped: number }> {
   let inserted = 0
   for (const ev of events) {
-    if (progress?.shouldStop?.()) throw new CalendarIntegrationError('GOOGLE_API_TEMPORARY', 'Import paused before timeout. Retry to continue.')
+    if (progress?.shouldStop?.()) throw new ImportTimeBudgetError()
     const eventId = buildCalendarEventId({ date: ev.date, garbageType: ev.title })
     const requestBody = {
       summary: addEmojiToTitle(ev.title),

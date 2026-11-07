@@ -15,6 +15,7 @@ const JOB_ERROR_CODES = {
 export type JobErrorCode = (typeof JOB_ERROR_CODES)[keyof typeof JOB_ERROR_CODES]
 
 export type JobResultDataLike = {
+  registration_mode?: 'auto' | 'review'
   calendar_event_count?: number
   skipped_count?: number
   pdf_hash?: string

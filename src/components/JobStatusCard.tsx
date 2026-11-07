@@ -137,7 +137,7 @@ export function JobStatusCard({ jobId, onComplete }: JobStatusCardProps) {
 
           {isProcessing && (
             <div className="mt-2 space-y-1">
-              <p className="text-sm text-gray-500">{t('processingMessage')}</p>
+              <p className="text-sm text-gray-500">{t(resultData?.registration_mode === 'auto' ? 'processingAuto' : resultData?.registration_mode === 'review' ? 'processingReview' : 'processingMessage')}</p>
               <p className="text-xs text-amber-600 font-medium">{t('processingTime')}</p>
             </div>
           )}

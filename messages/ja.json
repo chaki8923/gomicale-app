@@ -251,7 +251,7 @@
   "dashboard": {
     "adminErrorEmails": "エラーメール管理",
     "uploadTitle": "ゴミ出しカレンダー（PDF・写真・画像）をアップロード",
-    "uploadDescription": "PDF・写真・画像からAIが予定を読み取ります。登録先・日付・色を確認してから、Googleカレンダーへ登録できます。",
+    "uploadDescription": "PDF・写真・画像からAIが予定を読み取ります。おまかせで自動登録するか、登録前に内容を確認するかを選べます。",
     "processingTitle": "処理状況",
     "historyTitle": "登録履歴",
     "emptyTitle": "まだ登録履歴がありません",
@@ -318,23 +318,29 @@
     "errorUnexpected": "予期しないエラーが発生しました",
     "errorUploadFailed": "アップロード失敗 (HTTP {status})",
     "errorLimitExceeded": "1日のアップロード上限（5回）に達しました。明日またお試しください。",
-    "processingModalTitle": "処理中です",
-    "processingModalWarning": "このページを閉じないでください",
-    "processingModalBody": "アップロードと解析の開始が終わるまで、このページを開いておいてください。解析後に内容を確認して登録します。"
+    "processingModalTitle": "ファイルを送信しています",
+    "processingModalWarning": "受付完了までは、このページを閉じないでください",
+    "processingModalBody": "ファイルの送信と解析の受付が終わるまでお待ちください。その後の解析・登録は、画面を閉じても続きます。",
+    "accepted": "受付が完了しました。ここからは画面を閉じても大丈夫です。",
+    "acceptedReview": "準備ができたら、確認画面へのリンクをメールでお送りします。",
+    "acceptedAuto": "メインカレンダーへの登録が完了したら、メールでお知らせします。"
   },
   "manualSchedule": {
+    "submitAuto": "解析して自動登録",
     "title": "文章でゴミ収集ルールを登録",
-    "description": "地区の収集ルールを文章で入力してください。AIが今年度分（4月〜翌3月）の予定を作成します。内容を確認・修正してからGoogleカレンダーへ登録できます。",
+    "description": "地区の収集ルールを入力すると、今年度分（4月〜翌3月）の予定を作成します。おまかせ登録か、確認・設定してからの登録を選べます。",
     "exampleLabel": "入力例",
     "example": "毎週火曜日は資源ごみ、月曜と木曜は燃えるゴミ、第2・4金は燃やさないゴミ",
     "placeholder": "例：毎週火曜日は資源ごみ、月曜と木曜は燃えるゴミ、第2・4金は燃やさないゴミ",
     "remaining": "残り {count} 文字",
-    "rangeNote": "今年度分を解析し、登録前に確認できます",
+    "rangeNote": "今年度（4月〜翌3月）の予定を作成します",
     "submit": "文章から予定を解析",
     "submitting": "解析を開始中…",
     "errorTooLong": "入力指示は2000文字以内で入力してください",
     "errorSubmit": "登録の開始に失敗しました",
-    "errorUnexpected": "予期しないエラーが発生しました"
+    "errorUnexpected": "予期しないエラーが発生しました",
+    "acceptedReview": "解析を受け付けました。画面を閉じても大丈夫です。準備ができたら確認用メールをお送りします。",
+    "acceptedAuto": "解析と自動登録を受け付けました。画面を閉じても大丈夫です。登録完了をメールでお知らせします。"
   },
   "jobStatus": {
     "awaitingConfirmation": "内容の確認待ち",
@@ -346,7 +352,7 @@
     "registeredTo": "をGoogleカレンダーに登録しました",
     "skipped": "（{count}件は既存のため省略）",
     "processingMessage": "解析または登録を処理しています。解析後は確認画面で内容を確定してください。",
-    "processingTime": "完了まで約10分程度かかります。完了後にメールでお知らせします。",
+    "processingTime": "解析・登録には数分〜10分ほどかかる場合があります。",
     "unknownError": "不明なエラーが発生しました",
     "calendarPermissionError": "Googleカレンダーへのアクセス権限がありません",
     "calendarPermissionShowDetail": "解決方法を見る",
@@ -358,7 +364,9 @@
     "calendarPermissionReauthorize": "Googleを再認証する",
     "calendarPermissionReauthing": "Google認証へ移動中...",
     "calendarPermissionLogout": "ログアウトする",
-    "calendarPermissionClose": "閉じる"
+    "calendarPermissionClose": "閉じる",
+    "processingAuto": "解析後、メインカレンダーへ自動登録します。画面を閉じても処理は続き、登録完了をメールでお知らせします。",
+    "processingReview": "解析が終わったら確認ボタンを表示し、確認画面へのリンクをメールでお送りします。画面を閉じても大丈夫です。"
   },
   "login": {
     "title": "ゴミカレ",
@@ -510,6 +518,7 @@
       "failed": "保存できませんでした。内容を確認してください。"
     },
     "errors": {
+      "AUTO_DISPATCH_FAILED": "自動登録を開始できませんでした。同じ内容で登録を再試行してください。",
       "REQUEST_FAILED": "処理できませんでした。時間をおいて再試行してください。",
       "EDIT_CONFLICT": "別の画面で内容が更新されました。再読み込みして最新の内容を確認してください。",
       "IMPORT_LOCKED": "この内容は確定済みのため編集できません。",
@@ -528,6 +537,38 @@
       "NOT_FOUND": "確認データが見つかりません。",
       "PROCESSOR_UNAVAILABLE": "登録処理を開始できませんでした。再試行してください。"
     },
-    "progress": "登録済み {count} / {total}件"
+    "progress": "登録済み {count} / {total}件",
+    "colorNames": {
+      "1": "ラベンダー",
+      "2": "ミント",
+      "3": "紫",
+      "4": "ピンク",
+      "5": "黄色",
+      "6": "オレンジ",
+      "7": "水色",
+      "8": "グレー",
+      "9": "青",
+      "10": "緑",
+      "11": "赤"
+    },
+    "autoIntro": "おまかせ登録の処理状況です。読み取った内容と色を使い、メインカレンダーへ自動登録します。画面を閉じても処理は続きます。",
+    "readyEmail": {
+      "pending": "確認用メールを送信しています。この画面からも内容を確認して登録できます。",
+      "sent": "解析完了のメールをお送りしました。この画面やメールのリンクから、いつでも確認を再開できます。",
+      "failed": "確認用メールを送信できませんでした。この画面またはダッシュボードの登録履歴から、内容を確認して登録してください。"
+    }
+  },
+  "registrationMode": {
+    "title": "登録方法を選択",
+    "auto": {
+      "title": "おまかせ登録",
+      "description": "読み取った日付・予定名・色で、メインカレンダーへ自動登録します。",
+      "notice": "登録が完了したらメールでお知らせします。解析や登録を待って画面を開き続ける必要はありません。"
+    },
+    "review": {
+      "title": "確認・設定して登録",
+      "description": "登録先カレンダー・日付・予定名・色を確認し、不要な予定を除外してから登録します。",
+      "notice": "解析が完了し準備ができたら、確認画面へのリンクをメールでお送りします。内容を確定するまでGoogleカレンダーへは登録しません。"
+    }
   }
 }

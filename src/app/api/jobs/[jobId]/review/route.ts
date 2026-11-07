@@ -4,9 +4,10 @@ import { validateDraft } from '../../../../../../shared/calendar-import'
 type Context = { params: Promise<{ jobId: string }> }
 export async function GET(_request: NextRequest, context: Context) {
   try {
-    const { review } = await ownImport((await context.params).jobId)
+    const { review, db } = await ownImport((await context.params).jobId)
+    const { data: task } = await db.from('calendar_import_tasks').select('email_status,email_first_attempt_at').eq('job_id',review.job_id).maybeSingle()
     // Lease tokens are internal. The browser only needs the expiry for recovery.
-    return NextResponse.json({ ...review, lease_token: undefined }, { headers: { 'Cache-Control': 'private, no-store' } })
+    return NextResponse.json({ ...review, lease_token: undefined, ready_email_status: task?.email_first_attempt_at ? task.email_status : null }, { headers: { 'Cache-Control': 'private, no-store' } })
   } catch (error) { return importErrorResponse(error) }
 }
 export async function PATCH(request: NextRequest, context: Context) {

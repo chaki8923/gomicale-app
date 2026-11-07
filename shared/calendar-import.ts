@@ -1,3 +1,4 @@
+export type RegistrationMode = 'auto' | 'review'
 /** Canonical, user-specific import data. Never stored in the shared parser cache. */
 export interface ReviewEvent {
   id: string
@@ -16,6 +17,7 @@ export interface ImportDraft {
   timezone: string
 }
 export interface CalendarImport {
+  registration_mode: RegistrationMode
   job_id: string
   user_id: string
   state: 'analyzing' | 'ready' | 'registering' | 'completed' | 'error'

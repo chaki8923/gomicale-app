@@ -251,7 +251,7 @@
   "dashboard": {
     "adminErrorEmails": "Error emails",
     "uploadTitle": "Upload Garbage Collection Calendar (PDF, Photo, or Image)",
-    "uploadDescription": "AI reads events from your PDF, photo, or image. Review the calendar, dates, and colors before importing to Google Calendar.",
+    "uploadDescription": "AI reads events from your PDF, photo, or image. Choose automatic import or review and customize before importing.",
     "processingTitle": "Processing Status",
     "historyTitle": "Registration History",
     "emptyTitle": "No registration history yet",
@@ -318,23 +318,29 @@
     "errorUnexpected": "An unexpected error occurred",
     "errorUploadFailed": "Upload failed (HTTP {status})",
     "errorLimitExceeded": "Daily upload limit (5 times) exceeded. Please try again tomorrow.",
-    "processingModalTitle": "Processing in progress",
-    "processingModalWarning": "Do not close this page",
-    "processingModalBody": "Keep this page open until upload and analysis submission finish. You will review the results before importing."
+    "processingModalTitle": "Submitting your file",
+    "processingModalWarning": "Keep this page open until your upload is accepted",
+    "processingModalBody": "Please wait until file upload and analysis submission finish. Analysis and import then continue even after you close this page.",
+    "accepted": "Your upload is accepted. You can now close this page.",
+    "acceptedReview": "We will email you a review link when analysis is ready.",
+    "acceptedAuto": "We will email you when events are imported to your primary calendar."
   },
   "manualSchedule": {
+    "submitAuto": "Analyze and import automatically",
     "title": "Register garbage rules from text",
-    "description": "Enter your collection rules. AI generates events for the current fiscal year (April to March). Review and edit them before importing to Google Calendar.",
+    "description": "Enter collection rules to generate this fiscal year’s events (April to March). Choose automatic import or review and customize first.",
     "exampleLabel": "Example",
     "example": "Every Tuesday is recyclables, Monday and Thursday are burnable garbage, the 2nd and 4th Friday are non-burnable garbage",
     "placeholder": "Example: Every Tuesday is recyclables, Monday and Thursday are burnable garbage, the 2nd and 4th Friday are non-burnable garbage",
     "remaining": "{count} characters remaining",
-    "rangeNote": "Analyze this fiscal year, then review before importing",
+    "rangeNote": "Generate events for this fiscal year (April to March)",
     "submit": "Analyze rules from text",
     "submitting": "Starting analysis…",
     "errorTooLong": "Please keep the instruction within 2000 characters",
     "errorSubmit": "Failed to start registration",
-    "errorUnexpected": "An unexpected error occurred"
+    "errorUnexpected": "An unexpected error occurred",
+    "acceptedReview": "Analysis accepted. You can close this page. We will email you when it is ready to review.",
+    "acceptedAuto": "Analysis and automatic import accepted. You can close this page. We will email you when import finishes."
   },
   "jobStatus": {
     "awaitingConfirmation": "Ready to review",
@@ -346,7 +352,7 @@
     "registeredTo": "events registered to Google Calendar",
     "skipped": "({count} skipped as duplicates)",
     "processingMessage": "Analysis or registration is in progress. After analysis, review and confirm your events.",
-    "processingTime": "This may take up to 10 minutes. You will be notified by email when complete.",
+    "processingTime": "Analysis and import may take several minutes, sometimes around 10 minutes.",
     "unknownError": "An unknown error occurred",
     "calendarPermissionError": "Google Calendar access permission is missing",
     "calendarPermissionShowDetail": "How to fix this",
@@ -358,7 +364,9 @@
     "calendarPermissionReauthorize": "Re-authorize Google",
     "calendarPermissionReauthing": "Redirecting to Google...",
     "calendarPermissionLogout": "Sign out",
-    "calendarPermissionClose": "Close"
+    "calendarPermissionClose": "Close",
+    "processingAuto": "Events will be imported to your primary calendar after analysis. You can close this page. We will email you when import finishes.",
+    "processingReview": "When analysis is ready, a review button appears and we will email you a link. You can close this page."
   },
   "login": {
     "title": "GomiCale",
@@ -510,6 +518,7 @@
       "failed": "Could not save. Please check your changes."
     },
     "errors": {
+      "AUTO_DISPATCH_FAILED": "Automatic import could not start. Retry with the same confirmed content.",
       "REQUEST_FAILED": "The request failed. Please try again shortly.",
       "EDIT_CONFLICT": "This draft changed in another window. Reload to review the latest version.",
       "IMPORT_LOCKED": "This import is confirmed and cannot be edited.",
@@ -528,6 +537,38 @@
       "NOT_FOUND": "Review data was not found.",
       "PROCESSOR_UNAVAILABLE": "Could not start the import. Please retry."
     },
-    "progress": "{count} of {total} registered"
+    "progress": "{count} of {total} registered",
+    "colorNames": {
+      "1": "Lavender",
+      "2": "Mint",
+      "3": "Purple",
+      "4": "Pink",
+      "5": "Yellow",
+      "6": "Orange",
+      "7": "Turquoise",
+      "8": "Gray",
+      "9": "Blue",
+      "10": "Green",
+      "11": "Red"
+    },
+    "autoIntro": "Automatic import status. Events and detected colors are added to your primary calendar. Processing continues after you close this page.",
+    "readyEmail": {
+      "pending": "Sending your review email. You can also review and import from this page.",
+      "sent": "Your review email has been sent. Return from this page or the email link at any time.",
+      "failed": "Your review email could not be sent. Review and import here or from your dashboard history."
+    }
+  },
+  "registrationMode": {
+    "title": "Choose how to import",
+    "auto": {
+      "title": "Automatic import",
+      "description": "Add detected dates, names, and colors to your primary calendar automatically.",
+      "notice": "We will email you when import finishes. You can close this page once the upload is accepted."
+    },
+    "review": {
+      "title": "Review and customize",
+      "description": "Choose a calendar, edit dates, names and colors, and exclude events before importing.",
+      "notice": "When analysis is ready, we will email you a link to review. Nothing is added to Google Calendar until you confirm."
+    }
   }
 }
