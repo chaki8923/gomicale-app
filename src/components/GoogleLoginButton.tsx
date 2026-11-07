@@ -45,6 +45,7 @@ export async function startGoogleOAuth({
       redirectTo,
       scopes: [
         'https://www.googleapis.com/auth/calendar.events',
+        'https://www.googleapis.com/auth/calendar.calendarlist.readonly',
         'openid',
         'email',
         'profile',

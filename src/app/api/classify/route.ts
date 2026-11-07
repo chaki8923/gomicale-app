@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { GoogleGenerativeAI } from '@google/generative-ai'
 import { getSupabaseServerClient, getSupabaseServiceClient } from '@/lib/supabase/server'
+import { loadUserCalendarEvents } from '@/lib/user-calendar-events'
 import { detectSodaiGomi, updateUserStreak } from '@/lib/garbage-classify'
-import type { StreakInfo } from '@/lib/garbage-classify'
 
 type CalendarEvent = {
   date: string
@@ -147,7 +147,7 @@ export async function POST(request: NextRequest) {
   const serviceClient = getSupabaseServiceClient()
   const { data: job } = await serviceClient
     .from('jobs')
-    .select('pdf_hash, parser_mode')
+    .select('id, pdf_hash, parser_mode')
     .eq('user_id', userId)
     .eq('status', 'completed')
     .or('parser_mode.eq.garbage,parser_mode.is.null')
@@ -159,48 +159,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'no_garbage_calendar' }, { status: 404 })
   }
 
-  // parsed_pdfs を {hash}% 前方一致で一括取得（新形式 {hash}_{lang}_{fiscalYear}、旧形式 {hash}_{lang}、bare をすべて拾う）
-  const { data: parsedRows } = await serviceClient
-    .from('parsed_pdfs')
-    .select('pdf_hash, extracted_json')
-    .like('pdf_hash', `${job.pdf_hash}%`)
-    .order('created_at', { ascending: false })
-
-  if (!parsedRows || parsedRows.length === 0) {
-    return NextResponse.json({ error: 'no_garbage_calendar' }, { status: 404 })
-  }
-
-  // リクエストの locale を最優先（0）、もう一方の言語（1）、bare（2）の順で選択
-  const altLocale = locale === 'ja' ? 'en' : 'ja'
-  type ParseCandidate = { priority: number; extracted: unknown }
-  const parseCandidates: ParseCandidate[] = []
-
-  for (const row of parsedRows) {
-    const suffix = row.pdf_hash.slice(job.pdf_hash.length)
-    if (suffix.startsWith(`_${locale}`)) {
-      parseCandidates.push({ priority: 0, extracted: row.extracted_json })
-    } else if (suffix.startsWith(`_${altLocale}`)) {
-      parseCandidates.push({ priority: 1, extracted: row.extracted_json })
-    } else if (suffix === '') {
-      parseCandidates.push({ priority: 2, extracted: row.extracted_json })
-    }
-  }
-
-  if (parseCandidates.length === 0) {
-    return NextResponse.json({ error: 'no_garbage_calendar' }, { status: 404 })
-  }
-
-  parseCandidates.sort((a, b) => a.priority - b.priority)
-  const bestParsed = parseCandidates[0]
-
-  const extracted = bestParsed.extracted as { events?: CalendarEvent[] } | CalendarEvent[]
-  const events: CalendarEvent[] = Array.isArray(extracted)
-    ? extracted
-    : (extracted?.events || [])
-
-  if (!events || events.length === 0) {
-    return NextResponse.json({ error: 'no_garbage_calendar' }, { status: 404 })
-  }
+  const parsedResult = await loadUserCalendarEvents(serviceClient, userId, job, locale === 'en' ? 'en' : 'ja')
+  const events = parsedResult?.events ?? []
+  if (!events.length) return NextResponse.json({ error: 'no_garbage_calendar' }, { status: 404 })
 
   // Gemini でゴミ分類
   const apiKey = process.env.GEMINI_API_KEY

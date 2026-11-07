@@ -23,26 +23,6 @@ export class CalendarIntegrationError extends Error {
   }
 }
 
-// Phase 1: insert の間隔 (120ms = 8.3 req/sec、上限10 req/sec に余裕)
-const PHASE1_INTERVAL_MS = 120
-
-// Phase 2: conflict の get+patch 間隔 (200ms = 5 req/sec)
-const PHASE2_INTERVAL_MS = 200
-
-interface BatchInsertResult {
-  inserted: number
-  skipped: number
-}
-
-type InsertOutcome =
-  | { kind: 'inserted' }
-  | { kind: 'conflict'; ev: CalendarEvent; eventId: string; displayTitle: string; descriptionText: string }
-  | { kind: 'error' }
-
-type ConflictOutcome = 'inserted' | 'skipped' | 'error'
-
-const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms))
-
 function getGoogleApiStatus(err: unknown): number | undefined {
   const e = err as { code?: number; response?: { status?: number } }
   return e?.code ?? e?.response?.status
@@ -96,28 +76,17 @@ function mapCalendarApiError(err: unknown): CalendarIntegrationError | null {
   return null
 }
 
-function buildEventDateTime(date: string, eventTime?: string, timezone?: string) {
+export function buildEventDateTime(date: string, eventTime?: string, timezone?: string) {
+  const nextDay = new Date(date+'T00:00:00Z')
+  nextDay.setUTCDate(nextDay.getUTCDate()+1)
   if (eventTime) {
-    const tz = timezone ?? 'Asia/Tokyo'
     const [hours, minutes] = eventTime.split(':').map(Number)
-    let endHours = hours + 1
-    let endMinutes = minutes
-    if (endHours >= 24) {
-      endHours = 23
-      endMinutes = 59
-    }
-    const endHoursStr = endHours.toString().padStart(2, '0')
-    const endMinutesStr = endMinutes.toString().padStart(2, '0')
-    const endTime = `${endHoursStr}:${endMinutesStr}`
-    return {
-      start: { dateTime: `${date}T${eventTime}:00`, timeZone: tz },
-      end:   { dateTime: `${date}T${endTime}:00`,   timeZone: tz },
-    }
+    const endDate = hours === 23 ? nextDay.toISOString().slice(0,10) : date
+    const endTime = `${String((hours+1)%24).padStart(2,'0')}:${String(minutes).padStart(2,'0')}`
+    return { start: { dateTime: `${date}T${eventTime}:00`, timeZone: timezone ?? 'Asia/Tokyo' },
+      end: { dateTime: `${endDate}T${endTime}:00`, timeZone: timezone ?? 'Asia/Tokyo' } }
   }
-  return {
-    start: { date },
-    end:   { date },
-  }
+  return { start: { date }, end: { date: nextDay.toISOString().slice(0,10) } }
 }
 
 /**
@@ -178,162 +147,37 @@ export async function refreshAccessToken(refreshToken: string): Promise<string> 
   }
 }
 
-/**
- * Phase 1: 1件の insert を試みる
- * 成功 → { kind: 'inserted' }
- * 409  → { kind: 'conflict', ... } (Phase 2 へ引き渡す)
- * その他エラー → { kind: 'error' }
- */
-async function attemptInsert(
-  calendar: ReturnType<typeof createCalendarClient>,
-  ev: CalendarEvent,
-  eventId: string,
-  displayTitle: string,
-  descriptionText: string,
-  eventTime?: string,
-  timezone?: string,
-): Promise<InsertOutcome> {
-  try {
-    await calendar.events.insert({
-      calendarId: CALENDAR_ID,
-      requestBody: {
-        id:      eventId,
-        summary: displayTitle,
-        ...buildEventDateTime(ev.date, eventTime, timezone),
-        description: descriptionText,
-        reminders: {
-          useDefault: false,
-          overrides: [{ method: 'popup', minutes: 720 }],
-        },
-      },
-    })
-    return { kind: 'inserted' }
-  } catch (err) {
-    const mapped = mapCalendarApiError(err)
-    if (mapped) {
-      if (mapped.code === 'GOOGLE_CALENDAR_RATE_LIMIT' || mapped.code === 'GOOGLE_API_TEMPORARY') {
-        console.warn('[calendar] temporary insert issue:', mapped.message)
-        return { kind: 'error' }
-      }
-      throw mapped
-    }
-    const code = getGoogleApiStatus(err)
-    if (code === 409) {
-      return { kind: 'conflict', ev, eventId, displayTitle, descriptionText }
-    }
-    console.error('[calendar] insert error:', err)
-    return { kind: 'error' }
-  }
-}
-
-/**
- * Phase 2: 409 だったイベントは常に patch で時刻などを最新状態に更新する。
- * （cancelled イベントも status: 'confirmed' となることで再アクティブ化される）
- */
-async function handleConflict(
-  calendar: ReturnType<typeof createCalendarClient>,
-  ev: CalendarEvent,
-  eventId: string,
-  displayTitle: string,
-  descriptionText: string,
-  eventTime?: string,
-  timezone?: string,
-): Promise<ConflictOutcome> {
-  try {
-    // PATCH ではなく UPDATE (PUT) を使うことで、既存イベントの start.date フィールドを
-    // 完全に置き換える。PATCH だと旧 date フィールドが残り "Invalid start time" になる。
-    await calendar.events.update({
-      calendarId: CALENDAR_ID,
-      eventId,
-      requestBody: {
-        status:      'confirmed',
-        summary:     displayTitle,
-        ...buildEventDateTime(ev.date, eventTime, timezone),
-        description: descriptionText,
-        reminders: {
-          useDefault: false,
-          overrides: [{ method: 'popup', minutes: 720 }],
-        },
-      },
-    })
-    return 'inserted'
-  } catch (err) {
-    const mapped = mapCalendarApiError(err)
-    if (mapped) {
-      if (mapped.code === 'GOOGLE_CALENDAR_RATE_LIMIT' || mapped.code === 'GOOGLE_API_TEMPORARY') {
-        console.warn('[calendar] temporary conflict issue:', mapped.message)
-        return 'error'
-      }
-      throw mapped
-    }
-    console.error('[calendar] conflict handler error:', err)
-    return 'error'
-  }
-}
-
-/**
- * Google Calendar API にイベントを2フェーズ逐次で登録する
- *
- * Phase 1: 全件を120ms間隔で逐次 insert (8.3 req/sec、レート制限10 req/sec以内)
- * Phase 2: 409 だったものだけ200ms間隔で逐次 get→patch
- *
- * 冪等性: イベント ID に buildCalendarEventId() で生成した固定ハッシュを使用。
- * 絵文字: displayTitle に付与するが、ID 生成にはオリジナルタイトルを使う。
- */
+/** Fail on every unsuccessful write. Retrying uses the same deterministic IDs. */
 export async function batchInsertGarbageEvents(
-  accessToken: string,
-  events: CalendarEvent[],
-  pdfHash: string,
-  eventTime?: string,
-  timezone?: string,
-): Promise<BatchInsertResult> {
-  const calendar = createCalendarClient(accessToken)
-
-  // 各イベントのメタデータを事前計算
-  const items = events.map((ev) => {
-    const eventId      = buildCalendarEventId({ date: ev.date, garbageType: ev.title })
-    const displayTitle = addEmojiToTitle(ev.title)
-    const descriptionText = ev.description
-      ? `${ev.description}\n\nゴミカレにより自動登録された予定です`
-      : `ゴミカレにより自動登録された予定です`
-    return { ev, eventId, displayTitle, descriptionText }
-  })
-
-  // ── Phase 1: 逐次 insert ──────────────────────────────────────
+  accessToken: string, events: CalendarEvent[], _pdfHash: string,
+  eventTime?: string, timezone?: string, calendarId = CALENDAR_ID,
+  calendar = createCalendarClient(accessToken),
+  progress?: { checkpoint: (count: number) => Promise<void>; shouldStop?: () => boolean },
+): Promise<{ inserted: number; skipped: number }> {
   let inserted = 0
-  let skipped  = 0
-  const conflicts: Array<{ ev: CalendarEvent; eventId: string; displayTitle: string; descriptionText: string }> = []
-
-  for (let i = 0; i < items.length; i++) {
-    const item    = items[i]
-    const outcome = await attemptInsert(
-      calendar, item.ev, item.eventId, item.displayTitle, item.descriptionText, eventTime, timezone
-    )
-    if (outcome.kind === 'inserted') {
-      inserted++
-    } else if (outcome.kind === 'conflict') {
-      conflicts.push({
-        ev:              outcome.ev,
-        eventId:         outcome.eventId,
-        displayTitle:    outcome.displayTitle,
-        descriptionText: outcome.descriptionText,
-      })
-    } else {
-      skipped++
+  for (const ev of events) {
+    if (progress?.shouldStop?.()) throw new CalendarIntegrationError('GOOGLE_API_TEMPORARY', 'Import paused before timeout. Retry to continue.')
+    const eventId = buildCalendarEventId({ date: ev.date, garbageType: ev.title })
+    const requestBody = {
+      summary: addEmojiToTitle(ev.title),
+      ...buildEventDateTime(ev.date, eventTime, timezone),
+      description: `${ev.description ? ev.description+'\n\n' : ''}ゴミカレにより登録された予定です`,
+      colorId: ev.colorId ?? undefined,
+      reminders: { useDefault: false, overrides: [{ method: 'popup', minutes: 720 }] },
     }
-    if (i < items.length - 1) await sleep(PHASE1_INTERVAL_MS)
+    try {
+      try { await calendar.events.insert({ calendarId, requestBody: { id: eventId, ...requestBody } }) }
+      catch (error) {
+        if (getGoogleApiStatus(error) !== 409) throw error
+        // PUT replaces date/dateTime correctly when switching all-day vs timed.
+        await calendar.events.update({ calendarId, eventId, requestBody: { ...requestBody, status: 'confirmed' } })
+      }
+      inserted++
+      if (progress && (inserted % 25 === 0 || inserted === events.length)) await progress.checkpoint(inserted)
+    } catch (error) {
+      throw mapCalendarApiError(error) ?? new CalendarIntegrationError('GOOGLE_API_TEMPORARY', 'Google Calendar registration failed. Please retry the same import.')
+    }
+    if (inserted < events.length) await new Promise(resolve => setTimeout(resolve, 120))
   }
-
-  // ── Phase 2: 409 だったもののみ get→patch (逐次) ───────────────
-  for (let i = 0; i < conflicts.length; i++) {
-    const item    = conflicts[i]
-    const outcome = await handleConflict(
-      calendar, item.ev, item.eventId, item.displayTitle, item.descriptionText, eventTime, timezone
-    )
-    if (outcome === 'inserted') inserted++
-    else skipped++
-    if (i < conflicts.length - 1) await sleep(PHASE2_INTERVAL_MS)
-  }
-
-  return { inserted, skipped }
+  return { inserted, skipped: 0 }
 }

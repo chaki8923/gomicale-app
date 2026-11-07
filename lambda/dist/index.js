@@ -3505,7 +3505,7 @@ var require_helpers = __commonJS({
     exports2.generateCallbackId = generateCallbackId;
     exports2.parseParametersFromURL = parseParametersFromURL;
     exports2.decodeJWT = decodeJWT;
-    exports2.sleep = sleep2;
+    exports2.sleep = sleep;
     exports2.retryable = retryable;
     exports2.generatePKCEVerifier = generatePKCEVerifier;
     exports2.generatePKCEChallenge = generatePKCEChallenge;
@@ -3642,7 +3642,7 @@ var require_helpers = __commonJS({
       };
       return data;
     }
-    async function sleep2(time) {
+    async function sleep(time) {
       return await new Promise((accept) => {
         setTimeout(() => accept(null), time);
       });
@@ -8878,7 +8878,7 @@ var require_request = __commonJS({
     }
     function sendWithRetry(url, init, retryScheduleInMs, nextInterval = 50, triesLeft = 2, fetchImpl = fetch, retryCount = 1) {
       return __awaiter2(this, void 0, void 0, function* () {
-        const sleep2 = (interval) => new Promise((resolve) => setTimeout(resolve, interval));
+        const sleep = (interval) => new Promise((resolve) => setTimeout(resolve, interval));
         try {
           const response = yield fetchImpl(url, init);
           if (triesLeft <= 0 || response.status < 500) {
@@ -8889,7 +8889,7 @@ var require_request = __commonJS({
             throw e;
           }
         }
-        yield sleep2(nextInterval);
+        yield sleep(nextInterval);
         init.headers["svix-retry-count"] = retryCount.toString();
         nextInterval = (retryScheduleInMs === null || retryScheduleInMs === void 0 ? void 0 : retryScheduleInMs[retryCount]) || nextInterval * 2;
         return yield sendWithRetry(url, init, retryScheduleInMs, nextInterval, --triesLeft, fetchImpl, ++retryCount);
@@ -675821,6 +675821,97 @@ function shouldShowDeprecationWarning() {
 }
 if (shouldShowDeprecationWarning()) console.warn("\u26A0\uFE0F  Node.js 18 and below are deprecated and will no longer be supported in future versions of @supabase/supabase-js. Please upgrade to Node.js 20 or later. For more information, visit: https://github.com/orgs/supabase/discussions/37217");
 
+// ../shared/calendar-import.ts
+var STANDARD_EVENT_COLORS = Object.fromEntries([
+  "#a4bdfc",
+  "#7ae7bf",
+  "#dbadff",
+  "#ff887c",
+  "#fbd75b",
+  "#ffb878",
+  "#46d6db",
+  "#e1e1e1",
+  "#5484ed",
+  "#51b749",
+  "#dc2127"
+].map((background, i) => [String(i + 1), { background, foreground: "#1d1d1d" }]));
+function normalizeColor(value) {
+  return typeof value === "string" && /^#[0-9a-f]{6}$/i.test(value) ? value.toLowerCase() : null;
+}
+function colorLab(hex) {
+  const rgb = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255).map((v) => v <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4);
+  const [r, g, b] = rgb;
+  const xyz = [
+    (r * 0.4124564 + g * 0.3575761 + b * 0.1804375) / 0.95047,
+    r * 0.2126729 + g * 0.7151522 + b * 0.072175,
+    (r * 0.0193339 + g * 0.119192 + b * 0.9503041) / 1.08883
+  ].map((v) => v > 216 / 24389 ? Math.cbrt(v) : (24389 / 27 * v + 16) / 116);
+  return [116 * xyz[1] - 16, 500 * (xyz[0] - xyz[1]), 200 * (xyz[1] - xyz[2])];
+}
+function nearestColor(hex, colors = STANDARD_EVENT_COLORS) {
+  if (!normalizeColor(hex)) return null;
+  const lab = colorLab(hex);
+  return Object.entries(colors).filter(([, v]) => normalizeColor(v.background)).map(([id, v]) => ({ id, distance: colorLab(v.background).reduce((sum, n, i) => sum + (n - lab[i]) ** 2, 0) })).sort((a, b) => a.distance - b.distance)[0]?.id ?? null;
+}
+function validDate(date) {
+  return typeof date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(date) && date >= "1900-01-01" && date <= "2200-12-31" && Number.isFinite(Date.parse(date + "T00:00:00Z")) && (/* @__PURE__ */ new Date(date + "T00:00:00Z")).toISOString().slice(0, 10) === date;
+}
+function createSourceEvents(events, typeColors = {}) {
+  const seen = /* @__PURE__ */ new Set();
+  return events.filter((e) => {
+    const key = `${e.date}::${e.title.trim()}`;
+    if (!validDate(e.date) || !e.title.trim() || seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  }).sort((a, b) => a.date.localeCompare(b.date)).map((e, i) => {
+    const sourceColor = normalizeColor(typeColors[e.title]);
+    return { ...e, id: String(i), category: e.title, sourceColor, colorId: nearestColor(sourceColor), included: true };
+  });
+}
+
+// ../shared/google-calendars.ts
+var GoogleAccessError = class extends Error {
+  constructor(code, status = 409) {
+    super(code);
+    this.code = code;
+    this.status = status;
+  }
+};
+async function googleJson(accessToken, path) {
+  const response = await fetch(`https://www.googleapis.com/calendar/v3/${path}`, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+    signal: AbortSignal.timeout(2e4)
+  });
+  if (!response.ok) {
+    if (response.status === 401) throw new GoogleAccessError("GOOGLE_REAUTH_REQUIRED");
+    if (response.status === 403) {
+      const body = await response.json().catch(() => ({}));
+      const reason = body.error?.errors?.[0]?.reason;
+      if (reason === "rateLimitExceeded" || reason === "userRateLimitExceeded") throw new GoogleAccessError("GOOGLE_API_TEMPORARY", 503);
+      throw new GoogleAccessError("GOOGLE_CALENDAR_SCOPE_MISSING");
+    }
+    if (response.status === 404) throw new GoogleAccessError("CALENDAR_NOT_FOUND");
+    throw new GoogleAccessError("GOOGLE_API_TEMPORARY", 503);
+  }
+  return response.json();
+}
+async function getOwnedCalendars(accessToken) {
+  const calendars = [];
+  let pageToken = "";
+  const seen = /* @__PURE__ */ new Set();
+  do {
+    if (seen.has(pageToken)) throw new GoogleAccessError("GOOGLE_API_TEMPORARY", 503);
+    seen.add(pageToken);
+    const data = await googleJson(
+      accessToken,
+      `users/me/calendarList?minAccessRole=owner&maxResults=250${pageToken ? "&pageToken=" + encodeURIComponent(pageToken) : ""}`
+    );
+    calendars.push(...(data.items ?? []).filter((c) => c.id && c.accessRole === "owner" && !c.deleted).map((c) => ({ id: c.id, summary: c.summary || c.id, primary: !!c.primary })));
+    pageToken = data.nextPageToken ?? "";
+  } while (pageToken);
+  return calendars.sort((a, b) => Number(b.primary) - Number(a.primary) || a.summary.localeCompare(b.summary));
+}
+
 // src/index.ts
 var import_crypto6 = require("crypto");
 
@@ -681779,7 +681870,8 @@ async function parseWithAutoPrompt(prompt, fileBuffer, mimeType, fiscalYearStart
   const model = createGeminiModel();
   const base64Data = fileBuffer.toString("base64");
   const result = await model.generateContent([
-    prompt,
+    prompt + `
+COLOR EXTRACTION: Also return a top-level "typeColors" object mapping exact event/category titles to visible category-identifying colors as #RRGGBB. Read the original document visually, including its legend. Only include colors clearly associated with that category's label, fill, or symbol. Do not infer colors from category names. Ignore white paper, black text/grid, weekend/holiday date colors, and unrelated marks. For monochrome documents or ambiguous/unreadable category colors, omit that category (or return {}). Do not invent a color. Keep event titles identical to typeColors keys.`,
     {
       inlineData: {
         mimeType,
@@ -681803,7 +681895,7 @@ async function parseWithAutoPrompt(prompt, fileBuffer, mimeType, fiscalYearStart
   let raw;
   try {
     raw = JSON.parse(match[0]);
-  } catch (e) {
+  } catch {
     console.error(
       "[gemini] JSON parse failed. finishReason=%s tail=%s",
       finishReason,
@@ -681848,6 +681940,10 @@ async function parseWithAutoPrompt(prompt, fileBuffer, mimeType, fiscalYearStart
   });
   return {
     title: raw.title,
+    typeColors: Object.fromEntries(Object.entries(raw.typeColors ?? {}).flatMap(([type, color]) => {
+      const valid = normalizeColor(color);
+      return valid ? [[type, valid]] : [];
+    })),
     events,
     parserMode: isGarbage ? "garbage" : "general"
   };
@@ -682186,9 +682282,6 @@ var CalendarIntegrationError = class extends Error {
     this.name = "CalendarIntegrationError";
   }
 };
-var PHASE1_INTERVAL_MS = 120;
-var PHASE2_INTERVAL_MS = 200;
-var sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 function getGoogleApiStatus(err) {
   const e = err;
   return e?.code ?? e?.response?.status;
@@ -682233,27 +682326,18 @@ function mapCalendarApiError(err) {
   return null;
 }
 function buildEventDateTime(date, eventTime, timezone) {
+  const nextDay = /* @__PURE__ */ new Date(date + "T00:00:00Z");
+  nextDay.setUTCDate(nextDay.getUTCDate() + 1);
   if (eventTime) {
-    const tz = timezone ?? "Asia/Tokyo";
     const [hours, minutes] = eventTime.split(":").map(Number);
-    let endHours = hours + 1;
-    let endMinutes = minutes;
-    if (endHours >= 24) {
-      endHours = 23;
-      endMinutes = 59;
-    }
-    const endHoursStr = endHours.toString().padStart(2, "0");
-    const endMinutesStr = endMinutes.toString().padStart(2, "0");
-    const endTime = `${endHoursStr}:${endMinutesStr}`;
+    const endDate = hours === 23 ? nextDay.toISOString().slice(0, 10) : date;
+    const endTime = `${String((hours + 1) % 24).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`;
     return {
-      start: { dateTime: `${date}T${eventTime}:00`, timeZone: tz },
-      end: { dateTime: `${date}T${endTime}:00`, timeZone: tz }
+      start: { dateTime: `${date}T${eventTime}:00`, timeZone: timezone ?? "Asia/Tokyo" },
+      end: { dateTime: `${endDate}T${endTime}:00`, timeZone: timezone ?? "Asia/Tokyo" }
     };
   }
-  return {
-    start: { date },
-    end: { date }
-  };
+  return { start: { date }, end: { date: nextDay.toISOString().slice(0, 10) } };
 }
 function createCalendarClient(accessToken) {
   const auth = new import_googleapis.google.auth.OAuth2();
@@ -682297,123 +682381,33 @@ async function refreshAccessToken(refreshToken) {
     throw err;
   }
 }
-async function attemptInsert(calendar, ev, eventId, displayTitle, descriptionText, eventTime, timezone) {
-  try {
-    await calendar.events.insert({
-      calendarId: CALENDAR_ID,
-      requestBody: {
-        id: eventId,
-        summary: displayTitle,
-        ...buildEventDateTime(ev.date, eventTime, timezone),
-        description: descriptionText,
-        reminders: {
-          useDefault: false,
-          overrides: [{ method: "popup", minutes: 720 }]
-        }
-      }
-    });
-    return { kind: "inserted" };
-  } catch (err) {
-    const mapped = mapCalendarApiError(err);
-    if (mapped) {
-      if (mapped.code === "GOOGLE_CALENDAR_RATE_LIMIT" || mapped.code === "GOOGLE_API_TEMPORARY") {
-        console.warn("[calendar] temporary insert issue:", mapped.message);
-        return { kind: "error" };
-      }
-      throw mapped;
-    }
-    const code = getGoogleApiStatus(err);
-    if (code === 409) {
-      return { kind: "conflict", ev, eventId, displayTitle, descriptionText };
-    }
-    console.error("[calendar] insert error:", err);
-    return { kind: "error" };
-  }
-}
-async function handleConflict(calendar, ev, eventId, displayTitle, descriptionText, eventTime, timezone) {
-  try {
-    await calendar.events.update({
-      calendarId: CALENDAR_ID,
-      eventId,
-      requestBody: {
-        status: "confirmed",
-        summary: displayTitle,
-        ...buildEventDateTime(ev.date, eventTime, timezone),
-        description: descriptionText,
-        reminders: {
-          useDefault: false,
-          overrides: [{ method: "popup", minutes: 720 }]
-        }
-      }
-    });
-    return "inserted";
-  } catch (err) {
-    const mapped = mapCalendarApiError(err);
-    if (mapped) {
-      if (mapped.code === "GOOGLE_CALENDAR_RATE_LIMIT" || mapped.code === "GOOGLE_API_TEMPORARY") {
-        console.warn("[calendar] temporary conflict issue:", mapped.message);
-        return "error";
-      }
-      throw mapped;
-    }
-    console.error("[calendar] conflict handler error:", err);
-    return "error";
-  }
-}
-async function batchInsertGarbageEvents(accessToken, events, pdfHash, eventTime, timezone) {
-  const calendar = createCalendarClient(accessToken);
-  const items = events.map((ev) => {
-    const eventId = buildCalendarEventId({ date: ev.date, garbageType: ev.title });
-    const displayTitle = addEmojiToTitle(ev.title);
-    const descriptionText = ev.description ? `${ev.description}
-
-\u30B4\u30DF\u30AB\u30EC\u306B\u3088\u308A\u81EA\u52D5\u767B\u9332\u3055\u308C\u305F\u4E88\u5B9A\u3067\u3059` : `\u30B4\u30DF\u30AB\u30EC\u306B\u3088\u308A\u81EA\u52D5\u767B\u9332\u3055\u308C\u305F\u4E88\u5B9A\u3067\u3059`;
-    return { ev, eventId, displayTitle, descriptionText };
-  });
+async function batchInsertGarbageEvents(accessToken, events, _pdfHash, eventTime, timezone, calendarId = CALENDAR_ID, calendar = createCalendarClient(accessToken), progress) {
   let inserted = 0;
-  let skipped = 0;
-  const conflicts = [];
-  for (let i = 0; i < items.length; i++) {
-    const item = items[i];
-    const outcome = await attemptInsert(
-      calendar,
-      item.ev,
-      item.eventId,
-      item.displayTitle,
-      item.descriptionText,
-      eventTime,
-      timezone
-    );
-    if (outcome.kind === "inserted") {
+  for (const ev of events) {
+    if (progress?.shouldStop?.()) throw new CalendarIntegrationError("GOOGLE_API_TEMPORARY", "Import paused before timeout. Retry to continue.");
+    const eventId = buildCalendarEventId({ date: ev.date, garbageType: ev.title });
+    const requestBody = {
+      summary: addEmojiToTitle(ev.title),
+      ...buildEventDateTime(ev.date, eventTime, timezone),
+      description: `${ev.description ? ev.description + "\n\n" : ""}\u30B4\u30DF\u30AB\u30EC\u306B\u3088\u308A\u767B\u9332\u3055\u308C\u305F\u4E88\u5B9A\u3067\u3059`,
+      colorId: ev.colorId ?? void 0,
+      reminders: { useDefault: false, overrides: [{ method: "popup", minutes: 720 }] }
+    };
+    try {
+      try {
+        await calendar.events.insert({ calendarId, requestBody: { id: eventId, ...requestBody } });
+      } catch (error) {
+        if (getGoogleApiStatus(error) !== 409) throw error;
+        await calendar.events.update({ calendarId, eventId, requestBody: { ...requestBody, status: "confirmed" } });
+      }
       inserted++;
-    } else if (outcome.kind === "conflict") {
-      conflicts.push({
-        ev: outcome.ev,
-        eventId: outcome.eventId,
-        displayTitle: outcome.displayTitle,
-        descriptionText: outcome.descriptionText
-      });
-    } else {
-      skipped++;
+      if (progress && (inserted % 25 === 0 || inserted === events.length)) await progress.checkpoint(inserted);
+    } catch (error) {
+      throw mapCalendarApiError(error) ?? new CalendarIntegrationError("GOOGLE_API_TEMPORARY", "Google Calendar registration failed. Please retry the same import.");
     }
-    if (i < items.length - 1) await sleep(PHASE1_INTERVAL_MS);
+    if (inserted < events.length) await new Promise((resolve) => setTimeout(resolve, 120));
   }
-  for (let i = 0; i < conflicts.length; i++) {
-    const item = conflicts[i];
-    const outcome = await handleConflict(
-      calendar,
-      item.ev,
-      item.eventId,
-      item.displayTitle,
-      item.descriptionText,
-      eventTime,
-      timezone
-    );
-    if (outcome === "inserted") inserted++;
-    else skipped++;
-    if (i < conflicts.length - 1) await sleep(PHASE2_INTERVAL_MS);
-  }
-  return { inserted, skipped };
+  return { inserted, skipped: 0 };
 }
 
 // src/index.ts
@@ -682592,7 +682586,65 @@ var supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY,
   { auth: { autoRefreshToken: false, persistSession: false } }
 );
-var handler = async (event) => {
+async function registerImport(event, context) {
+  const token = (0, import_crypto6.randomUUID)();
+  const { data, error: claimError } = await supabase.rpc("claim_calendar_import", { p_job_id: event.jobId, p_user_id: event.userId, p_token: token });
+  if (claimError) throw claimError;
+  const review = data?.[0];
+  if (!review?.confirmed) return;
+  try {
+    const { data: job, error: jobError } = await supabase.from("jobs").select("id,pdf_hash,parser_mode").eq("id", event.jobId).eq("user_id", event.userId).single();
+    if (jobError || !job) throw new Error("Job not found");
+    const { data: integration } = await supabase.from("user_integrations").select("google_refresh_token_enc").eq("user_id", event.userId).single();
+    if (!integration?.google_refresh_token_enc) throw new CalendarIntegrationError("GOOGLE_REAUTH_REQUIRED", "Google reauthentication required");
+    const accessToken = await refreshAccessToken(integration.google_refresh_token_enc);
+    const calendars = await getOwnedCalendars(accessToken);
+    if (!calendars.some((c) => c.id === review.confirmed.calendarId)) throw new Error("CALENDAR_NOT_FOUND");
+    const confirmed = review.confirmed;
+    const selected = confirmed.events.filter((e) => e.included);
+    await batchInsertGarbageEvents(
+      accessToken,
+      selected.slice(review.registered_count),
+      job.pdf_hash ?? "",
+      confirmed.eventTime ?? void 0,
+      confirmed.timezone,
+      confirmed.calendarId,
+      void 0,
+      {
+        checkpoint: async (count) => {
+          const { error: error2 } = await supabase.from("calendar_imports").update({ registered_count: review.registered_count + count }).eq("job_id", event.jobId).eq("lease_token", token);
+          if (error2) throw error2;
+        },
+        shouldStop: () => !!context && context.getRemainingTimeInMillis() < 15e3
+      }
+    );
+    const { data: finished, error } = await supabase.rpc("finish_calendar_import", { p_job_id: event.jobId, p_token: token, p_count: selected.length });
+    if (error) throw error;
+    if (!finished) return;
+    try {
+      const { data: { user } } = await supabase.auth.admin.getUserById(event.userId);
+      if (user?.email) {
+        const code = job.parser_mode === "garbage" && !await isLineLinked(event.userId) ? await issueLineLinkCode(event.userId) ?? void 0 : void 0;
+        await sendCompletionEmail(user.email, selected.length, 0, code);
+      }
+    } catch {
+      console.warn("[register] completion notification failed");
+    }
+  } catch (error) {
+    const message = error instanceof CalendarIntegrationError || error instanceof GoogleAccessError ? error.code : error instanceof Error ? error.message : "Registration failed";
+    const { data: failed } = await supabase.from("calendar_imports").update({ state: "error", error: message, lease_token: null, lease_until: null }).eq("job_id", event.jobId).eq("state", "registering").eq("lease_token", token).select("job_id").maybeSingle();
+    if (failed) await supabase.from("jobs").update({ status: "error", error_message: message, result_data: { review_available: true } }).eq("id", event.jobId);
+    console.error("[register] failed", event.jobId, message);
+  }
+}
+var handler = async (event, context) => {
+  if (event.action === "health") return { protocol: "calendar-review-v1", revision: 2 };
+  if (event.action === "register") return registerImport(event, context);
+  if (event.action === "analyze") {
+    const { data: review } = await supabase.from("calendar_imports").select("state,user_id").eq("job_id", event.jobId).single();
+    const { data: job } = await supabase.from("jobs").select("user_id,r2_object_key").eq("id", event.jobId).single();
+    if (!review || review.state !== "analyzing" || review.user_id !== event.userId || job?.user_id !== event.userId || job.r2_object_key !== event.r2ObjectKey) return;
+  }
   const {
     jobId,
     userId,
@@ -682611,6 +682663,7 @@ var handler = async (event) => {
     let events;
     let pdfTitle;
     let pdfHash;
+    let typeColors = {};
     if (inputMode === "manual") {
       if (!manualInstruction?.trim() || !fiscalYearStart || !fiscalYearEnd) {
         throw new Error("Manual instruction and fiscal year range are required");
@@ -682623,11 +682676,12 @@ var handler = async (event) => {
         language
       })).digest("hex");
       console.info("[handler] manual hash:", pdfHash);
-      const cacheKey = `${pdfHash}_${language}`;
+      const cacheKey = `${pdfHash}_${language}_colors_v1`;
       const { data: cached } = await supabase.from("parsed_pdfs").select("extracted_json").eq("pdf_hash", cacheKey).maybeSingle();
       if (cached) {
         console.info("[handler] manual cache hit, skip parsing");
         const parsedData = cached.extracted_json;
+        typeColors = parsedData.typeColors ?? {};
         events = parsedData.events || [];
         pdfTitle = parsedData.title;
         resolvedParserMode = "garbage";
@@ -682638,13 +682692,14 @@ var handler = async (event) => {
           fiscalYearEnd,
           language
         );
+        typeColors = parseResult.typeColors ?? {};
         events = parseResult.events;
         pdfTitle = parseResult.title;
         resolvedParserMode = "garbage";
         console.info("[handler] manual parsed events count:", events.length, "title:", pdfTitle);
         await supabase.from("parsed_pdfs").upsert({
           pdf_hash: cacheKey,
-          extracted_json: { title: pdfTitle, events, parserMode: resolvedParserMode }
+          extracted_json: { title: pdfTitle, events, typeColors, parserMode: resolvedParserMode }
         });
       }
       if (events.length === 0) {
@@ -682667,7 +682722,7 @@ var handler = async (event) => {
       pdfHash = (0, import_crypto6.createHash)("sha256").update(pdfBuffer).digest("hex");
       console.info("[handler] pdfHash:", pdfHash);
       const { fiscalYearStart: pdfFiscalStart, fiscalYearEnd: pdfFiscalEnd } = getCurrentFiscalYearRange();
-      const cacheKey = `${pdfHash}_${language}_${pdfFiscalStart}`;
+      const cacheKey = `${pdfHash}_${language}_${pdfFiscalStart}_colors_v1`;
       const { data: cached } = await supabase.from("parsed_pdfs").select("extracted_json").eq("pdf_hash", cacheKey).maybeSingle();
       if (cached) {
         console.info("[handler] cache hit, skip parsing");
@@ -682677,6 +682732,7 @@ var handler = async (event) => {
           pdfTitle = void 0;
           resolvedParserMode = "garbage";
         } else {
+          typeColors = parsedData.typeColors ?? {};
           events = parsedData.events || [];
           pdfTitle = parsedData.title;
           resolvedParserMode = parsedData.parserMode === "general" ? "general" : "garbage";
@@ -682684,15 +682740,31 @@ var handler = async (event) => {
       } else {
         const parser = createPdfParser(language, pdfFiscalStart, pdfFiscalEnd);
         const parseResult = await parser.parse(pdfBuffer, mimeType);
+        typeColors = parseResult.typeColors ?? {};
         events = parseResult.events;
         pdfTitle = parseResult.title;
         resolvedParserMode = parseResult.parserMode ?? "garbage";
         console.info("[handler] parsed events count:", events.length, "title:", pdfTitle, "mode:", resolvedParserMode);
         await supabase.from("parsed_pdfs").upsert({
           pdf_hash: cacheKey,
-          extracted_json: { title: pdfTitle, events, parserMode: resolvedParserMode }
+          extracted_json: { title: pdfTitle, events, typeColors, parserMode: resolvedParserMode }
         });
       }
+    }
+    if (event.action === "analyze") {
+      const sourceEvents = createSourceEvents(events, typeColors);
+      if (!sourceEvents.length) throw new Error("No valid events were found");
+      if (sourceEvents.length > 5e3) throw new Error("Too many events. Please upload a shorter period.");
+      const { error } = await supabase.rpc("prepare_calendar_review", {
+        p_job_id: jobId,
+        p_user_id: userId,
+        p_events: sourceEvents,
+        p_hash: pdfHash,
+        p_title: pdfTitle ?? null,
+        p_mode: resolvedParserMode
+      });
+      if (error) throw error;
+      return;
     }
     const { data: integration, error: tokenError } = await supabase.from("user_integrations").select("google_refresh_token_enc").eq("user_id", userId).single();
     if (tokenError || !integration?.google_refresh_token_enc) {
@@ -682754,6 +682826,10 @@ var handler = async (event) => {
     if (err instanceof SyntaxError && message.includes("JSON at position")) {
       errorCode = "GEMINI_PARSE_ERROR";
       message = language === "en" ? "The AI could not extract all events from this file. The calendar may contain too many entries. Please try uploading a file covering a shorter period." : "AI\u304C\u30D5\u30A1\u30A4\u30EB\u304B\u3089\u4E88\u5B9A\u3092\u6B63\u5E38\u306B\u62BD\u51FA\u3067\u304D\u307E\u305B\u3093\u3067\u3057\u305F\u3002\u30AB\u30EC\u30F3\u30C0\u30FC\u306E\u53CE\u96C6\u4EF6\u6570\u304C\u591A\u3059\u304E\u308B\u53EF\u80FD\u6027\u304C\u3042\u308A\u307E\u3059\u3002\u671F\u9593\u3092\u7D5E\u3063\u305F\u30D5\u30A1\u30A4\u30EB\u3092\u304A\u8A66\u3057\u304F\u3060\u3055\u3044\u3002";
+    }
+    if (event.action === "analyze") {
+      const { data: failed } = await supabase.from("calendar_imports").update({ state: "error", error: message }).eq("job_id", jobId).eq("user_id", userId).eq("state", "analyzing").select("job_id").maybeSingle();
+      if (!failed) return;
     }
     await supabase.from("jobs").update({
       status: "error",

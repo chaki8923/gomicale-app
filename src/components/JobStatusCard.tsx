@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { useTranslations, useLocale } from 'next-intl'
 import { getSupabaseBrowserClient } from '@/lib/supabase/client'
@@ -23,38 +24,32 @@ export function JobStatusCard({ jobId, onComplete }: JobStatusCardProps) {
   useEffect(() => {
     const supabase = getSupabaseBrowserClient()
 
-    supabase
-      .from('jobs')
-      .select('*')
-      .eq('id', jobId)
-      .single()
-      .then(({ data }) => { if (data) setJob(data as Job) })
+    let finished = false
+    const receive = (updated: Job) => {
+      setJob(updated)
+      if (!finished && ['completed', 'error', 'awaiting_confirmation'].includes(updated.status)) {
+        finished = true
+        clearInterval(poll)
+        onComplete?.(updated)
+        void supabase.removeChannel(channel)
+      }
+    }
+    const load = () => {
+      void supabase.from('jobs').select('*').eq('id', jobId).single()
+        .then(({ data }) => { if (data) receive(data as Job) })
+    }
+    // Realtime may connect after a fast cached analysis finishes; polling closes that gap.
+    const poll = setInterval(load, 3000)
+    const channel = supabase.channel(`job-${jobId}`)
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'jobs', filter: `id=eq.${jobId}` },
+        payload => receive(payload.new as Job)).subscribe()
+    load()
+    return () => { clearInterval(poll); void supabase.removeChannel(channel) }
 
-    const channel = supabase
-      .channel(`job-${jobId}`)
-      .on(
-        'postgres_changes',
-        {
-          event:  'UPDATE',
-          schema: 'public',
-          table:  'jobs',
-          filter: `id=eq.${jobId}`,
-        },
-        (payload) => {
-          const updated = payload.new as Job
-          setJob(updated)
-          if (updated.status === 'completed' || updated.status === 'error') {
-            onComplete?.(updated)
-            supabase.removeChannel(channel)
-          }
-        },
-      )
-      .subscribe()
-
-    return () => { supabase.removeChannel(channel) }
   }, [jobId, onComplete])
 
   const statusLabel: Record<Job['status'], string> = {
+    awaiting_confirmation: t('awaitingConfirmation'),
     pending:    t('pending'),
     processing: t('processing'),
     completed:  t('completed'),
@@ -62,6 +57,7 @@ export function JobStatusCard({ jobId, onComplete }: JobStatusCardProps) {
   }
 
   const statusColor: Record<Job['status'], string> = {
+    awaiting_confirmation: 'bg-teal-100 text-teal-800',
     pending:    'bg-gray-100 text-gray-600',
     processing: 'bg-blue-100 text-blue-700',
     completed:  'bg-green-100 text-green-700',
@@ -101,6 +97,7 @@ export function JobStatusCard({ jobId, onComplete }: JobStatusCardProps) {
             </span>
           </div>
 
+          {(job.status === 'awaiting_confirmation' || (job.result_data && typeof job.result_data === 'object' && !Array.isArray(job.result_data) && job.result_data.review_available)) && <Link href={`/${locale}/jobs/${job.id}/review`} className="mt-3 inline-flex rounded-lg bg-teal-700 px-4 py-2 text-sm font-bold text-white">{t('reviewImport')}</Link>}
           {job.status === 'completed' && resultData && (
             <p className="text-sm text-gray-700 mt-2">
               <span className="font-semibold text-teal-600 text-lg">

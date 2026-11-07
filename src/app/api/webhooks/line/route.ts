@@ -1,3 +1,4 @@
+import { loadUserCalendarEvents } from '@/lib/user-calendar-events'
 import { NextRequest, NextResponse } from 'next/server'
 import { validateSignature } from '@line/bot-sdk'
 import { getSupabaseServiceClient } from '@/lib/supabase/server'
@@ -122,48 +123,7 @@ async function fetchImageAsBase64(messageId: string): Promise<{ base64: string; 
 /**
  * parsed_pdfs を _en → _ja → bare の順で検索し、イベントと言語を返す
  */
-async function fetchParsedDataWithLang(
-  supabase: ReturnType<typeof getSupabaseServiceClient>,
-  pdfHash: string
-): Promise<{ events: CalendarEvent[]; lang: Lang } | null> {
-  // {hash}% の前方一致で一括取得（新形式 {hash}_{lang}_{fiscalYear}、旧形式 {hash}_{lang}、bare {hash} をすべて拾う）
-  const { data: rows } = await supabase
-    .from('parsed_pdfs')
-    .select('pdf_hash, extracted_json')
-    .like('pdf_hash', `${pdfHash}%`)
-    .order('created_at', { ascending: false })
 
-  if (!rows || rows.length === 0) return null
-
-  // サフィックスから優先度と言語を決定（en=0 > ja=1 > bare=2、それ以外はスキップ）
-  type Candidate = { priority: number; lang: Lang; extracted: unknown }
-  const candidates: Candidate[] = []
-
-  for (const row of rows) {
-    const suffix = row.pdf_hash.slice(pdfHash.length)
-    if (suffix.startsWith('_en')) {
-      candidates.push({ priority: 0, lang: 'en', extracted: row.extracted_json })
-    } else if (suffix.startsWith('_ja')) {
-      candidates.push({ priority: 1, lang: 'ja', extracted: row.extracted_json })
-    } else if (suffix === '') {
-      candidates.push({ priority: 2, lang: 'ja', extracted: row.extracted_json })
-    }
-    // それ以外のサフィックスはスキップ
-  }
-
-  if (candidates.length === 0) return null
-
-  // 最小優先度を採用（同点は created_at 降順で先頭の行を使う＝rows の順序で先に出てくるもの）
-  candidates.sort((a, b) => a.priority - b.priority)
-  const best = candidates[0]
-
-  const extracted = best.extracted as unknown
-  const events: CalendarEvent[] = Array.isArray(extracted)
-    ? (extracted as CalendarEvent[])
-    : ((extracted as { events?: CalendarEvent[] })?.events ?? [])
-
-  return { events, lang: best.lang }
-}
 
 // ============================================================
 // Gemini 分類ロジック
@@ -404,7 +364,7 @@ async function handleMessageEvent(event: LineMessageEvent) {
   // ユーザーの最新ゴミカレジョブを取得
   const { data: job } = await serviceClient
     .from('jobs')
-    .select('pdf_hash, parser_mode')
+    .select('id, pdf_hash, parser_mode')
     .eq('user_id', userId)
     .eq('status', 'completed')
     .or('parser_mode.eq.garbage,parser_mode.is.null')
@@ -421,7 +381,7 @@ async function handleMessageEvent(event: LineMessageEvent) {
   }
 
   // parsed_pdfs から _en → _ja → bare の順で取得し言語を判定
-  const parsedResult = await fetchParsedDataWithLang(serviceClient, job.pdf_hash)
+  const parsedResult = await loadUserCalendarEvents(serviceClient, userId, job)
 
   if (!parsedResult) {
     await replyText(

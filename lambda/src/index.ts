@@ -1,6 +1,8 @@
 import { S3Client, GetObjectCommand } from '@aws-sdk/client-s3'
 import { createClient } from '@supabase/supabase-js'
-import { createHash } from 'crypto'
+import { createSourceEvents, type CalendarImport } from '../../shared/calendar-import'
+import { getOwnedCalendars, GoogleAccessError } from '../../shared/google-calendars'
+import { createHash, randomUUID } from 'crypto'
 import { Resend } from 'resend'
 import type { LambdaPayload, CalendarEvent } from './types'
 import { createPdfParser } from './parsers/factory'
@@ -37,6 +39,7 @@ type JobErrorCode =
   | CalendarIntegrationErrorCode
   | 'NOT_A_CALENDAR'
   | 'GEMINI_TEMPORARY'
+  | 'GEMINI_PARSE_ERROR'
   | 'UNKNOWN'
 
 // LINE 連携済みかどうかを確認する（user_integrations と line_links の両方を確認）
@@ -242,7 +245,59 @@ const supabase = createClient(
   { auth: { autoRefreshToken: false, persistSession: false } },
 )
 
-export const handler = async (event: LambdaPayload): Promise<void> => {
+async function registerImport(event: LambdaPayload, context?: { getRemainingTimeInMillis(): number }): Promise<void> {
+  const token = randomUUID()
+  const { data, error: claimError } = await supabase.rpc('claim_calendar_import', { p_job_id: event.jobId, p_user_id: event.userId, p_token: token })
+  if (claimError) throw claimError
+  const review = data?.[0] as CalendarImport | undefined
+  if (!review?.confirmed) return
+  try {
+    const { data: job, error: jobError } = await supabase.from('jobs').select('id,pdf_hash,parser_mode').eq('id', event.jobId).eq('user_id', event.userId).single()
+    if (jobError || !job) throw new Error('Job not found')
+    const { data: integration } = await supabase.from('user_integrations').select('google_refresh_token_enc').eq('user_id', event.userId).single()
+    if (!integration?.google_refresh_token_enc) throw new CalendarIntegrationError('GOOGLE_REAUTH_REQUIRED', 'Google reauthentication required')
+    const accessToken = await refreshAccessToken(integration.google_refresh_token_enc)
+    const calendars = await getOwnedCalendars(accessToken)
+    if (!calendars.some(c => c.id === review.confirmed!.calendarId)) throw new Error('CALENDAR_NOT_FOUND')
+    const confirmed = review.confirmed
+    const selected = confirmed.events.filter(e => e.included)
+    await batchInsertGarbageEvents(accessToken, selected.slice(review.registered_count), job.pdf_hash ?? '',
+      confirmed.eventTime ?? undefined, confirmed.timezone, confirmed.calendarId, undefined, {
+        checkpoint: async count => {
+          const { error } = await supabase.from('calendar_imports').update({ registered_count: review.registered_count+count })
+            .eq('job_id',event.jobId).eq('lease_token',token)
+          if (error) throw error
+        }, shouldStop: () => !!context && context.getRemainingTimeInMillis() < 15000,
+      })
+    const { data: finished, error } = await supabase.rpc('finish_calendar_import', { p_job_id: event.jobId, p_token: token, p_count: selected.length })
+    if (error) throw error
+    if (!finished) return
+    // Only the worker that commits success can issue codes or completion mail.
+    try {
+      const { data: { user } } = await supabase.auth.admin.getUserById(event.userId)
+      if (user?.email) {
+        const code = job.parser_mode === 'garbage' && !(await isLineLinked(event.userId)) ? (await issueLineLinkCode(event.userId)) ?? undefined : undefined
+        await sendCompletionEmail(user.email, selected.length, 0, code)
+      }
+    } catch { console.warn('[register] completion notification failed') }
+  } catch (error) {
+    const message = error instanceof CalendarIntegrationError || error instanceof GoogleAccessError
+      ? error.code : error instanceof Error ? error.message : 'Registration failed'
+    const { data: failed } = await supabase.from('calendar_imports').update({ state: 'error', error: message, lease_token: null, lease_until: null })
+      .eq('job_id', event.jobId).eq('state','registering').eq('lease_token',token).select('job_id').maybeSingle()
+    if (failed) await supabase.from('jobs').update({ status: 'error', error_message: message, result_data: { review_available: true } }).eq('id', event.jobId)
+    console.error('[register] failed', event.jobId, message)
+  }
+}
+
+export const handler = async (event: LambdaPayload, context?: { getRemainingTimeInMillis(): number }): Promise<unknown> => {
+  if (event.action === 'health') return { protocol: 'calendar-review-v1', revision: 2 }
+  if (event.action === 'register') return registerImport(event, context)
+  if (event.action === 'analyze') {
+    const { data: review } = await supabase.from('calendar_imports').select('state,user_id').eq('job_id',event.jobId).single()
+    const { data: job } = await supabase.from('jobs').select('user_id,r2_object_key').eq('id',event.jobId).single()
+    if (!review || review.state !== 'analyzing' || review.user_id !== event.userId || job?.user_id !== event.userId || job.r2_object_key !== event.r2ObjectKey) return
+  }
   const {
     jobId,
     userId,
@@ -264,6 +319,7 @@ export const handler = async (event: LambdaPayload): Promise<void> => {
     let events: CalendarEvent[]
     let pdfTitle: string | undefined
     let pdfHash: string
+    let typeColors: Record<string, string> = {}
 
     if (inputMode === 'manual') {
       if (!manualInstruction?.trim() || !fiscalYearStart || !fiscalYearEnd) {
@@ -281,7 +337,7 @@ export const handler = async (event: LambdaPayload): Promise<void> => {
         .digest('hex')
       console.info('[handler] manual hash:', pdfHash)
 
-      const cacheKey = `${pdfHash}_${language}`
+      const cacheKey = `${pdfHash}_${language}_colors_v1`
       const { data: cached } = await supabase
         .from('parsed_pdfs')
         .select('extracted_json')
@@ -290,7 +346,8 @@ export const handler = async (event: LambdaPayload): Promise<void> => {
 
       if (cached) {
         console.info('[handler] manual cache hit, skip parsing')
-        const parsedData = cached.extracted_json as { title?: string, events: CalendarEvent[], parserMode?: string }
+        const parsedData = cached.extracted_json as { title?: string, events: CalendarEvent[], parserMode?: string, typeColors?: Record<string, string> }
+        typeColors = parsedData.typeColors ?? {}
         events = parsedData.events || []
         pdfTitle = parsedData.title
         resolvedParserMode = 'garbage'
@@ -301,6 +358,7 @@ export const handler = async (event: LambdaPayload): Promise<void> => {
           fiscalYearEnd,
           language,
         )
+        typeColors = parseResult.typeColors ?? {}
         events = parseResult.events
         pdfTitle = parseResult.title
         resolvedParserMode = 'garbage'
@@ -308,7 +366,7 @@ export const handler = async (event: LambdaPayload): Promise<void> => {
 
         await supabase.from('parsed_pdfs').upsert({
           pdf_hash: cacheKey,
-          extracted_json: { title: pdfTitle, events, parserMode: resolvedParserMode },
+          extracted_json: { title: pdfTitle, events, typeColors, parserMode: resolvedParserMode },
         })
       }
 
@@ -344,7 +402,7 @@ export const handler = async (event: LambdaPayload): Promise<void> => {
       // 言語ごと・年度ごとに結果が異なるため、キーに language と fiscalYearStart を含める
       // （繰り返しルール展開は年度依存。格子カレンダーは年度関係なく安全側に倒す）
       const { fiscalYearStart: pdfFiscalStart, fiscalYearEnd: pdfFiscalEnd } = getCurrentFiscalYearRange()
-      const cacheKey = `${pdfHash}_${language}_${pdfFiscalStart}`
+      const cacheKey = `${pdfHash}_${language}_${pdfFiscalStart}_colors_v1`
       const { data: cached } = await supabase
         .from('parsed_pdfs')
         .select('extracted_json')
@@ -353,14 +411,15 @@ export const handler = async (event: LambdaPayload): Promise<void> => {
 
       if (cached) {
         console.info('[handler] cache hit, skip parsing')
-        const parsedData = cached.extracted_json as { title?: string, events: CalendarEvent[], parserMode?: string }
+        const parsedData = cached.extracted_json as { title?: string, events: CalendarEvent[], parserMode?: string, typeColors?: Record<string, string> }
         if (Array.isArray(parsedData)) {
           // 古いキャッシュフォーマットへの後方互換（ゴミカレ既定）
           events = parsedData
           pdfTitle = undefined
           resolvedParserMode = 'garbage'
         } else {
-          events = parsedData.events || []
+          typeColors = parsedData.typeColors ?? {}
+        events = parsedData.events || []
           pdfTitle = parsedData.title
           resolvedParserMode = (parsedData.parserMode === 'general' ? 'general' : 'garbage')
         }
@@ -369,6 +428,7 @@ export const handler = async (event: LambdaPayload): Promise<void> => {
         // 年度範囲を渡すことで、繰り返しルール文章も具体日付に展開される
         const parser = createPdfParser(language, pdfFiscalStart, pdfFiscalEnd)
         const parseResult = await parser.parse(pdfBuffer, mimeType)
+        typeColors = parseResult.typeColors ?? {}
         events = parseResult.events
         pdfTitle = parseResult.title
         resolvedParserMode = parseResult.parserMode ?? 'garbage'
@@ -377,9 +437,19 @@ export const handler = async (event: LambdaPayload): Promise<void> => {
         // 解析結果をキャッシュに保存（判定モードも含める）
         await supabase.from('parsed_pdfs').upsert({
           pdf_hash: cacheKey,
-          extracted_json: { title: pdfTitle, events, parserMode: resolvedParserMode },
+          extracted_json: { title: pdfTitle, events, typeColors, parserMode: resolvedParserMode },
         })
       }
+    }
+
+    if (event.action === 'analyze') {
+      const sourceEvents = createSourceEvents(events, typeColors)
+      if (!sourceEvents.length) throw new Error('No valid events were found')
+      if (sourceEvents.length > 5000) throw new Error('Too many events. Please upload a shorter period.')
+      const { error } = await supabase.rpc('prepare_calendar_review', { p_job_id: jobId, p_user_id: userId,
+        p_events: sourceEvents, p_hash: pdfHash, p_title: pdfTitle ?? null, p_mode: resolvedParserMode })
+      if (error) throw error
+      return // No tokens, calendar writes, completion emails, or LINE codes before confirmation.
     }
 
     // ── 5. Supabase からリフレッシュトークンを取得 ────────────────
@@ -473,6 +543,11 @@ export const handler = async (event: LambdaPayload): Promise<void> => {
         : 'AIがファイルから予定を正常に抽出できませんでした。カレンダーの収集件数が多すぎる可能性があります。期間を絞ったファイルをお試しください。'
     }
 
+    if (event.action === 'analyze') {
+      const { data: failed } = await supabase.from('calendar_imports').update({ state: 'error', error: message })
+        .eq('job_id',jobId).eq('user_id',userId).eq('state','analyzing').select('job_id').maybeSingle()
+      if (!failed) return
+    }
     // ジョブを error に更新
     await supabase.from('jobs').update({
       status: 'error',

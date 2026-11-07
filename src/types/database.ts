@@ -1,3 +1,4 @@
+import type { CalendarImport } from '../../shared/calendar-import'
 import type { ErrorEmailDelivery } from '@/lib/admin-error-email-types'
 
 export type Json =
@@ -16,6 +17,12 @@ export type Database = {
   }
   public: {
     Tables: {
+      calendar_imports: {
+        Row: { [K in keyof CalendarImport]: CalendarImport[K] }
+        Insert: Pick<CalendarImport, 'job_id' | 'user_id' | 'draft' | 'language'> & Partial<CalendarImport>
+        Update: Partial<CalendarImport>
+        Relationships: []
+      }
       admin_error_emails: {
         Row: ErrorEmailDelivery
         Insert: Omit<ErrorEmailDelivery, 'id' | 'created_at' | 'sent_at' | 'provider_message_id' | 'error_code'> & {
@@ -371,6 +378,7 @@ export type Database = {
         Row: {
           created_at: string
           google_access_token_enc: string | null
+          selected_calendar_id: string | null
           google_calendar_scope_ok: boolean | null
           google_refresh_token_enc: string | null
           id: string
@@ -382,6 +390,7 @@ export type Database = {
         Insert: {
           created_at?: string
           google_access_token_enc?: string | null
+          selected_calendar_id?: string | null
           google_calendar_scope_ok?: boolean | null
           google_refresh_token_enc?: string | null
           id?: string
@@ -393,6 +402,7 @@ export type Database = {
         Update: {
           created_at?: string
           google_access_token_enc?: string | null
+          selected_calendar_id?: string | null
           google_calendar_scope_ok?: boolean | null
           google_refresh_token_enc?: string | null
           id?: string
@@ -414,7 +424,7 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      job_status: "pending" | "processing" | "completed" | "error"
+      job_status: "pending" | "processing" | "awaiting_confirmation" | "completed" | "error"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -542,7 +552,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      job_status: ["pending", "processing", "completed", "error"],
+      job_status: ["pending", "processing", "awaiting_confirmation", "completed", "error"],
     },
   },
 } as const

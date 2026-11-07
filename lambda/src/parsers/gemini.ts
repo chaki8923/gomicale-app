@@ -5,6 +5,7 @@ import {
 } from '@google/generative-ai'
 import type { PdfParser } from './base'
 import { NotACalendarError } from './base'
+import { normalizeColor } from '../../../shared/calendar-import'
 import type { CalendarEvent, Language, ParseResult } from '../types'
 
 // ─────────────────────────────────────────────
@@ -273,7 +274,8 @@ async function parseWithAutoPrompt(
   const base64Data = fileBuffer.toString('base64')
 
   const result = await model.generateContent([
-    prompt,
+    prompt + `
+COLOR EXTRACTION: Also return a top-level "typeColors" object mapping exact event/category titles to visible category-identifying colors as #RRGGBB. Read the original document visually, including its legend. Only include colors clearly associated with that category's label, fill, or symbol. Do not infer colors from category names. Ignore white paper, black text/grid, weekend/holiday date colors, and unrelated marks. For monochrome documents or ambiguous/unreadable category colors, omit that category (or return {}). Do not invent a color. Keep event titles identical to typeColors keys.`,
     {
       inlineData: {
         mimeType,
@@ -294,6 +296,7 @@ async function parseWithAutoPrompt(
   }
 
   let raw: {
+    typeColors?: Record<string, unknown>
     isCalendar?: boolean
     isGarbageCalendar?: boolean
     title?: string
@@ -301,7 +304,7 @@ async function parseWithAutoPrompt(
   }
   try {
     raw = JSON.parse(match[0]) as typeof raw
-  } catch (e) {
+  } catch {
     console.error('[gemini] JSON parse failed. finishReason=%s tail=%s',
       finishReason, match[0].slice(-300))
     // finishReason=STOP でも末尾の ] / } が欠落する場合があるため修復を試みる
@@ -348,6 +351,10 @@ async function parseWithAutoPrompt(
 
   return {
     title: raw.title,
+    typeColors: Object.fromEntries(Object.entries(raw.typeColors ?? {}).flatMap(([type, color]) => {
+      const valid = normalizeColor(color)
+      return valid ? [[type, valid]] : []
+    })),
     events,
     parserMode: isGarbage ? 'garbage' : 'general',
   }

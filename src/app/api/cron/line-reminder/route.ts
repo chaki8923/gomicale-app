@@ -1,13 +1,6 @@
+import { loadUserCalendarEvents } from '@/lib/user-calendar-events'
 import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseServiceClient } from '@/lib/supabase/server'
-
-type Lang = 'ja' | 'en'
-
-type CalendarEvent = {
-  date: string
-  title: string
-  description?: string
-}
 
 function getTomorrowJST(): string {
   const now = new Date()
@@ -44,44 +37,7 @@ async function sendPushMessage(to: string, text: string): Promise<void> {
  * parsed_pdfs を {hash}% 前方一致で一括取得し、en > ja > bare の優先順位で返す。
  * 新形式 {hash}_{lang}_{fiscalYear}、旧形式 {hash}_{lang}、bare {hash} をすべて拾える。
  */
-async function fetchParsedDataWithLang(
-  supabase: ReturnType<typeof getSupabaseServiceClient>,
-  pdfHash: string
-): Promise<{ events: CalendarEvent[]; lang: Lang } | null> {
-  const { data: rows } = await supabase
-    .from('parsed_pdfs')
-    .select('pdf_hash, extracted_json')
-    .like('pdf_hash', `${pdfHash}%`)
-    .order('created_at', { ascending: false })
 
-  if (!rows || rows.length === 0) return null
-
-  type Candidate = { priority: number; lang: Lang; extracted: unknown }
-  const candidates: Candidate[] = []
-
-  for (const row of rows) {
-    const suffix = row.pdf_hash.slice(pdfHash.length)
-    if (suffix.startsWith('_en')) {
-      candidates.push({ priority: 0, lang: 'en', extracted: row.extracted_json })
-    } else if (suffix.startsWith('_ja')) {
-      candidates.push({ priority: 1, lang: 'ja', extracted: row.extracted_json })
-    } else if (suffix === '') {
-      candidates.push({ priority: 2, lang: 'ja', extracted: row.extracted_json })
-    }
-  }
-
-  if (candidates.length === 0) return null
-
-  candidates.sort((a, b) => a.priority - b.priority)
-  const best = candidates[0]
-
-  const extracted = best.extracted as unknown
-  const events: CalendarEvent[] = Array.isArray(extracted)
-    ? (extracted as CalendarEvent[])
-    : ((extracted as { events?: CalendarEvent[] })?.events ?? [])
-
-  return { events, lang: best.lang }
-}
 
 export async function GET(request: NextRequest) {
   const cronSecret = process.env.CRON_SECRET
@@ -110,7 +66,7 @@ export async function GET(request: NextRequest) {
     try {
       const { data: job } = await serviceClient
         .from('jobs')
-        .select('pdf_hash, parser_mode')
+        .select('id, pdf_hash, parser_mode')
         .eq('user_id', link.user_id)
         .eq('status', 'completed')
         .or('parser_mode.eq.garbage,parser_mode.is.null')
@@ -120,7 +76,7 @@ export async function GET(request: NextRequest) {
 
       if (!job?.pdf_hash) continue
 
-      const parsedResult = await fetchParsedDataWithLang(serviceClient, job.pdf_hash)
+      const parsedResult = await loadUserCalendarEvents(serviceClient, link.user_id, job)
       if (!parsedResult) continue
 
       const { events, lang } = parsedResult

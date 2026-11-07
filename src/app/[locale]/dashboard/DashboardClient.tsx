@@ -245,6 +245,7 @@ export function DashboardClient({
                         </div>
                         
                         <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                          {(job.status === 'awaiting_confirmation' || (job.result_data && typeof job.result_data === 'object' && !Array.isArray(job.result_data) && job.result_data.review_available)) && <Link href={`/jobs/${job.id}/review`} className="inline-flex rounded-lg bg-teal-700 px-3 py-2 text-sm font-bold text-white">{tJobStatus('reviewImport')}</Link>}
                           {job.status === 'completed' && job.result_data && (() => {
                             const rd = job.result_data as JobResultDataLike
                             const inserted = rd.calendar_event_count ?? 0
@@ -311,7 +312,7 @@ export function DashboardClient({
                                                          'bg-blue-100 text-blue-600'
                           }`}
                         >
-                          {job.status === 'completed' ? t('statusCompleted') :
+                          {job.status === 'awaiting_confirmation' ? tJobStatus('awaitingConfirmation') : job.status === 'completed' ? t('statusCompleted') :
                            job.status === 'error'     ? t('statusError')     : t('statusProcessing')}
                         </span>
                       </div>
