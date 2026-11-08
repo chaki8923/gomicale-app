@@ -83,10 +83,13 @@ const organizationJsonLd = {
 
 export default async function RootPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ locale: string }>
+  searchParams: Promise<Record<string, string | string[] | undefined>>
 }) {
   const { locale } = await params
+  const accountDeleted = (await searchParams).accountDeleted === '1'
   const supabase = await getSupabaseServerClient()
   const { data: { user } } = await supabase.auth.getUser()
 
@@ -104,6 +107,7 @@ export default async function RootPage({
 
   return (
     <>
+      {accountDeleted && <div role="status" className="border-b border-teal-200 bg-teal-50 px-4 py-4 text-center text-sm font-medium text-teal-900">{locale==='en' ? 'Your account has been deleted. Events already in Google Calendar remain available.' : '退会が完了しました。Googleカレンダーに登録済みの予定は引き続きご利用いただけます。'}</div>}
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(howToJsonLd) }}

@@ -3,6 +3,7 @@ import { getSupabaseServerClient } from '@/lib/supabase/server'
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3'
 import { randomUUID } from 'crypto'
 import type { Job } from '@/types/database'
+import { accountAccessError } from '@/lib/account-access'
 
 // R2 クライアント（直接 SDK でアップロード）
 const r2Client = new S3Client({
@@ -24,6 +25,8 @@ export async function POST(request: NextRequest) {
   if (authError || !user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
+  const accessError = await accountAccessError(user.id)
+  if (accessError) return accessError
 
   // 1日のアップロード回数チェック（JST基準、エラー除く）
   const nowJst = new Date(Date.now() + 9 * 60 * 60 * 1000)
@@ -74,16 +77,6 @@ export async function POST(request: NextRequest) {
   const fileId = randomUUID()
   const objectKey = `uploads/${user.id}/${fileId}.pdf`
 
-  // R2 にアップロード（サーバー → R2 は同一ネットワーク内なので CORS 不要）
-  await r2Client.send(
-    new PutObjectCommand({
-      Bucket: process.env.R2_BUCKET_NAME!,
-      Key: objectKey,
-      Body: Buffer.from(fileBuffer),
-      ContentType: 'application/pdf',
-    }),
-  )
-
   // jobs テーブルに pending レコードを作成
   const { data: job, error: jobError } = await supabase
     .from('jobs')
@@ -98,6 +91,16 @@ export async function POST(request: NextRequest) {
   if (jobError || !job) {
     console.error('[upload/file] insert job error:', jobError)
     return NextResponse.json({ error: 'Failed to create job' }, { status: 500 })
+  }
+
+  // Reserve the pending job before the object write; deletion sees the upload.
+  try {
+    await r2Client.send(new PutObjectCommand({
+      Bucket:process.env.R2_BUCKET_NAME!,Key:objectKey,Body:Buffer.from(fileBuffer),ContentType:'application/pdf',
+    }), { abortSignal:AbortSignal.timeout(60000) })
+  } catch {
+    await supabase.from('jobs').update({status:'error',error_message:'UPLOAD_FAILED'}).eq('id',job.id)
+    return NextResponse.json({error:'Upload failed'},{status:503})
   }
 
   return NextResponse.json({ jobId: (job as Job).id, objectKey })

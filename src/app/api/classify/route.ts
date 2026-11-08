@@ -3,6 +3,7 @@ import { GoogleGenerativeAI } from '@google/generative-ai'
 import { getSupabaseServerClient, getSupabaseServiceClient } from '@/lib/supabase/server'
 import { loadUserCalendarEvents } from '@/lib/user-calendar-events'
 import { detectSodaiGomi, updateUserStreak } from '@/lib/garbage-classify'
+import { accountAccessError } from '@/lib/account-access'
 
 type CalendarEvent = {
   date: string
@@ -114,6 +115,8 @@ export async function POST(request: NextRequest) {
   if (authError || !user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
+  const accessError = await accountAccessError(user.id)
+  if (accessError) return accessError
   const userId = user.id
 
   // multipart/form-data でテキストと任意の画像を受け取る

@@ -5,6 +5,7 @@ import { getSupabaseServerClient, getSupabaseServiceClient } from '@/lib/supabas
 import { GoogleAccessError } from '../../shared/google-calendars'
 import { accessTokenHasCalendarScope } from '@/lib/google-calendar-access'
 import { validateSettings } from '../../shared/calendar-import'
+import { isAccountActive } from '../../shared/account-lifecycle'
 
 export class ImportError extends Error {
   constructor(public code: string, public status = 400) { super(code) }
@@ -32,7 +33,9 @@ export async function requireImportUser() {
   const auth = await getSupabaseServerClient()
   const { data: { user }, error } = await auth.auth.getUser()
   if (error || !user) throw new ImportError('UNAUTHORIZED', 401)
-  return { user, db: getSupabaseServiceClient() }
+  const db = getSupabaseServiceClient()
+  if (!await isAccountActive(db,user.id)) throw new ImportError('ACCOUNT_DELETING',409)
+  return { user, db }
 }
 export async function ownImport(jobId: string) {
   const { user, db } = await requireImportUser()

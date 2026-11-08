@@ -3,6 +3,7 @@ import { Resend } from 'resend'
 import { getSupabaseServiceClient } from './supabase/server'
 import { AdminEmailError, ERROR_JOBS_PAGE_SIZE } from './admin-error-email-types'
 import { createAdminEmailService, EmailProviderError, type AdminEmailRepository } from './admin-error-email-service'
+import { isAccountActive } from '../../shared/account-lifecycle'
 
 const JOB_FIELDS = 'id, user_id, status, created_at, updated_at, pdf_title, r2_object_key, error_message, result_data'
 
@@ -25,6 +26,7 @@ export function getAdminEmailService() {
     },
     async getUserEmail(userId) {
       try {
+        if (!await isAccountActive(db,userId)) return null
         const { data, error } = await db.auth.admin.getUserById(userId)
         if (error || !data.user?.email || !data.user.email_confirmed_at) return null
         return data.user.email
@@ -63,6 +65,7 @@ export function getAdminEmailService() {
     repository,
     fromEmail: process.env.APP_FROM_EMAIL ?? 'ゴミカレ <onboarding@resend.dev>',
     async send(delivery, idempotencyKey) {
+      if (!await isAccountActive(db,delivery.recipient_user_id) || !await isAccountActive(db,delivery.admin_user_id)) throw new EmailProviderError(true)
       const apiKey = process.env.RESEND_API_KEY
       if (!apiKey) throw new EmailProviderError(true)
       const { data, error } = await new Resend(apiKey).emails.send({

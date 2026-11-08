@@ -2,6 +2,7 @@ import { S3Client, GetObjectCommand } from '@aws-sdk/client-s3'
 import { createClient } from '@supabase/supabase-js'
 import { sendReadyEmail, dispatchConfirmedImport, ImportFollowupError, escapeHtml } from './import-followup'
 import { createSourceEvents, type CalendarImport } from '../../shared/calendar-import'
+import { isAccountActive } from '../../shared/account-lifecycle'
 import { getOwnedCalendars, GoogleAccessError } from '../../shared/google-calendars'
 import { createHash, randomUUID } from 'crypto'
 import { Resend } from 'resend'
@@ -251,7 +252,7 @@ async function dispatchRegistration(review: CalendarImport): Promise<void> {
   return dispatchConfirmedImport(supabase,review,APP_URL,async () => {
     try {
       const { data: { user } } = await supabase.auth.admin.getUserById(review.user_id)
-      if (user?.email) await sendErrorEmail(user.email,'登録を開始できませんでした。ダッシュボードの登録履歴から再試行してください。')
+      if (user?.email && await isAccountActive(supabase,review.user_id)) await sendErrorEmail(user.email,'登録を開始できませんでした。ダッシュボードの登録履歴から再試行してください。')
     } catch { console.warn('[dispatch] error notification failed') }
   })
 }
@@ -294,7 +295,7 @@ async function registerImport(event: LambdaPayload, context?: { getRemainingTime
     // Only the worker that commits success can issue codes or completion mail.
     try {
       const { data: { user } } = await supabase.auth.admin.getUserById(event.userId)
-      if (user?.email) {
+      if (user?.email && await isAccountActive(supabase,event.userId)) {
         const code = job.parser_mode === 'garbage' && !(await isLineLinked(event.userId)) ? (await issueLineLinkCode(event.userId)) ?? undefined : undefined
         await sendCompletionEmail(user.email, selected.length, 0, code)
       }
@@ -317,7 +318,7 @@ async function registerImport(event: LambdaPayload, context?: { getRemainingTime
       await supabase.from('jobs').update({ status: 'error', error_message: message, result_data: { review_available: true, registration_mode: review.registration_mode } }).eq('id', event.jobId)
       try {
         const { data: { user } } = await supabase.auth.admin.getUserById(event.userId)
-        if (user?.email) await sendErrorEmail(user.email,message)
+        if (user?.email && await isAccountActive(supabase,event.userId)) await sendErrorEmail(user.email,message)
       } catch { console.warn('[register] error notification failed') }
     }
     console.error('[register] failed', event.jobId, message)
@@ -325,7 +326,8 @@ async function registerImport(event: LambdaPayload, context?: { getRemainingTime
 }
 
 export const handler = async (event: LambdaPayload, context?: { getRemainingTimeInMillis(): number }): Promise<unknown> => {
-  if (event.action === 'health') return { protocol: 'calendar-review-v1', revision: 3, readyEmailConfigured: !!process.env.RESEND_API_KEY, testSender: /@resend\.dev/i.test(process.env.APP_FROM_EMAIL ?? '') }
+  if (event.action === 'health') return { protocol: 'calendar-review-v1', revision: 4, readyEmailConfigured: !!process.env.RESEND_API_KEY, testSender: /@resend\.dev/i.test(process.env.APP_FROM_EMAIL ?? '') }
+  if (!await isAccountActive(supabase,event.userId)) return
   if (event.action === 'register') return registerImport(event, context)
   if (event.action === 'analyze') {
     const { data: review } = await supabase.from('calendar_imports').select('*').eq('job_id',event.jobId).single()
@@ -536,7 +538,7 @@ export const handler = async (event: LambdaPayload, context?: { getRemainingTime
     // ── 9. 完了通知メール送信（失敗してもジョブは成功扱い）──────
     try {
       const { data: { user: authUser } } = await supabase.auth.admin.getUserById(userId)
-      if (authUser?.email) {
+      if (authUser?.email && await isAccountActive(supabase,userId)) {
         // ゴミ出しカレンダーかつ LINE 未連携のユーザーにのみコードを発行してメールに添付
         let lineLinkCode: string | undefined
         if (resolvedParserMode === 'garbage') {
@@ -601,7 +603,7 @@ export const handler = async (event: LambdaPayload, context?: { getRemainingTime
     // エラー通知メール送信（失敗しても無視）
     try {
       const { data: { user: authUser } } = await supabase.auth.admin.getUserById(userId)
-      if (authUser?.email) {
+      if (authUser?.email && await isAccountActive(supabase,userId)) {
         await sendErrorEmail(authUser.email, message)
       }
     } catch (emailErr) {

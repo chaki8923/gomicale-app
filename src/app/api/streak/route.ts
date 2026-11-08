@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { getSupabaseServerClient, getSupabaseServiceClient } from '@/lib/supabase/server'
+import { accountAccessError } from '@/lib/account-access'
 
 export async function GET() {
   const supabase = await getSupabaseServerClient()
@@ -13,6 +14,8 @@ export async function GET() {
   }
 
   const serviceClient = getSupabaseServiceClient()
+  const accessError = await accountAccessError(user.id)
+  if (accessError) return accessError
   const { data: streak } = await serviceClient
     .from('user_streaks')
     .select('current_streak, longest_streak, total_classifications')

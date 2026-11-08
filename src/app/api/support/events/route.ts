@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseServerClient, getSupabaseServiceClient } from '@/lib/supabase/server'
 import { isRevenueEventName, isSupportSource, isUuid, SUPPORT_AMOUNTS } from '@/lib/support'
+import { accountAccessError } from '@/lib/account-access'
 
 type EventBody = {
   eventName?: unknown
@@ -38,6 +39,10 @@ export async function POST(request: NextRequest) {
 
     const supabase = await getSupabaseServerClient()
     const { data: { user } } = await supabase.auth.getUser()
+    if (user) {
+      const accessError = await accountAccessError(user.id)
+      if (accessError) return accessError
+    }
 
     if (body.source !== 'donate_page' && !user) {
       return NextResponse.json({ error: 'Authentication required' }, { status: 401 })

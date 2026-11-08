@@ -5,6 +5,7 @@ import { getSupabaseServiceClient } from '@/lib/supabase/server'
 import { GoogleGenerativeAI } from '@google/generative-ai'
 import { detectSodaiGomi, updateUserStreak, buildXShareUrl } from '@/lib/garbage-classify'
 import { getSodaiGomiSearchUrl } from '@/lib/sodai-gomi-urls'
+import { isAccountActive } from '../../../../../shared/account-lifecycle'
 
 // ============================================================
 // 型定義
@@ -303,6 +304,7 @@ async function handleMessageEvent(event: LineMessageEvent) {
         return
       }
 
+      if (!await isAccountActive(serviceClient,linkCode.user_id)) return
       await serviceClient
         .from('line_links')
         .upsert({ user_id: linkCode.user_id, line_source_id: lineSourceId }, { onConflict: 'line_source_id' })
@@ -318,6 +320,7 @@ async function handleMessageEvent(event: LineMessageEvent) {
         .update({ used_at: now })
         .eq('id', linkCode.id)
 
+      if (!await isAccountActive(serviceClient,linkCode.user_id)) return
       await replyText(
         event.replyToken,
         '✅ GomiCale LINE integration complete!\n\nYou can now look up garbage sorting via LINE.\nTry sending "plastic bottle" or "battery" 🗑️\n\n✅ ゴミカレとのLINE連携が完了しました！\n\nこれからはLINEでゴミの分別を調べられます。\n例：「ペットボトル」「電池」と送ってみてください 🗑️'
@@ -349,6 +352,7 @@ async function handleMessageEvent(event: LineMessageEvent) {
 
     if (integration) {
       userId = integration.user_id
+      if (!await isAccountActive(serviceClient,userId)) return
       await serviceClient
         .from('line_links')
         .upsert({ user_id: userId, line_source_id: lineSourceId }, { onConflict: 'line_source_id' })
@@ -362,6 +366,7 @@ async function handleMessageEvent(event: LineMessageEvent) {
   }
 
   // ユーザーの最新ゴミカレジョブを取得
+  if (!await isAccountActive(serviceClient,userId)) return
   const { data: job } = await serviceClient
     .from('jobs')
     .select('id, pdf_hash, parser_mode')
@@ -425,6 +430,7 @@ async function handleMessageEvent(event: LineMessageEvent) {
         : (isTomorrow ? '明日' : '今日')
 
       const replyMessage = getCollectionsByDate(events_data, dateStr, label, lang)
+      if (!await isAccountActive(serviceClient,userId)) return
       await replyText(event.replyToken, replyMessage)
       return
     }
@@ -557,6 +563,7 @@ async function handleMessageEvent(event: LineMessageEvent) {
     ? `\n\n📢 Share on X:\n${shareUrl}`
     : `\n\n📢 Xでシェア:\n${shareUrl}`
 
+  if (!await isAccountActive(serviceClient,userId)) return
   await replyText(event.replyToken, replyMessage)
 }
 

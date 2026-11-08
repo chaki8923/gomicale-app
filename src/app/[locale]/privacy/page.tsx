@@ -127,6 +127,9 @@ function PrivacyJa() {
         <h2 className="text-2xl font-semibold text-gray-900 mb-4">第6条（個人情報の開示・訂正・削除）</h2>
         <div className="text-gray-700 space-y-3">
           <p>ユーザーは、自己の個人情報について、開示、訂正、削除を求めることができます。ご希望の場合は、下記お問い合わせ窓口までご連絡ください。</p>
+          <p>アカウントの削除は、ログイン後のダッシュボードにある「アカウント」欄の「退会する」から行えます。アップロード・解析・カレンダー登録が進行中の場合は、処理完了後にお手続きください。</p>
+          <p>退会すると、アカウント情報、アップロード資料、登録履歴、編集中の内容、お問い合わせ履歴、Google・LINEの連携情報を削除し、LINEの収集日通知を停止します。Googleカレンダーに登録済みの予定とGoogleアカウント自体は削除されません。退会前のデータは復元できません。</p>
+          <p>開発支援の決済記録はアカウントとの紐付けを外して保持します。他の利用者も使用している同一資料の共有解析結果は保持し、退会者の編集内容は共有しません。削除処理が中断された場合は再試行し、処理完了後に復旧用の最小限の記録も削除します。</p>
         </div>
       </section>
       <section>
@@ -175,7 +178,7 @@ function PrivacyEn() {
     <>
       <section>
         <p className="text-gray-700">
-          Ryo Chaki ("we", "us", or "our") has established the following Privacy Policy ("Policy") regarding the handling of user personal information in providing GomiCale ("Service").
+          Ryo Chaki (&quot;we&quot;, &quot;us&quot;, or &quot;our&quot;) has established the following Privacy Policy (&quot;Policy&quot;) regarding the handling of user personal information in providing GomiCale (&quot;Service&quot;).
         </p>
       </section>
       <section>
@@ -210,7 +213,7 @@ function PrivacyEn() {
         <div className="text-gray-700 space-y-3">
           <p>Use of information obtained from Google accounts is strictly limited to the following purposes:</p>
           <ul className="list-disc list-inside space-y-2 ml-4">
-            <li>Registering and reviewing events in users' Google Calendar (utilizing the minimum required OAuth scope: <code>https://www.googleapis.com/auth/calendar.events</code>)</li>
+            <li>Registering and reviewing events in users&apos; Google Calendar (utilizing the minimum required OAuth scope: <code>https://www.googleapis.com/auth/calendar.events</code>)</li>
             <li>User authentication and identity verification (<code>email</code>, <code>profile</code>, <code>openid</code>)</li>
           </ul>
           <p className="mt-3">The obtained Google account information will not be used for any purposes other than the above, nor will it be provided to any third parties. Furthermore, authentication credentials such as access tokens obtained through OAuth are securely protected and managed using encrypted communication and strict access controls.</p>
@@ -237,6 +240,11 @@ function PrivacyEn() {
       <section>
         <h2 className="text-2xl font-semibold text-gray-900 mb-4">Article 6 (Disclosure, Correction, Deletion)</h2>
         <p className="text-gray-700">Users may request disclosure, correction, or deletion of their personal information. Please contact us via the inquiry form below.</p>
+        <div className="mt-3 space-y-3 text-gray-700">
+          <p>You can delete your account from the Account section of your dashboard. If an upload, analysis, or calendar import is in progress, please wait until it finishes.</p>
+          <p>Deleting your account removes your account details, uploaded documents, import history, drafts, inquiry history, and Google and LINE connections, and stops LINE collection reminders. Events already added to Google Calendar and your Google account itself remain available. Deleted account data cannot be restored.</p>
+          <p>Development support payment records are retained without a link to your account. Shared analysis results for documents also used by other users are retained; your edits are never shared. Interrupted deletion steps are retried, and the minimal recovery record is removed after cleanup finishes.</p>
+        </div>
       </section>
       <section>
         <h2 className="text-2xl font-semibold text-gray-900 mb-4">Article 7 (Security)</h2>

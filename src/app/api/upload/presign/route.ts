@@ -3,6 +3,7 @@ import { getSupabaseServerClient } from '@/lib/supabase/server'
 import { createPresignedUploadUrl } from '@/lib/r2'
 import { randomUUID } from 'crypto'
 import type { Job } from '@/types/database'
+import { accountAccessError } from '@/lib/account-access'
 
 // アップロード可能な MIME タイプ
 const ALLOWED_CONTENT_TYPES = ['application/pdf', 'image/jpeg', 'image/png', 'image/webp']
@@ -16,6 +17,8 @@ export async function POST(request: NextRequest) {
   if (authError || !user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
+  const accessError = await accountAccessError(user.id)
+  if (accessError) return accessError
 
   const body = await request.json().catch(() => ({})) as { contentType?: string }
   const contentType = body.contentType ?? 'application/pdf'

@@ -680586,6 +680586,13 @@ var Resend = class {
   }
 };
 
+// ../shared/account-lifecycle.ts
+async function isAccountActive(db, userId) {
+  const { data, error } = await db.rpc("account_is_active", { p_user_id: userId });
+  if (error) throw new Error("ACCOUNT_CHECK_FAILED");
+  return data === true;
+}
+
 // src/import-followup.ts
 var ImportFollowupError = class extends Error {
   constructor(code) {
@@ -680633,6 +680640,7 @@ async function getTask(db, jobId) {
   return data;
 }
 async function sendReadyEmail(db, review, title, appUrl) {
+  if (!await isAccountActive(db, review.user_id)) return;
   if (review.registration_mode === "auto" || review.state !== "ready") return;
   let task = await getTask(db, review.job_id);
   if (task.email_status === "sent") return;
@@ -680651,6 +680659,7 @@ async function sendReadyEmail(db, review, title, appUrl) {
   }
   try {
     if (!process.env.RESEND_API_KEY) throw new ImportFollowupError("EMAIL_NOT_CONFIGURED");
+    if (!await isAccountActive(db, review.user_id)) return;
     const { data, error } = await new Resend(process.env.RESEND_API_KEY).emails.send(task.email_payload, { idempotencyKey: `calendar-review-ready/${review.job_id}` });
     if (error || !data?.id) throw new ImportFollowupError("EMAIL_PROVIDER_REJECTED");
     const { error: saveError } = await db.from("calendar_import_tasks").update({ email_status: "sent", email_provider_id: data.id, email_sent_at: (/* @__PURE__ */ new Date()).toISOString(), email_error_code: null }).eq("job_id", review.job_id);
@@ -680662,6 +680671,7 @@ async function sendReadyEmail(db, review, title, appUrl) {
   }
 }
 async function dispatchConfirmedImport(db, review, appUrl, onTerminalFailure) {
+  if (!await isAccountActive(db, review.user_id)) return;
   if (!review.confirmed || review.state !== "registering") return;
   const task = await getTask(db, review.job_id);
   const initialAttempts = task.dispatch_attempts ?? 0;
@@ -682701,7 +682711,7 @@ async function dispatchRegistration(review) {
   return dispatchConfirmedImport(supabase, review, APP_URL, async () => {
     try {
       const { data: { user } } = await supabase.auth.admin.getUserById(review.user_id);
-      if (user?.email) await sendErrorEmail(user.email, "\u767B\u9332\u3092\u958B\u59CB\u3067\u304D\u307E\u305B\u3093\u3067\u3057\u305F\u3002\u30C0\u30C3\u30B7\u30E5\u30DC\u30FC\u30C9\u306E\u767B\u9332\u5C65\u6B74\u304B\u3089\u518D\u8A66\u884C\u3057\u3066\u304F\u3060\u3055\u3044\u3002");
+      if (user?.email && await isAccountActive(supabase, review.user_id)) await sendErrorEmail(user.email, "\u767B\u9332\u3092\u958B\u59CB\u3067\u304D\u307E\u305B\u3093\u3067\u3057\u305F\u3002\u30C0\u30C3\u30B7\u30E5\u30DC\u30FC\u30C9\u306E\u767B\u9332\u5C65\u6B74\u304B\u3089\u518D\u8A66\u884C\u3057\u3066\u304F\u3060\u3055\u3044\u3002");
     } catch {
       console.warn("[dispatch] error notification failed");
     }
@@ -682752,7 +682762,7 @@ async function registerImport(event, context) {
     if (!finished) return;
     try {
       const { data: { user } } = await supabase.auth.admin.getUserById(event.userId);
-      if (user?.email) {
+      if (user?.email && await isAccountActive(supabase, event.userId)) {
         const code = job.parser_mode === "garbage" && !await isLineLinked(event.userId) ? await issueLineLinkCode(event.userId) ?? void 0 : void 0;
         await sendCompletionEmail(user.email, selected.length, 0, code);
       }
@@ -682772,7 +682782,7 @@ async function registerImport(event, context) {
       await supabase.from("jobs").update({ status: "error", error_message: message, result_data: { review_available: true, registration_mode: review.registration_mode } }).eq("id", event.jobId);
       try {
         const { data: { user } } = await supabase.auth.admin.getUserById(event.userId);
-        if (user?.email) await sendErrorEmail(user.email, message);
+        if (user?.email && await isAccountActive(supabase, event.userId)) await sendErrorEmail(user.email, message);
       } catch {
         console.warn("[register] error notification failed");
       }
@@ -682781,7 +682791,8 @@ async function registerImport(event, context) {
   }
 }
 var handler = async (event, context) => {
-  if (event.action === "health") return { protocol: "calendar-review-v1", revision: 3, readyEmailConfigured: !!process.env.RESEND_API_KEY, testSender: /@resend\.dev/i.test(process.env.APP_FROM_EMAIL ?? "") };
+  if (event.action === "health") return { protocol: "calendar-review-v1", revision: 4, readyEmailConfigured: !!process.env.RESEND_API_KEY, testSender: /@resend\.dev/i.test(process.env.APP_FROM_EMAIL ?? "") };
+  if (!await isAccountActive(supabase, event.userId)) return;
   if (event.action === "register") return registerImport(event, context);
   if (event.action === "analyze") {
     const { data: review } = await supabase.from("calendar_imports").select("*").eq("job_id", event.jobId).single();
@@ -682944,7 +682955,7 @@ var handler = async (event, context) => {
     console.info("[handler] done", jobId);
     try {
       const { data: { user: authUser } } = await supabase.auth.admin.getUserById(userId);
-      if (authUser?.email) {
+      if (authUser?.email && await isAccountActive(supabase, userId)) {
         let lineLinkCode;
         if (resolvedParserMode === "garbage") {
           const linked = await isLineLinked(userId);
@@ -682990,7 +683001,7 @@ var handler = async (event, context) => {
     }).eq("id", jobId);
     try {
       const { data: { user: authUser } } = await supabase.auth.admin.getUserById(userId);
-      if (authUser?.email) {
+      if (authUser?.email && await isAccountActive(supabase, userId)) {
         await sendErrorEmail(authUser.email, message);
       }
     } catch (emailErr) {

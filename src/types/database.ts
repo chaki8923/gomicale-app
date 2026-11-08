@@ -1,6 +1,7 @@
 import type { CalendarImportTask } from '../../shared/calendar-import-task'
 import type { CalendarImport } from '../../shared/calendar-import'
 import type { ErrorEmailDelivery } from '@/lib/admin-error-email-types'
+import type { AccountDeletion } from '../../shared/account-lifecycle'
 
 export type Json =
   | string
@@ -18,6 +19,12 @@ export type Database = {
   }
   public: {
     Tables: {
+      account_deletion_requests: {
+        Row: AccountDeletion
+        Insert: Pick<AccountDeletion, 'user_id'> & Partial<AccountDeletion>
+        Update: Partial<AccountDeletion>
+        Relationships: []
+      }
       calendar_import_tasks: {
         Row: CalendarImportTask
         Insert: Pick<CalendarImportTask, 'job_id'> & Partial<CalendarImportTask>
@@ -428,7 +435,10 @@ export type Database = {
       }
     }
     Functions: {
-      [_ in never]: never
+      account_is_active: { Args: { p_user_id: string }; Returns: boolean }
+      account_deletion_blockers: { Args: { p_user_id: string }; Returns: { id: string; title: string | null; status: string }[] }
+      begin_account_deletion: { Args: { p_user_id: string; p_token: string }; Returns: AccountDeletion[] }
+      cleanup_deleted_account_cache: { Args: { p_user_id: string; p_token: string }; Returns: boolean }
     }
     Enums: {
       job_status: "pending" | "processing" | "awaiting_confirmation" | "completed" | "error"

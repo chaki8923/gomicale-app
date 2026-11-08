@@ -40,6 +40,7 @@ function setup() {
   const review={registration_mode:'review',job_id:'00000000-0000-4000-8000-000000000001',user_id:'alice',state:'ready',revision:0,source_events:source(),draft:draft(),confirmed:null,language:'ja',lease_token:null,lease_until:null,error:null,registered_count:0,updated_at:new Date().toISOString()}
   fixture={tick:Date.now(),tables:{calendar_imports:[review],jobs:[{id:review.job_id,user_id:'alice',status:'awaiting_confirmation',r2_object_key:'sample.png',pdf_hash:'hash',parser_mode:'garbage'}],user_integrations:[{user_id:'alice',google_refresh_token_enc:'refresh',selected_calendar_id:null,line_user_id:'linked'}],parsed_pdfs:[]},user:{id:'alice'},invocations:[],writes:[],emails:[],emailRequests:[],emailKeys:new Map(),dispatches:[],parseCalls:0,tokenCalls:0,owner:true,fail:false}
   fixture.db={from:table=>new Query(table),auth:{getUser:async()=>({data:{user:fixture.user}}),admin:{getUserById:async()=>({data:{user:{email:'test@example.test'}}})}}, rpc:async(name,args)=>{
+    if(name==='account_is_active')return {data:!fixture.deleting,error:null}
     const r=fixture.tables.calendar_imports.find(r=>r.job_id===args.p_job_id)
     if(name==='prepare_calendar_review') {
       if(r?.state!=='analyzing')return {data:false,error:null}
@@ -104,6 +105,15 @@ test('CIELAB matches standard colors; unknown colors are never inferred',()=>{
   for(const [id,c] of Object.entries(model.STANDARD_EVENT_COLORS))assert.equal(model.nearestColor(c.background),id)
   assert.equal(model.nearestColor('#47d5dc'),'7');assert.equal(model.nearestColor(null),null)
   assert.equal(source()[1].sourceColor,null);assert.equal(source()[1].colorId,null)
+})
+test('deleting accounts cannot edit, confirm, run queued workers or send review notifications',async()=>{
+  const r=setup();fixture.deleting=true
+  assert.equal((await reviewRoute.PATCH(request({revision:0,draft:draft()},'PATCH'),context())).status,409)
+  assert.equal((await importRoute.POST(request({revision:0}),context())).status,409)
+  await worker.handler({action:'analyze',jobId:r.job_id,userId:'alice',r2ObjectKey:'sample.png'})
+  await worker.handler({action:'register',jobId:r.job_id,userId:'alice'})
+  await followup.sendReadyEmail(fixture.db,r,'Calendar','https://gomicale.jp')
+  assert.equal(fixture.writes.length,0);assert.equal(fixture.parseCalls,0);assert.equal(fixture.emails.length,0)
 })
 test('real dates, names, duplicate selections, colors and settings are validated',()=>{
   for(const date of ['2026-02-30','2026-13-01','2026-00-10','not a date'])assert.equal(model.validDate(date),false)

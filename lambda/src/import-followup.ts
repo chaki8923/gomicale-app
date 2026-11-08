@@ -2,6 +2,7 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import { Resend } from 'resend'
 import type { CalendarImport } from '../../shared/calendar-import'
 import type { CalendarImportTask, ReadyEmailPayload } from '../../shared/calendar-import-task'
+import { isAccountActive } from '../../shared/account-lifecycle'
 
 /** Thrown after analysis has committed, so async Lambda retries only its follow-up. */
 export class ImportFollowupError extends Error {
@@ -25,6 +26,7 @@ async function getTask(db: SupabaseClient, jobId: string): Promise<CalendarImpor
   return data as CalendarImportTask
 }
 export async function sendReadyEmail(db: SupabaseClient, review: CalendarImport, title: string | null, appUrl: string): Promise<void> {
+  if (!await isAccountActive(db,review.user_id)) return
   if (review.registration_mode === 'auto' || review.state !== 'ready') return
   let task = await getTask(db, review.job_id)
   if (task.email_status === 'sent') return
@@ -45,6 +47,7 @@ export async function sendReadyEmail(db: SupabaseClient, review: CalendarImport,
   }
   try {
     if (!process.env.RESEND_API_KEY) throw new ImportFollowupError('EMAIL_NOT_CONFIGURED')
+    if (!await isAccountActive(db,review.user_id)) return
     const { data, error } = await new Resend(process.env.RESEND_API_KEY).emails.send(task.email_payload, { idempotencyKey: `calendar-review-ready/${review.job_id}` })
     if (error || !data?.id) throw new ImportFollowupError('EMAIL_PROVIDER_REJECTED')
     const { error: saveError } = await db.from('calendar_import_tasks').update({ email_status: 'sent', email_provider_id: data.id, email_sent_at: new Date().toISOString(), email_error_code: null }).eq('job_id',review.job_id)
@@ -56,6 +59,7 @@ export async function sendReadyEmail(db: SupabaseClient, review: CalendarImport,
   }
 }
 export async function dispatchConfirmedImport(db: SupabaseClient, review: CalendarImport, appUrl: string, onTerminalFailure?: () => Promise<void>): Promise<void> {
+  if (!await isAccountActive(db,review.user_id)) return
   if (!review.confirmed || review.state !== 'registering') return
   const task = await getTask(db,review.job_id)
   const initialAttempts = task.dispatch_attempts ?? 0

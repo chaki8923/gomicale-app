@@ -17,6 +17,7 @@ import { CalendarPermissionModal } from '@/components/CalendarPermissionModal'
 import { InquiryPanel } from '@/components/InquiryPanel'
 import { InquiryReplyModal } from '@/components/InquiryReplyModal'
 import { SupportCard } from '@/components/SupportCard'
+import { AccountDeletionPanel } from '@/components/AccountDeletionPanel'
 import { getJobErrorCode, isCalendarReauthErrorCode, type JobResultDataLike } from '@/lib/job-errors'
 import type { Job } from '@/types/database'
 import type { UnreadReply } from '@/components/InquiryReplyModal'
@@ -346,6 +347,8 @@ export function DashboardClient({
         <section>
           <LineLinkManager hasCompletedJob={initialJobs.some((j) => j.status === 'completed')} />
         </section>
+
+        <AccountDeletionPanel email={userEmail} accountId={userId} />
 
       </main>
       </div>

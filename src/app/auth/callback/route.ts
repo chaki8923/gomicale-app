@@ -3,6 +3,7 @@ import { createServerClient } from '@supabase/ssr'
 import { getSupabaseServiceClient } from '@/lib/supabase/server'
 import { accessTokenHasCalendarScope } from '@/lib/google-calendar-access'
 import type { Database } from '@/types/database'
+import { isAccountActive } from '../../../../shared/account-lifecycle'
 
 // Google OAuth コールバック処理
 // ・セッション確立（クッキーをリダイレクトレスポンスに明示的に設定）
@@ -63,6 +64,11 @@ export async function GET(request: NextRequest) {
   }
 
   const { session, user } = data
+  // A re-login during a partially completed deletion may only resume that deletion.
+  if (!await isAccountActive(getSupabaseServiceClient(),user.id)) {
+    response.headers.set('location',`${origin}/${locale}/dashboard`)
+    return response
+  }
 
   // Google provider_token (アクセストークン) と provider_refresh_token を保存
   // Supabase は OAuth セッション確立時にプロバイダートークンを session に含める

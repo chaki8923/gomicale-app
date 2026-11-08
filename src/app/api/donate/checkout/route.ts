@@ -1,6 +1,7 @@
 import { randomBytes } from 'node:crypto'
 import { NextRequest, NextResponse } from 'next/server'
 import { getStripeClient } from '@/lib/stripe'
+import { accountAccessError } from '@/lib/account-access'
 import { getSupabaseServerClient, getSupabaseServiceClient } from '@/lib/supabase/server'
 import {
   isSupportSource,
@@ -37,6 +38,10 @@ export async function POST(request: NextRequest) {
 
     const supabase = await getSupabaseServerClient()
     const { data: { user } } = await supabase.auth.getUser()
+    if (user) {
+      const accessError = await accountAccessError(user.id)
+      if (accessError) return accessError
+    }
     const source: SupportSource = user ? requestedSource : 'donate_page'
 
     let jobId: string | null = null

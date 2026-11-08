@@ -1,4 +1,4 @@
-import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3'
+import { S3Client, PutObjectCommand, ListObjectsV2Command, DeleteObjectsCommand } from '@aws-sdk/client-s3'
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
 
 // Cloudflare R2 は S3 互換 API を持つため AWS SDK で操作可能
@@ -52,4 +52,17 @@ export async function createPresignedUploadUrl(
   })
 
   return { uploadUrl, objectKey }
+}
+
+/** Page from the beginning after deletion, so keys are never skipped. */
+export async function deleteAccountFiles(userId: string, deadline: number): Promise<boolean> {
+  if (!/^[\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12}$/i.test(userId)) throw new Error('INVALID_USER')
+  while (Date.now() < deadline - 10000) {
+    const page = await r2Client.send(new ListObjectsV2Command({ Bucket: BUCKET_NAME, Prefix: `uploads/${userId}/`, MaxKeys: 1000 }), { abortSignal: AbortSignal.timeout(8000) })
+    const objects = (page.Contents ?? []).flatMap(item => item.Key ? [{ Key: item.Key }] : [])
+    if (!objects.length) return true
+    const result = await r2Client.send(new DeleteObjectsCommand({ Bucket: BUCKET_NAME, Delete: { Objects: objects, Quiet: true } }), { abortSignal: AbortSignal.timeout(8000) })
+    if (result.Errors?.length) throw new Error('FILES_DELETE_FAILED')
+  }
+  return false
 }

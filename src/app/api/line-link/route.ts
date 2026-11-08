@@ -1,5 +1,6 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import { getSupabaseServerClient, getSupabaseServiceClient } from '@/lib/supabase/server'
+import { accountAccessError } from '@/lib/account-access'
 
 /** POST /api/line-link — LINE連携用の6桁コードを生成する */
 export async function POST() {
@@ -10,6 +11,8 @@ export async function POST() {
   }
 
   const serviceClient = getSupabaseServiceClient()
+  const accessError = await accountAccessError(user.id)
+  if (accessError) return accessError
 
   // 既存の未使用コードを削除（1ユーザー1コード）
   await serviceClient
@@ -43,6 +46,8 @@ export async function GET() {
   }
 
   const serviceClient = getSupabaseServiceClient()
+  const accessError = await accountAccessError(user.id)
+  if (accessError) return accessError
   const { data } = await serviceClient
     .from('user_integrations')
     .select('line_user_id')
@@ -53,7 +58,7 @@ export async function GET() {
 }
 
 /** DELETE /api/line-link — LINE連携を解除する */
-export async function DELETE(_request: NextRequest) {
+export async function DELETE() {
   const supabase = await getSupabaseServerClient()
   const { data: { user }, error: authError } = await supabase.auth.getUser()
   if (authError || !user) {
@@ -61,6 +66,8 @@ export async function DELETE(_request: NextRequest) {
   }
 
   const serviceClient = getSupabaseServiceClient()
+  const accessError = await accountAccessError(user.id)
+  if (accessError) return accessError
   await serviceClient
     .from('user_integrations')
     .update({ line_user_id: null })

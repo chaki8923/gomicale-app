@@ -570,5 +570,36 @@
       "description": "Choose a calendar, edit dates, names and colors, and exclude events before importing.",
       "notice": "When analysis is ready, we will email you a link to review. Nothing is added to Google Calendar until you confirm."
     }
+  },
+  "accountDeletion": {
+    "sectionTitle": "Account",
+    "sectionDescription": "Manage the deletion of your account and saved data.",
+    "open": "Delete account",
+    "resume": "Check account deletion",
+    "pendingDescription": "Account deletion has started. Check its progress or retry here.",
+    "title": "Delete your account?",
+    "description": "Your data in GomiCale will be deleted. This cannot be undone.",
+    "target": "Account to delete",
+    "deletedTitle": "What will be deleted",
+    "deletedDescription": "Your account details, uploaded PDFs and images, import history, drafts and pending events, inquiry history, and Google and LINE connections. LINE collection reminders will also stop.",
+    "calendarTitle": "Your Google Calendar events will remain",
+    "calendarDescription": "Events already added to your calendar will stay. Your Google account itself will remain available.",
+    "paymentNote": "Development support payment records are retained without a link to your account.",
+    "acknowledge": "I understand which data will be deleted and that this cannot be undone.",
+    "cancel": "Cancel",
+    "close": "Close",
+    "confirm": "Delete account and data",
+    "processing": "Deleting account…",
+    "checking": "Checking whether your account can be deleted…",
+    "deleting": "Your data is being deleted. Account deletion has started and will continue even if you close this page.",
+    "activeTitle": "Wait for processing to finish",
+    "activeJobs": "An upload, analysis, or calendar import is in progress. Please try again once it finishes. An upload that never started will stop blocking deletion after a short wait.",
+    "unnamedJob": "Uploaded file",
+    "retry": "Retry account deletion",
+    "retryDescription": "Some deletion steps have not finished. Account deletion has already started, so normal account actions are paused. Please retry.",
+    "loadFailed": "Could not check the status. Check your connection. We will check again automatically.",
+    "deleteFailed": "Could not start account deletion. Check your connection and try again.",
+    "sessionExpired": "Your sign-in has expired. Reload the page and sign in again.",
+    "accountChanged": "The signed-in account has changed. Reload the page and check the account again."
   }
 }

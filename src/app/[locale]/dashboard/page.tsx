@@ -7,6 +7,7 @@ import type { Metadata } from 'next'
 import { hasSupportCooldownExpired } from '@/lib/support-server'
 import { getAdminEmail } from '@/lib/admin-auth'
 import { isAdminUser } from '@/lib/admin-identity'
+import { AccountDeletionPanel } from '@/components/AccountDeletionPanel'
 
 export const metadata: Metadata = {
   title: 'Dashboard',
@@ -30,6 +31,10 @@ export default async function DashboardPage({
 
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect(`/${locale}`)
+
+  const { data: deletion, error: deletionError } = await serviceClient.from('account_deletion_requests').select('user_id').eq('user_id',user.id).maybeSingle()
+  if (deletionError) throw new Error('Account status unavailable')
+  if (deletion) return <main className="min-h-screen bg-teal-50 p-4 pt-12"><div className="mx-auto max-w-2xl"><AccountDeletionPanel email={user.email ?? ''} accountId={user.id} initialPending /></div></main>
 
   const { data: jobs } = await supabase
     .from('jobs')

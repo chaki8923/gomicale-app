@@ -1,6 +1,10 @@
 import { loadUserCalendarEvents } from '@/lib/user-calendar-events'
 import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseServiceClient } from '@/lib/supabase/server'
+import { isAccountActive } from '../../../../../shared/account-lifecycle'
+import { retryAccountDeletions } from '@/lib/account-deletion-server'
+
+export const maxDuration = 60
 
 function getTomorrowJST(): string {
   const now = new Date()
@@ -48,6 +52,8 @@ export async function GET(request: NextRequest) {
     }
   }
 
+  await retryAccountDeletions()
+
   const serviceClient = getSupabaseServiceClient()
   const tomorrowStr = getTomorrowJST()
 
@@ -64,6 +70,7 @@ export async function GET(request: NextRequest) {
 
   for (const link of lineLinks) {
     try {
+      if (!await isAccountActive(serviceClient,link.user_id)) continue
       const { data: job } = await serviceClient
         .from('jobs')
         .select('id, pdf_hash, parser_mode')
@@ -161,6 +168,7 @@ export async function GET(request: NextRequest) {
           .trim()
       }
 
+      if (!await isAccountActive(serviceClient,link.user_id)) continue
       await sendPushMessage(link.line_source_id, message)
       sentCount++
     } catch (err) {
