@@ -48,6 +48,7 @@ export async function getBlogList(options?: {
       offset: options?.offset ?? 0,
       orders: '-publishedAt',
     },
+    customRequestInit: { next: { revalidate: 3600 } },
   })
 }
 

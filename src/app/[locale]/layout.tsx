@@ -5,6 +5,7 @@ import { notFound } from 'next/navigation'
 import { routing } from '@/i18n/routing'
 import { Analytics } from '@vercel/analytics/next'
 import { SoftwareApplicationJsonLd } from '@/components/JsonLd'
+import { setRequestLocale } from 'next-intl/server'
 
 const geist = Geist({ subsets: ['latin'] })
 
@@ -162,6 +163,7 @@ export default async function LocaleLayout({
   if (!hasLocale(routing.locales, locale)) {
     notFound()
   }
+  setRequestLocale(locale)
 
   return (
     <html lang={locale}>

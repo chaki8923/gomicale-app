@@ -28,7 +28,8 @@ export async function updateSession(request: NextRequest) {
   )
 
   // セッションの有効期限を更新（getUser は必ず呼ぶ）
-  const { data: { user } } = await supabase.auth.getUser()
+  const { data, error } = await supabase.auth.getUser()
+  const user = error ? null : data.user
 
   // 未認証ユーザーをログインページにリダイレクト
   // ロケールプレフィックス（/ja/, /en/）を除いたパスで判定
@@ -40,10 +41,16 @@ export async function updateSession(request: NextRequest) {
     pathnameWithoutLocale.startsWith(path),
   )
 
-  if (isProtected && !user) {
+  const locale = rawPathname.match(/^\/(ja|en)(?:\/|$)/)?.[1] ?? (request.cookies.get('NEXT_LOCALE')?.value==='en'?'en':'ja')
+  const isHome = pathnameWithoutLocale==='/'
+  if ((isProtected && !user) || (isHome && user)) {
     const url = request.nextUrl.clone()
-    url.pathname = '/'
-    return NextResponse.redirect(url)
+    url.pathname = isHome && user ? `/${locale}/dashboard` : `/${locale}`
+    url.search = ''
+    const redirect = NextResponse.redirect(url)
+    supabaseResponse.cookies.getAll().forEach(cookie=>redirect.cookies.set(cookie))
+    redirect.headers.set('Cache-Control','private, no-store')
+    return redirect
   }
 
   return supabaseResponse

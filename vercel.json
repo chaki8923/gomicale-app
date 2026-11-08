@@ -1,5 +1,6 @@
 {
   "framework": "nextjs",
+  "regions": ["hnd1"],
   "buildCommand": "next build",
   "crons": [
     {

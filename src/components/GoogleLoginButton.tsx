@@ -1,6 +1,5 @@
 'use client'
 
-import { getSupabaseBrowserClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/Button'
 
 interface GoogleLoginButtonProps {
@@ -27,6 +26,7 @@ export async function startGoogleOAuth({
   forceConsent = true,
   postAuthPath,
 }: StartGoogleOAuthOptions = {}) {
+  const { getSupabaseBrowserClient } = await import('@/lib/supabase/client')
   const supabase = getSupabaseBrowserClient()
 
   const redirectBase = `${window.location.origin}/auth/callback`
@@ -95,6 +95,8 @@ export function GoogleLoginButton({
   return (
     <Button
       onClick={handleGoogleLogin}
+      onPointerEnter={() => { void import('@/lib/supabase/client').catch(() => {}) }}
+      onFocus={() => { void import('@/lib/supabase/client').catch(() => {}) }}
       className={className ?? 'flex items-center justify-center gap-3 rounded-xl border border-gray-200 bg-white px-6 py-3 text-sm font-medium text-gray-700 shadow-sm transition hover:bg-gray-50 hover:shadow-md'}
     >
       <svg className="h-5 w-5 flex-shrink-0" viewBox="0 0 24 24">

@@ -8,6 +8,7 @@ import { hasSupportCooldownExpired } from '@/lib/support-server'
 import { getAdminEmail } from '@/lib/admin-auth'
 import { isAdminUser } from '@/lib/admin-identity'
 import { AccountDeletionPanel } from '@/components/AccountDeletionPanel'
+import { getDashboardData } from '@/lib/dashboard-data'
 
 export const metadata: Metadata = {
   title: 'Dashboard',
@@ -32,56 +33,13 @@ export default async function DashboardPage({
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect(`/${locale}`)
 
-  const { data: deletion, error: deletionError } = await serviceClient.from('account_deletion_requests').select('user_id').eq('user_id',user.id).maybeSingle()
-  if (deletionError) throw new Error('Account status unavailable')
+  const { deletion, jobs, completedJobs, successfulJobCount, latestSupportPayment, unreadReplies: unreadRepliesRaw, integration } = await getDashboardData(supabase,serviceClient,user.id)
   if (deletion) return <main className="min-h-screen bg-teal-50 p-4 pt-12"><div className="mx-auto max-w-2xl"><AccountDeletionPanel email={user.email ?? ''} accountId={user.id} initialPending /></div></main>
-
-  const { data: jobs } = await supabase
-    .from('jobs')
-    .select('*')
-    .eq('user_id', user.id)
-    .order('created_at', { ascending: false })
-    .limit(10)
-
-  const { data: completedJobs, count: successfulJobCount } = await supabase
-    .from('jobs')
-    .select('id', { count: 'exact' })
-    .eq('user_id', user.id)
-    .eq('status', 'completed')
-    .order('created_at', { ascending: false })
-    .limit(1)
-
-  const { data: latestSupportPayment } = await serviceClient
-    .from('support_payments')
-    .select('paid_at')
-    .eq('user_id', user.id)
-    .eq('status', 'paid')
-    .gte('amount', 500)
-    .order('paid_at', { ascending: false })
-    .limit(1)
-    .maybeSingle()
 
   const completedCount = successfulJobCount ?? 0
   const isSupportMilestone = completedCount === 1 || (completedCount > 0 && completedCount % 5 === 0)
   const supporterSince = latestSupportPayment?.paid_at ?? null
   const supportCooldownExpired = hasSupportCooldownExpired(supporterSince)
-
-  // 最終既読日時を取得（なければ epoch）
-  const { data: readData } = await supabase
-    .from('inquiry_reply_reads')
-    .select('last_read_at')
-    .eq('user_id', user.id)
-    .single()
-
-  const lastReadAt = readData?.last_read_at ?? '1970-01-01T00:00:00Z'
-
-  // 自分の投稿への未読返信を取得
-  const { data: unreadRepliesRaw } = await supabase
-    .from('inquiry_replies')
-    .select('id, content, created_at, post_id, inquiry_posts!inner(id, content, user_id)')
-    .gt('created_at', lastReadAt)
-    .eq('inquiry_posts.user_id', user.id)
-    .order('created_at', { ascending: true })
 
   const unreadReplies: UnreadReply[] = (unreadRepliesRaw ?? []).map((r) => {
     const post = r.inquiry_posts as unknown as { id: string; content: string; user_id: string }
@@ -102,13 +60,6 @@ export default async function DashboardPage({
 
   const userAvatarUrl =
     (user.user_metadata?.avatar_url as string | undefined) ?? ''
-
-  // Google Calendar スコープフラグを取得（Service Role で RLS バイパス）
-  const { data: integration } = await serviceClient
-    .from('user_integrations')
-    .select('google_calendar_scope_ok')
-    .eq('user_id', user.id)
-    .single()
 
   // null/undefined = 未判定 → ブロックしない。false のときのみハードブロック
   const calendarScopeMissing = integration?.google_calendar_scope_ok === false

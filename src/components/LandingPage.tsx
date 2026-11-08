@@ -2,9 +2,9 @@
 
 import { Swiper, SwiperSlide } from 'swiper/react'
 import { Mousewheel, Pagination } from 'swiper/modules'
-import Image from 'next/image'
+import Image, { getImageProps } from 'next/image'
 import type { ReactNode } from 'react'
-import { useRef, useCallback } from 'react'
+import { useCallback } from 'react'
 import { useTranslations, useLocale } from 'next-intl'
 import { Link } from '@/i18n/navigation'
 import 'swiper/css'
@@ -197,22 +197,7 @@ export function LandingPage() {
           {slides.map((slide, i) => (
             <SwiperSlide key={slide.id}>
               <div className="relative flex h-full w-full items-center justify-center">
-                {/* SP用背景画像 */}
-                <Image
-                  src={slide.bgImageSp}
-                  alt=""
-                  fill
-                  className="block sm:hidden object-cover object-center opacity-[0.18]"
-                  priority={i === 0}
-                />
-                {/* PC用背景画像 */}
-                <Image
-                  src={slide.bgImage}
-                  alt=""
-                  fill
-                  className="hidden sm:block object-cover object-right opacity-[0.18]"
-                  priority={i === 0}
-                />
+                <SlideBackground desktop={slide.bgImage} mobile={slide.bgImageSp} hero={i===0} />
                 <div className="relative z-10 flex h-full w-full items-center justify-center">
                   {slide.content === 'hero' ? (
                     <HeroSlide />
@@ -237,133 +222,17 @@ export function LandingPage() {
   )
 }
 
-
-function StaticContent() {
-  const t = useTranslations('landing.static')
-  const tCommon = useTranslations('common')
-  const faqItems = t.raw('faqSection.items') as Array<{ q: string; a: string }>
-
-  return (
-    <div className="bg-gray-50">
-      <div className="flex">
-        <div className="flex-1 min-w-0">
-      {/* サービス詳細説明 */}
-      <section className="mx-auto max-w-3xl px-6 py-20">
-        <h2 className="text-2xl font-bold text-gray-900 mb-2 text-center">{t('whatIs.title')}</h2>
-        <p className="text-center text-gray-500 text-sm mb-12">{t('whatIs.subtitle')}</p>
-        <div className="grid gap-8 sm:grid-cols-3">
-          <div className="bg-white rounded-2xl p-6 shadow-sm text-center">
-            <div className="flex justify-center mb-4">
-              <span className="flex items-center justify-center w-14 h-14 rounded-full bg-teal-50 text-teal-500">
-                <IconFileText className="w-7 h-7" />
-              </span>
-            </div>
-            <h3 className="font-bold text-gray-800 mb-2">{t('whatIs.step1Title')}</h3>
-            <p className="text-sm text-gray-600 leading-relaxed">{t('whatIs.step1Body')}</p>
-          </div>
-          <div className="bg-white rounded-2xl p-6 shadow-sm text-center">
-            <div className="flex justify-center mb-4">
-              <span className="flex items-center justify-center w-14 h-14 rounded-full bg-teal-50 text-teal-500">
-                <IconBrain className="w-7 h-7" />
-              </span>
-            </div>
-            <h3 className="font-bold text-gray-800 mb-2">{t('whatIs.step2Title')}</h3>
-            <p className="text-sm text-gray-600 leading-relaxed">{t('whatIs.step2Body')}</p>
-          </div>
-          <div className="bg-white rounded-2xl p-6 shadow-sm text-center">
-            <div className="flex justify-center mb-4">
-              <span className="flex items-center justify-center w-14 h-14 rounded-full bg-teal-50 text-teal-500">
-                <IconCalendar className="w-7 h-7" />
-              </span>
-            </div>
-            <h3 className="font-bold text-gray-800 mb-2">{t('whatIs.step3Title')}</h3>
-            <p className="text-sm text-gray-600 leading-relaxed">{t('whatIs.step3Body')}</p>
-          </div>
-        </div>
-      </section>
-
-      {/* 利用シーン */}
-      <section className="bg-white py-20">
-        <div className="mx-auto max-w-3xl px-6">
-          <h2 className="text-2xl font-bold text-gray-900 mb-2 text-center">{t('useCases.title')}</h2>
-          <p className="text-center text-gray-500 text-sm mb-12">{t('useCases.subtitle')}</p>
-          <div className="grid gap-6 sm:grid-cols-3">
-            {(t.raw('useCases.cases') as Array<{title: string; body: string }>).map((c, i) => (
-              <div key={i} className="rounded-2xl border border-gray-100 bg-gray-50 p-6">
-                <h3 className="font-bold text-gray-800 mb-2 text-sm">{c.title}</h3>
-                <p className="text-xs text-gray-600 leading-relaxed">{c.body}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* 開発ストーリー / About */}
-      <section className="bg-teal-50 py-20">
-        <div className="mx-auto max-w-3xl px-6">
-          <div className="bg-white rounded-3xl p-8 sm:p-12 shadow-sm relative overflow-hidden">
-            <div className="absolute top-0 left-0 w-2 h-full bg-teal-500"></div>
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">{t('about.title')}</h2>
-            <p className="text-teal-600 font-semibold text-sm mb-8">{t('about.subtitle')}</p>
-            <div className="space-y-4 text-sm text-gray-700 leading-relaxed">
-              <p>{t('about.body1')}</p>
-              <p className="font-semibold text-gray-900 bg-gray-50 p-4 rounded-xl border-l-4 border-gray-300">
-                {t('about.body2')}
-              </p>
-              <p>{t('about.body3')}</p>
-            </div>
-            <div className="mt-8 flex items-center justify-end gap-3 text-xs text-gray-500">
-              <span className="w-8 h-[1px] bg-gray-300"></span>
-              {t('about.author')}
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* FAQ抜粋 */}
-      <section className="bg-gray-50 py-20">
-        <div className="mx-auto max-w-3xl px-6">
-          <h2 className="text-2xl font-bold text-gray-900 mb-2 text-center">{t('faqSection.title')}</h2>
-          <p className="text-center text-gray-500 text-sm mb-10">{t('faqSection.subtitle')}</p>
-          <div className="space-y-4">
-            {faqItems.map((faq, i) => (
-              <div key={i} className="rounded-xl border border-gray-100 p-5">
-                <p className="font-semibold text-gray-800 mb-2 flex items-start gap-2">
-                  <span className="text-teal-500 shrink-0">Q.</span>{faq.q}
-                </p>
-                <p className="text-sm text-gray-600 leading-relaxed pl-6">{faq.a}</p>
-              </div>
-            ))}
-          </div>
-          <div className="mt-8 text-center">
-            <Link
-              href="/faq"
-              className="inline-block rounded-xl border border-teal-500 px-6 py-3 text-sm font-semibold text-teal-600 hover:bg-teal-50 transition"
-            >
-              {t('faqSection.viewAll')}
-            </Link>
-          </div>
-
-        </div>
-      </section>
-
-      {/* フッター */}
-      <footer className="border-t bg-gray-50 py-8 text-center text-xs text-gray-400">
-        <div className="flex justify-center gap-6 mb-3">
-          <Link href="/blog" className="hover:text-gray-600 transition">{tCommon('blog')}</Link>
-          <Link href="/faq" className="hover:text-gray-600 transition">{t('footer.faq')}</Link>
-          <Link href="/terms" className="hover:text-gray-600 transition">{t('footer.terms')}</Link>
-          <Link href="/privacy" className="hover:text-gray-600 transition">{t('footer.privacy')}</Link>
-          <Link href="/legal" className="hover:text-gray-600 transition">{t('footer.legal')}</Link>
-          <Link href="/sitemap" className="hover:text-gray-600 transition">{tCommon('sitemap')}</Link>
-        </div>
-        <p>{tCommon('copyright', { year: new Date().getFullYear() })}</p>
-      </footer>
-      </div>
-      </div>
-    </div>
-  )
+function SlideBackground({ desktop, mobile, hero }: { desktop:string; mobile:string; hero:boolean }) {
+  const common = {alt:'',fill:true,sizes:'100vw',loading:hero?'eager' as const:'lazy' as const}
+  const { props: desktopProps } = getImageProps({...common,src:desktop})
+  const { props: mobileProps } = getImageProps({...common,src:mobile})
+  return <picture>
+    <source media="(max-width: 639px)" srcSet={mobileProps.srcSet} sizes="100vw" />
+    {/* getImageProps keeps Next image optimization while picture downloads one variant. */}
+    <img {...desktopProps} alt="" fetchPriority={hero?'high':undefined} className="object-cover object-center sm:object-right opacity-[0.18]" />
+  </picture>
 }
+
 
 function HeroSlide() {
   const t = useTranslations('landing')

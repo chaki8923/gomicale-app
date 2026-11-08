@@ -50,22 +50,22 @@ export function InquiryPanel({ userEmail }: InquiryPanelProps) {
   const [isReplySubmitting, setIsReplySubmitting] = useState(false)
   const listRef = useRef<HTMLDivElement>(null)
 
-  // 初回データ取得 + Realtime購読
+  // Fetch and subscribe only when the panel is actually opened.
   useEffect(() => {
+    if (!isOpen) return
     const supabase = getSupabaseBrowserClient()
+    let disposed = false
 
     const fetchAll = async () => {
-      const { data: postRows } = await supabase
+      const [{ data: postRows }, { data: replyRows }] = await Promise.all([supabase
         .from('inquiry_posts')
         .select('*')
-        .order('created_at', { ascending: false })
-
-      const { data: replyRows } = await supabase
+        .order('created_at', { ascending: false }), supabase
         .from('inquiry_replies')
         .select('*')
-        .order('created_at', { ascending: true })
+        .order('created_at', { ascending: true })])
 
-      if (!postRows) return
+      if (!postRows || disposed) return
       const withReplies: PostWithReplies[] = postRows.map((p) => ({
         ...p,
         replies: (replyRows ?? []).filter((r) => r.post_id === p.id),
@@ -112,8 +112,8 @@ export function InquiryPanel({ userEmail }: InquiryPanelProps) {
       )
       .subscribe()
 
-    return () => { supabase.removeChannel(channel) }
-  }, [])
+    return () => { disposed = true; supabase.removeChannel(channel) }
+  }, [isOpen])
 
   const handleSubmitPost = useCallback(async () => {
     const trimmed = newContent.trim()

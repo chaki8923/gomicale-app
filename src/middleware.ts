@@ -72,7 +72,8 @@ export async function middleware(request: NextRequest) {
 
   // API routes don't need locale routing
   if (pathname.startsWith('/api')) {
-    return updateSession(request)
+    // Each API validates its own user and can refresh cookies in its Route Handler.
+    return NextResponse.next()
   }
 
   // Apply next-intl locale routing
@@ -83,11 +84,27 @@ export async function middleware(request: NextRequest) {
     return intlResponse
   }
 
-  // Apply Supabase session update and carry over intl headers
+  // Anonymous public pages need no Auth round-trip or per-user rendering.
+  const hasSession = request.cookies.getAll().some(({name})=>/^sb-.+-auth-token(?:\.\d+)?$/.test(name))
+  const protectedPage = /^(?:\/(?:ja|en))?\/(?:dashboard|admin)(?:\/|$)/.test(pathname)
+  if (!hasSession && !protectedPage) return intlResponse
+
   const supabaseResponse = await updateSession(request)
+  if (supabaseResponse.headers.has('location')) return supabaseResponse
+  const overrides = new Set((supabaseResponse.headers.get('x-middleware-override-headers') ?? '').split(',').map(s=>s.trim()).filter(Boolean))
   intlResponse.headers.forEach((value, key) => {
+    // Preserve refreshed Auth cookies and forwarded request cookies when composing middleware.
+    if (key==='set-cookie') return
+    if (key==='x-middleware-override-headers') {
+      value.split(',').forEach(name=>overrides.add(name.trim()))
+      return
+    }
+    if (key==='x-middleware-request-cookie' && supabaseResponse.headers.has(key)) return
     supabaseResponse.headers.set(key, value)
   })
+  if (overrides.size) supabaseResponse.headers.set('x-middleware-override-headers',[...overrides].join(','))
+  intlResponse.cookies.getAll().forEach(cookie=>supabaseResponse.cookies.set(cookie))
+  supabaseResponse.headers.set('Cache-Control','private, no-store')
 
   return supabaseResponse
 }
