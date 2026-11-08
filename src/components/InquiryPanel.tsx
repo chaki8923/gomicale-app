@@ -1,11 +1,9 @@
 'use client'
 
 import { useEffect, useRef, useState, useCallback } from 'react'
-import { useTranslations } from 'next-intl'
+import { useLocale, useTranslations } from 'next-intl'
 import { getSupabaseBrowserClient } from '@/lib/supabase/client'
 import type { InquiryPost, InquiryReply } from '@/types/database'
-
-const ADMIN_EMAIL = process.env.NEXT_PUBLIC_ADMIN_EMAIL ?? ''
 
 type PostWithReplies = InquiryPost & { replies: InquiryReply[] }
 
@@ -33,14 +31,15 @@ function sortPosts(list: PostWithReplies[]): PostWithReplies[] {
 }
 
 interface InquiryPanelProps {
-  userEmail: string
+  isAdmin: boolean
+  initialPostId?: string | null
 }
 
-export function InquiryPanel({ userEmail }: InquiryPanelProps) {
+export function InquiryPanel({ isAdmin, initialPostId }: InquiryPanelProps) {
   const t = useTranslations('inquiry')
-  const isAdmin = userEmail === ADMIN_EMAIL
+  const locale = useLocale()
 
-  const [isOpen, setIsOpen] = useState(false)
+  const [isOpen, setIsOpen] = useState(Boolean(initialPostId))
   const [posts, setPosts] = useState<PostWithReplies[]>([])
   const [newContent, setNewContent] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -48,7 +47,19 @@ export function InquiryPanel({ userEmail }: InquiryPanelProps) {
   const [replyOpenId, setReplyOpenId] = useState<string | null>(null)
   const [replyContent, setReplyContent] = useState('')
   const [isReplySubmitting, setIsReplySubmitting] = useState(false)
+  const [replyError, setReplyError] = useState<string | null>(null)
+  const linkedPostId = initialPostId
+  const submission = useRef<{ key: string; id: string } | null>(null)
+  const replySubmission = useRef<{ key: string; id: string } | null>(null)
+  const posting = useRef(false)
+  const replying = useRef(false)
   const listRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (isOpen && linkedPostId && posts.some(post => post.id === linkedPostId)) {
+      document.getElementById(`inquiry-${linkedPostId}`)?.scrollIntoView({ block: 'nearest' })
+    }
+  }, [isOpen, linkedPostId, posts])
 
   // Fetch and subscribe only when the panel is actually opened.
   useEffect(() => {
@@ -116,67 +127,57 @@ export function InquiryPanel({ userEmail }: InquiryPanelProps) {
   }, [isOpen])
 
   const handleSubmitPost = useCallback(async () => {
+    if (posting.current) return
     const trimmed = newContent.trim()
     if (!trimmed) { setSubmitError(t('errorEmpty')); return }
     if (trimmed.length > 2000) { setSubmitError(t('errorTooLong')); return }
 
+    posting.current = true
     setIsSubmitting(true)
     setSubmitError(null)
-    const supabase = getSupabaseBrowserClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) { setIsSubmitting(false); return }
-
-    const { data: inserted, error } = await supabase
-      .from('inquiry_posts')
-      .insert({ user_id: user.id, content: trimmed })
-      .select()
-      .single()
-
-    setIsSubmitting(false)
-    if (error) {
-      setSubmitError(t('errorSubmit'))
-    } else {
+    const key = JSON.stringify([trimmed, locale])
+    if (submission.current?.key !== key) submission.current = { key, id: crypto.randomUUID() }
+    try {
+      const response = await fetch('/api/inquiries', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: submission.current.id, content: trimmed, locale }),
+      })
+      if (!response.ok) throw new Error('SUBMIT_FAILED')
+      const { post: inserted } = await response.json() as { post: InquiryPost }
       setNewContent('')
-      if (inserted) {
-        const newPost: PostWithReplies = { ...inserted, replies: [] }
-        setPosts((prev) => sortPosts([newPost, ...prev]))
-      }
-    }
-  }, [newContent, t])
+      submission.current = null
+      setPosts((prev) => prev.some(post => post.id === inserted.id) ? prev : sortPosts([{ ...inserted, replies: [] }, ...prev]))
+    } catch { setSubmitError(t('errorSubmit')) }
+    finally { posting.current = false; setIsSubmitting(false) }
+  }, [newContent, locale, t])
 
   const handleSubmitReply = useCallback(async (postId: string) => {
+    if (replying.current) return
     const trimmed = replyContent.trim()
     if (!trimmed) return
     if (trimmed.length > 2000) return
 
+    replying.current = true
     setIsReplySubmitting(true)
-    const supabase = getSupabaseBrowserClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) { setIsReplySubmitting(false); return }
-
-    const { data: inserted, error } = await supabase
-      .from('inquiry_replies')
-      .insert({ post_id: postId, admin_user_id: user.id, content: trimmed })
-      .select()
-      .single()
-
-    setIsReplySubmitting(false)
-    if (!error) {
+    setReplyError(null)
+    const key = JSON.stringify([postId, trimmed, locale])
+    if (replySubmission.current?.key !== key) replySubmission.current = { key, id: crypto.randomUUID() }
+    try {
+      const response = await fetch(`/api/inquiries/${postId}/replies`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: replySubmission.current.id, content: trimmed, locale }),
+      })
+      if (!response.ok) throw new Error('REPLY_FAILED')
+      const { reply: inserted } = await response.json() as { reply: InquiryReply }
       setReplyContent('')
       setReplyOpenId(null)
-      if (inserted) {
-        setPosts((prev) =>
-          sortPosts(
-            prev.map((p) =>
-              p.id === postId
-                ? { ...p, replies: [...p.replies, inserted] }
-                : p,
-            ),
-          ),
-        )
-      }
-    }
-  }, [replyContent])
+      replySubmission.current = null
+      setPosts((prev) => sortPosts(prev.map((post) =>
+        post.id === postId && !post.replies.some(reply => reply.id === inserted.id)
+          ? { ...post, replies: [...post.replies, inserted] } : post)))
+    } catch { setReplyError(t('errorReply')) }
+    finally { replying.current = false; setIsReplySubmitting(false) }
+  }, [replyContent, locale, t])
 
   return (
     <>
@@ -255,7 +256,7 @@ export function InquiryPanel({ userEmail }: InquiryPanelProps) {
             </div>
           ) : (
             posts.map((post) => (
-              <div key={post.id} className="rounded-xl border border-gray-200 bg-gray-50 overflow-hidden">
+              <div key={post.id} id={`inquiry-${post.id}`} className={`rounded-xl border bg-gray-50 overflow-hidden ${post.id === linkedPostId ? 'border-teal-400 ring-2 ring-teal-100' : 'border-gray-200'}`}>
                 {/* 投稿本体 */}
                 <div className="px-4 pt-4 pb-3">
                   <p className="text-sm text-gray-800 whitespace-pre-wrap break-words leading-relaxed">
@@ -288,6 +289,7 @@ export function InquiryPanel({ userEmail }: InquiryPanelProps) {
                   <div className="border-t border-gray-200 px-4 py-3">
                     {replyOpenId === post.id ? (
                       <div className="space-y-2">
+                        <p className="text-xs text-teal-700">{t('replyEmailNotice')}</p>
                         <textarea
                           value={replyContent}
                           onChange={(e) => setReplyContent(e.target.value)}
@@ -295,10 +297,13 @@ export function InquiryPanel({ userEmail }: InquiryPanelProps) {
                           rows={3}
                           maxLength={2000}
                           className="w-full text-sm text-gray-900 placeholder:text-gray-500 border border-gray-300 rounded-lg px-3 py-2 resize-none focus:outline-none focus:ring-2 focus:ring-teal-400"
+                          disabled={isReplySubmitting}
                         />
+                        {replyError && <p role="alert" className="text-xs text-red-600">{replyError}</p>}
                         <div className="flex gap-2 justify-end">
                           <button
                             onClick={() => { setReplyOpenId(null); setReplyContent('') }}
+                            disabled={isReplySubmitting}
                             className="text-xs text-gray-500 hover:text-gray-700 cursor-pointer transition px-3 py-1.5 rounded-lg hover:bg-gray-100"
                           >
                             {t('replyCancel')}
@@ -314,7 +319,8 @@ export function InquiryPanel({ userEmail }: InquiryPanelProps) {
                       </div>
                     ) : (
                       <button
-                        onClick={() => { setReplyOpenId(post.id); setReplyContent('') }}
+                        onClick={() => { setReplyOpenId(post.id); setReplyContent(''); setReplyError(null) }}
+                        disabled={isReplySubmitting}
                         className="text-xs text-teal-600 hover:text-teal-700 font-medium cursor-pointer transition"
                       >
                         {t('replyToggle')}
@@ -329,8 +335,9 @@ export function InquiryPanel({ userEmail }: InquiryPanelProps) {
 
         {/* 投稿フォーム */}
         <div className="flex-shrink-0 border-t border-gray-100 px-4 py-4 space-y-2 bg-white">
+          <p className="text-xs text-gray-500 leading-relaxed">{t('emailNotice')}</p>
           {submitError && (
-            <p className="text-xs text-red-500">{submitError}</p>
+            <p role="alert" className="text-xs text-red-500">{submitError}</p>
           )}
           <textarea
             value={newContent}
@@ -338,6 +345,7 @@ export function InquiryPanel({ userEmail }: InquiryPanelProps) {
             placeholder={t('placeholder')}
             rows={3}
             maxLength={2000}
+            disabled={isSubmitting}
             className="w-full text-sm text-gray-900 placeholder:text-gray-500 border border-gray-300 rounded-xl px-3 py-2.5 resize-none focus:outline-none focus:ring-2 focus:ring-teal-400"
           />
           <div className="flex items-center justify-between">

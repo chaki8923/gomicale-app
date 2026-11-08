@@ -23,6 +23,7 @@ Module._load=function(name,parent,...args){
 }
 const {middleware}=require('../src/middleware.ts')
 const {getDashboardData}=require('../src/lib/dashboard-data.ts')
+const {inquiryLoginReturn}=require('../src/lib/inquiry-links.ts')
 const req=(path,cookie)=>new NextRequest('https://gomicale.jp'+path,{headers:cookie?{cookie}:{}})
 const setup=()=>fixture={calls:0,user:null,error:null,refresh:false}
 
@@ -42,6 +43,19 @@ test('API authentication is left to Route Handlers; OAuth callbacks are untouche
  assert.equal((await middleware(req('/auth/callback?code=test'))).status,200)
  assert.equal(fixture.calls,0)
  assert.match((await middleware(req('/ja?code=test'))).headers.get('location'),/\/auth\/callback\?code=test$/)
+})
+test('notification links survive sign-in using only a validated feedback ID',async()=>{
+ setup()
+ const id='00000000-0000-4000-8000-000000000010'
+ const signedOut=await middleware(req('/en/dashboard?inquiry='+id))
+ assert.equal(signedOut.headers.get('location'),'https://gomicale.jp/en?inquiry='+id)
+ assert.equal(inquiryLoginReturn('/en',id),'/en/dashboard?inquiry='+id)
+ assert.equal(inquiryLoginReturn('/en','https://attacker.example'),undefined)
+ assert.equal(inquiryLoginReturn('/elsewhere',id),undefined)
+ fixture.user={id:'alice'}
+ assert.equal((await middleware(req('/en?inquiry='+id,'sb-project-auth-token=session'))).headers.get('location'),'https://gomicale.jp/en/dashboard?inquiry='+id)
+ fixture.user=null
+ assert.equal((await middleware(req('/en/dashboard?inquiry=https://attacker.example'))).headers.get('location'),'https://gomicale.jp/en')
 })
 test('cached public landing still redirects only server-verified logged-in users',async()=>{
  setup();fixture.user={id:'alice'}

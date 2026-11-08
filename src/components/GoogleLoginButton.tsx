@@ -1,6 +1,7 @@
 'use client'
 
 import { Button } from '@/components/ui/Button'
+import { inquiryLoginReturn } from '@/lib/inquiry-links'
 
 interface GoogleLoginButtonProps {
   className?: string
@@ -89,7 +90,8 @@ export function GoogleLoginButton({
       return
     }
 
-    await startGoogleOAuth({ forceConsent, postAuthPath })
+    const returnPath = postAuthPath ?? inquiryLoginReturn(window.location.pathname, new URLSearchParams(window.location.search).get('inquiry'))
+    await startGoogleOAuth({ forceConsent, postAuthPath: returnPath })
   }
 
   return (

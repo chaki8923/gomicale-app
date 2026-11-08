@@ -10,7 +10,8 @@
     "test:admin-emails": "node --test tests/admin-error-emails.test.cjs",
     "test:calendar-imports": "node --test tests/calendar-imports.test.cjs",
     "test:account-deletion": "node --test tests/account-deletion.test.cjs tests/account-deletion-sql.test.mjs",
-    "test:performance": "node --test tests/performance.test.cjs"
+    "test:performance": "node --test tests/performance.test.cjs",
+    "test:inquiry-notifications": "node --test tests/inquiry-notifications.test.cjs tests/inquiry-notifications-sql.test.mjs"
   },
   "dependencies": {
     "@aws-sdk/client-lambda": "^3.995.0",

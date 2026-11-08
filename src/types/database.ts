@@ -2,6 +2,7 @@ import type { CalendarImportTask } from '../../shared/calendar-import-task'
 import type { CalendarImport } from '../../shared/calendar-import'
 import type { ErrorEmailDelivery } from '@/lib/admin-error-email-types'
 import type { AccountDeletion } from '../../shared/account-lifecycle'
+import type { InquiryNotification } from '@/lib/inquiry-notification-types'
 
 export type Json =
   | string
@@ -69,18 +70,21 @@ export type Database = {
           id: string
           user_id: string
           content: string
+          locale: 'ja' | 'en'
           created_at: string
         }
         Insert: {
           id?: string
           user_id: string
           content: string
+          locale?: 'ja' | 'en'
           created_at?: string
         }
         Update: {
           id?: string
           user_id?: string
           content?: string
+          locale?: 'ja' | 'en'
           created_at?: string
         }
         Relationships: []
@@ -107,6 +111,12 @@ export type Database = {
           content?: string
           created_at?: string
         }
+        Relationships: []
+      }
+      inquiry_notifications: {
+        Row: InquiryNotification
+        Insert: { kind: 'post' | 'reply'; post_id: string; user_id: string } & Partial<InquiryNotification>
+        Update: Partial<InquiryNotification>
         Relationships: []
       }
       line_link_codes: {
@@ -435,6 +445,7 @@ export type Database = {
       }
     }
     Functions: {
+      claim_inquiry_notification: { Args: { p_token: string; p_notification_id?: string }; Returns: InquiryNotification[] }
       account_is_active: { Args: { p_user_id: string }; Returns: boolean }
       account_deletion_blockers: { Args: { p_user_id: string }; Returns: { id: string; title: string | null; status: string }[] }
       begin_account_deletion: { Args: { p_user_id: string; p_token: string }; Returns: AccountDeletion[] }

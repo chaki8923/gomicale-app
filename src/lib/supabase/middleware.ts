@@ -1,6 +1,7 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 import type { Database } from '@/types/database'
+import { inquiryPostId } from '../inquiry-links'
 
 // Middleware でセッションを更新するためのユーティリティ
 export async function updateSession(request: NextRequest) {
@@ -47,6 +48,8 @@ export async function updateSession(request: NextRequest) {
     const url = request.nextUrl.clone()
     url.pathname = isHome && user ? `/${locale}/dashboard` : `/${locale}`
     url.search = ''
+    const inquiry = inquiryPostId(request.nextUrl.searchParams.get('inquiry'))
+    if (inquiry && (isHome || pathnameWithoutLocale === '/dashboard')) url.searchParams.set('inquiry', inquiry)
     const redirect = NextResponse.redirect(url)
     supabaseResponse.cookies.getAll().forEach(cookie=>redirect.cookies.set(cookie))
     redirect.headers.set('Cache-Control','private, no-store')

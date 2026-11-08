@@ -26,6 +26,7 @@ const CALENDAR_PERMISSION_ERROR_MARKER = 'Googleカレンダーへのアクセ�
 
 interface DashboardClientProps {
   isAdmin: boolean
+  initialInquiryId: string | null
   userEmail: string
   userId: string
   userName: string
@@ -42,6 +43,7 @@ interface DashboardClientProps {
 
 export function DashboardClient({
   isAdmin,
+  initialInquiryId,
   userEmail,
   userId,
   userName,
@@ -68,7 +70,7 @@ export function DashboardClient({
   const [isCalendarModalOpen, setIsCalendarModalOpen] = useState(
     calendarScopeMissing || calendarPermissionRequired,
   )
-  const [isReplyModalOpen, setIsReplyModalOpen] = useState(unreadReplies.length > 0)
+  const [isReplyModalOpen, setIsReplyModalOpen] = useState(unreadReplies.length > 0 && !initialInquiryId)
 
   const handleUploadComplete = useCallback((jobId: string) => {
     setActiveJobIds((prev) => [jobId, ...prev])
@@ -353,9 +355,7 @@ export function DashboardClient({
       </main>
       </div>
 
-      {initialJobs.length > 0 && (
-        <InquiryPanel userEmail={userEmail} />
-      )}
+      <InquiryPanel isAdmin={isAdmin} initialPostId={initialInquiryId} />
 
       <footer className="mt-12 py-6 border-t border-gray-100 bg-white">
         <div className="max-w-2xl mx-auto px-4 flex flex-wrap justify-center gap-4 text-xs text-gray-400">

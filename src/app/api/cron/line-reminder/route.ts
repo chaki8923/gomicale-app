@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseServiceClient } from '@/lib/supabase/server'
 import { isAccountActive } from '../../../../../shared/account-lifecycle'
 import { retryAccountDeletions } from '@/lib/account-deletion-server'
+import { sendInquiryNotifications } from '@/lib/inquiry-notifications'
 
 export const maxDuration = 60
 
@@ -53,6 +54,9 @@ export async function GET(request: NextRequest) {
   }
 
   await retryAccountDeletions()
+
+  try { await sendInquiryNotifications({ limit: 10, budgetMs: 10000 }) }
+  catch { console.error('[inquiry-notifications] scheduled retry deferred') }
 
   const serviceClient = getSupabaseServiceClient()
   const tomorrowStr = getTomorrowJST()

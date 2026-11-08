@@ -9,6 +9,7 @@ import { getAdminEmail } from '@/lib/admin-auth'
 import { isAdminUser } from '@/lib/admin-identity'
 import { AccountDeletionPanel } from '@/components/AccountDeletionPanel'
 import { getDashboardData } from '@/lib/dashboard-data'
+import { inquiryPostId } from '@/lib/inquiry-links'
 
 export const metadata: Metadata = {
   title: 'Dashboard',
@@ -71,6 +72,7 @@ export default async function DashboardPage({
   return (
     <DashboardClient
       isAdmin={isAdminUser(user, getAdminEmail())}
+      initialInquiryId={inquiryPostId(resolvedSearchParams.inquiry)}
       userEmail={user.email ?? ''}
       userId={user.id}
       userName={userName}
