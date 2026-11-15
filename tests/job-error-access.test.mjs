@@ -36,7 +36,7 @@ test('job error details are private while legacy codes and owner-only job access
         ('known', 'alice', 'error', 'uploads/file.pdf', 'No valid events were found', '{"error_code":"GOOGLE_REAUTH_REQUIRED"}'),
         ('other', 'bob', 'processing', 'uploads/file.pdf', null, null);
     `)
-    const migration = new URL('../supabase/migrations/20261115080159_protect_job_error_details.sql', import.meta.url)
+    const migration = new URL('../supabase/migrations/20261115172019_protect_job_error_details.sql', import.meta.url)
     await db.exec(await readFile(migration, 'utf8'))
 
     const { rows: [grants] } = await db.query(`
