@@ -1,6 +1,7 @@
 import 'server-only'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Database } from '@/types/database'
+import { JOB_SUMMARY_COLUMNS } from './job-errors'
 
 /** Request-scoped only: user-specific data must never enter a shared cache. */
 export async function getDashboardData(userDb: SupabaseClient<Database>, serviceDb: SupabaseClient<Database>, userId: string) {
@@ -11,7 +12,7 @@ export async function getDashboardData(userDb: SupabaseClient<Database>, service
   }
   const [deletion,jobs,completed,support,replies,integration] = await Promise.all([
     serviceDb.from('account_deletion_requests').select('user_id').eq('user_id',userId).maybeSingle(),
-    userDb.from('jobs').select('*').eq('user_id',userId).order('created_at',{ascending:false}).limit(10),
+    userDb.from('jobs').select(JOB_SUMMARY_COLUMNS).eq('user_id',userId).order('created_at',{ascending:false}).limit(10),
     userDb.from('jobs').select('id',{count:'exact'}).eq('user_id',userId).eq('status','completed').order('created_at',{ascending:false}).limit(1),
     serviceDb.from('support_payments').select('paid_at').eq('user_id',userId).eq('status','paid').gte('amount',500).order('paid_at',{ascending:false}).limit(1).maybeSingle(),
     unreadReplies(),

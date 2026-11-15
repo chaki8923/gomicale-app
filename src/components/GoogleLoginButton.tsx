@@ -60,7 +60,6 @@ export async function startGoogleOAuth({
   })
 
   if (error || !data?.url) {
-    console.error('[auth/client] signInWithOAuth error:', error)
     return false
   }
 

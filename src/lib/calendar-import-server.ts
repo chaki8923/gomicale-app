@@ -6,15 +6,15 @@ import { GoogleAccessError } from '../../shared/google-calendars'
 import { accessTokenHasCalendarScope } from '@/lib/google-calendar-access'
 import { validateSettings } from '../../shared/calendar-import'
 import { isAccountActive } from '../../shared/account-lifecycle'
+import { importRequestErrorCode, isImportValidationCode } from '../../shared/import-request-errors'
 
 export class ImportError extends Error {
   constructor(public code: string, public status = 400) { super(code) }
 }
 export function importErrorResponse(error: unknown) {
   if (error instanceof SyntaxError) return NextResponse.json({ error: 'INVALID_JSON' }, { status: 400 })
-  if (error instanceof ImportError || error instanceof GoogleAccessError) return NextResponse.json({ error: error.code }, { status: error.status })
-  // Validation errors contain codes, never provider credentials or internal details.
-  if (error instanceof Error && /^(INVALID_|DUPLICATE_EVENTS|EMPTY_SELECTION)/.test(error.message)) return NextResponse.json({ error: error.message }, { status: 400 })
+  if (error instanceof ImportError || error instanceof GoogleAccessError) return NextResponse.json({ error: importRequestErrorCode(error.code) }, { status: error.status })
+  if (error instanceof Error && isImportValidationCode(error.message)) return NextResponse.json({ error: error.message }, { status: 400 })
   console.error('[calendar-import]', error instanceof Error ? error.name : 'Unknown error')
   return NextResponse.json({ error: 'REQUEST_FAILED' }, { status: 500 })
 }
@@ -85,7 +85,11 @@ export async function startAnalysis(userId: string, job: { id: string; r2_object
     await invokeProcessor({ ...extra, action: 'analyze', jobId: job.id, userId, r2ObjectKey: job.r2_object_key, language, ...settings })
   } catch (error) {
     await db.from('calendar_imports').update({ state: 'error', error: 'PROCESSOR_UNAVAILABLE' }).eq('job_id', job.id)
-    await db.from('jobs').update({ status: 'error', error_message: 'PROCESSOR_UNAVAILABLE' }).eq('id', job.id)
-    throw error
+    await db.from('jobs').update({
+      status: 'error', error_message: 'PROCESSOR_UNAVAILABLE',
+      result_data: { registration_mode: registrationMode, error_code: 'PROCESSOR_UNAVAILABLE' },
+    }).eq('id', job.id)
+    console.error('[calendar-import] could not start analysis', job.id, error)
+    throw new ImportError('PROCESSOR_UNAVAILABLE', 503)
   }
 }

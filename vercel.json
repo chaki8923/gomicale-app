@@ -1,7 +1,7 @@
 {
   "framework": "nextjs",
   "regions": ["hnd1"],
-  "buildCommand": "next build",
+  "buildCommand": "npm run build",
   "crons": [
     {
       "path": "/api/cron/line-reminder",

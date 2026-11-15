@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseServerClient } from '@/lib/supabase/server'
 import { createPresignedUploadUrl } from '@/lib/r2'
 import { randomUUID } from 'crypto'
-import type { Job } from '@/types/database'
 import { accountAccessError } from '@/lib/account-access'
 
 // アップロード可能な MIME タイプ
@@ -37,7 +36,7 @@ export async function POST(request: NextRequest) {
       status:        'pending' as const,
       r2_object_key: objectKey,
     })
-    .select()
+    .select('id')
     .single()
 
   if (jobError || !job) {
@@ -45,5 +44,5 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Failed to create job' }, { status: 500 })
   }
 
-  return NextResponse.json({ uploadUrl, objectKey, jobId: (job as Job).id })
+  return NextResponse.json({ uploadUrl, objectKey, jobId: job.id })
 }

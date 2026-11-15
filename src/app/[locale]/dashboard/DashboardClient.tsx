@@ -18,11 +18,8 @@ import { InquiryPanel } from '@/components/InquiryPanel'
 import { InquiryReplyModal } from '@/components/InquiryReplyModal'
 import { SupportCard } from '@/components/SupportCard'
 import { AccountDeletionPanel } from '@/components/AccountDeletionPanel'
-import { getJobErrorCode, isCalendarReauthErrorCode, type JobResultDataLike } from '@/lib/job-errors'
-import type { Job } from '@/types/database'
+import { getJobErrorCode, isCalendarReauthErrorCode, jobErrorMessage, type JobSummary, type JobResultDataLike } from '@/lib/job-errors'
 import type { UnreadReply } from '@/components/InquiryReplyModal'
-
-const CALENDAR_PERMISSION_ERROR_MARKER = 'Googleカレンダーへのアクセス権限'
 
 interface DashboardClientProps {
   isAdmin: boolean
@@ -31,7 +28,7 @@ interface DashboardClientProps {
   userId: string
   userName: string
   userAvatarUrl: string
-  initialJobs: Job[]
+  initialJobs: JobSummary[]
   unreadReplies: UnreadReply[]
   calendarScopeMissing: boolean
   calendarPermissionRequired: boolean
@@ -267,15 +264,10 @@ export function DashboardClient({
                           })()}
                           {job.status === 'error' && (() => {
                             const errorCode = getJobErrorCode(job.result_data)
-                            const isCalendarErrorByCode = isCalendarReauthErrorCode(errorCode)
-                            const isCalendarErrorByMessage =
-                              typeof job.error_message === 'string' &&
-                              job.error_message.includes(CALENDAR_PERMISSION_ERROR_MARKER)
-                            return isCalendarErrorByCode || isCalendarErrorByMessage
-                          })() && (
+                            return (
                             <div className="flex flex-wrap items-center gap-2">
-                              <p className="text-sm text-red-400">{t('errorPrefix')}{job.error_message}</p>
-                              <button
+                              <p className="text-sm text-red-400">{jobErrorMessage(errorCode, locale)}</p>
+                              {isCalendarReauthErrorCode(errorCode) && <button
                                 onClick={() => { navigator.vibrate?.(10); setIsCalendarModalOpen(true) }}
                                 className="inline-flex items-center gap-1.5 text-xs font-semibold text-white bg-red-500 hover:bg-red-600 active:bg-red-700 px-3 py-1.5 rounded-lg cursor-pointer transition shadow-sm"
                               >
@@ -283,20 +275,9 @@ export function DashboardClient({
                                   <path strokeLinecap="round" strokeLinejoin="round" d="M9.879 7.519c1.171-1.025 3.071-1.025 4.242 0 1.172 1.025 1.172 2.687 0 3.712-.203.179-.43.326-.67.442-.745.361-1.45.999-1.45 1.827v.75M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9 5.25h.008v.008H12v-.008z" />
                                 </svg>
                                 {tJobStatus('calendarPermissionShowDetail')}
-                              </button>
+                              </button>}
                             </div>
-                          )}
-                          {job.status === 'error' && (() => {
-                            const errorCode = getJobErrorCode(job.result_data)
-                            const isCalendarErrorByCode = isCalendarReauthErrorCode(errorCode)
-                            const isCalendarErrorByMessage =
-                              typeof job.error_message === 'string' &&
-                              job.error_message.includes(CALENDAR_PERMISSION_ERROR_MARKER)
-                            if (isCalendarErrorByCode || isCalendarErrorByMessage) return null
-                            const displayMessage = errorCode === 'UNKNOWN' || errorCode === null
-                              ? t('unknownError')
-                              : job.error_message
-                            return <p className="text-sm text-red-400">{t('errorPrefix')}{displayMessage}</p>
+                            )
                           })()}
                           {(job.status === 'pending' || job.status === 'processing') && (
                             <p className="text-sm text-blue-500">{t('processing')}</p>

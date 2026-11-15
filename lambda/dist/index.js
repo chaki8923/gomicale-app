@@ -680691,7 +680691,7 @@ async function dispatchConfirmedImport(db, review, appUrl, onTerminalFailure) {
       if (next >= 3) {
         const { data: failed } = await db.from("calendar_imports").update({ state: "error", error: "AUTO_DISPATCH_FAILED" }).eq("job_id", review.job_id).eq("state", "registering").is("lease_token", null).select("job_id").maybeSingle();
         if (failed) {
-          await db.from("jobs").update({ status: "error", error_message: "AUTO_DISPATCH_FAILED", result_data: { review_available: true, registration_mode: "auto" } }).eq("id", review.job_id);
+          await db.from("jobs").update({ status: "error", error_message: "AUTO_DISPATCH_FAILED", result_data: { review_available: true, registration_mode: "auto", error_code: "AUTO_DISPATCH_FAILED" } }).eq("id", review.job_id);
           await onTerminalFailure?.();
         }
         throw new ImportFollowupError("AUTO_DISPATCH_FAILED");
@@ -680790,6 +680790,84 @@ async function getOwnedCalendars(accessToken) {
     pageToken = data.nextPageToken ?? "";
   } while (pageToken);
   return calendars.sort((a, b) => Number(b.primary) - Number(a.primary) || a.summary.localeCompare(b.summary));
+}
+
+// ../shared/job-errors.ts
+var messages = {
+  NO_VALID_EVENTS: [
+    "\u767B\u9332\u3067\u304D\u308B\u4E88\u5B9A\u304C\u898B\u3064\u304B\u308A\u307E\u305B\u3093\u3067\u3057\u305F\u3002\u65E5\u4ED8\u3068\u4E88\u5B9A\u540D\u304C\u306F\u3063\u304D\u308A\u5206\u304B\u308B\u8CC7\u6599\u3067\u3001\u3082\u3046\u4E00\u5EA6\u304A\u8A66\u3057\u304F\u3060\u3055\u3044\u3002",
+    "We couldn\u2019t find any events to import. Try a file that clearly shows the dates and event names."
+  ],
+  NO_VALID_MANUAL_EVENTS: [
+    "\u767B\u9332\u3067\u304D\u308B\u4E88\u5B9A\u304C\u898B\u3064\u304B\u308A\u307E\u305B\u3093\u3067\u3057\u305F\u3002\u65E5\u4ED8\u3084\u53CE\u96C6\u30EB\u30FC\u30EB\u3092\u898B\u76F4\u3057\u3066\u3001\u3082\u3046\u4E00\u5EA6\u304A\u8A66\u3057\u304F\u3060\u3055\u3044\u3002",
+    "We couldn\u2019t find any events to import. Check the dates or collection rules you entered and try again."
+  ],
+  TOO_MANY_EVENTS: [
+    "\u4E00\u5EA6\u306B\u767B\u9332\u3067\u304D\u308B\u4EF6\u6570\u3092\u8D85\u3048\u307E\u3057\u305F\u3002\u5BFE\u8C61\u671F\u9593\u3092\u77ED\u304F\u3057\u3066\u3001\u3082\u3046\u4E00\u5EA6\u304A\u8A66\u3057\u304F\u3060\u3055\u3044\u3002",
+    "There are too many events to import at once. Try a shorter date range."
+  ],
+  NOT_A_CALENDAR: [
+    "\u4E88\u5B9A\u8868\u3092\u8AAD\u307F\u53D6\u308C\u307E\u305B\u3093\u3067\u3057\u305F\u3002\u65E5\u4ED8\u3068\u4E88\u5B9A\u540D\u304C\u5206\u304B\u308BPDF\u3084\u753B\u50CF\u3092\u9078\u3093\u3067\u304F\u3060\u3055\u3044\u3002",
+    "We couldn\u2019t read a schedule. Choose a PDF or image that shows dates and event names."
+  ],
+  GEMINI_PARSE_ERROR: [
+    "\u4E88\u5B9A\u3092\u8AAD\u307F\u53D6\u308C\u307E\u305B\u3093\u3067\u3057\u305F\u3002\u5BFE\u8C61\u671F\u9593\u3092\u77ED\u304F\u3057\u305F\u8CC7\u6599\u3067\u3001\u3082\u3046\u4E00\u5EA6\u304A\u8A66\u3057\u304F\u3060\u3055\u3044\u3002",
+    "We couldn\u2019t read the events. Try a file that covers a shorter period."
+  ],
+  GEMINI_TEMPORARY: [
+    "\u73FE\u5728\u3001\u4E88\u5B9A\u3092\u8AAD\u307F\u53D6\u308C\u307E\u305B\u3093\u3002\u5C11\u3057\u6642\u9593\u3092\u304A\u3044\u3066\u3001\u3082\u3046\u4E00\u5EA6\u304A\u8A66\u3057\u304F\u3060\u3055\u3044\u3002",
+    "We can\u2019t read your schedule right now. Wait a little and try again."
+  ],
+  GOOGLE_REAUTH_REQUIRED: [
+    "Google\u3068\u306E\u9023\u643A\u3092\u66F4\u65B0\u3057\u3066\u304B\u3089\u3001\u3082\u3046\u4E00\u5EA6\u304A\u8A66\u3057\u304F\u3060\u3055\u3044\u3002",
+    "Reconnect your Google account, then try again."
+  ],
+  GOOGLE_CALENDAR_SCOPE_MISSING: [
+    "Google\u3068\u306E\u9023\u643A\u3092\u66F4\u65B0\u3057\u3001\u540C\u610F\u753B\u9762\u3067\u30AB\u30EC\u30F3\u30C0\u30FC\u3078\u306E\u30A2\u30AF\u30BB\u30B9\u3092\u8A31\u53EF\u3057\u3066\u304F\u3060\u3055\u3044\u3002",
+    "Reconnect your Google account and allow calendar access when prompted."
+  ],
+  GOOGLE_CALENDAR_PERMISSION_DENIED: [
+    "Google\u30AB\u30EC\u30F3\u30C0\u30FC\u306B\u30A2\u30AF\u30BB\u30B9\u3067\u304D\u307E\u305B\u3093\u3067\u3057\u305F\u3002Google\u3068\u306E\u9023\u643A\u3092\u66F4\u65B0\u3057\u3066\u304F\u3060\u3055\u3044\u3002",
+    "We couldn\u2019t access your Google Calendar. Reconnect your Google account."
+  ],
+  GOOGLE_CALENDAR_RATE_LIMIT: [
+    "Google\u30AB\u30EC\u30F3\u30C0\u30FC\u306B\u4E00\u5EA6\u306B\u767B\u9332\u3067\u304D\u308B\u4EF6\u6570\u3092\u8D85\u3048\u307E\u3057\u305F\u3002\u5C11\u3057\u6642\u9593\u3092\u304A\u3044\u3066\u3001\u518D\u8A66\u884C\u3057\u3066\u304F\u3060\u3055\u3044\u3002",
+    "Google Calendar is limiting requests. Wait a little and try again."
+  ],
+  GOOGLE_API_TEMPORARY: [
+    "Google\u30AB\u30EC\u30F3\u30C0\u30FC\u306B\u63A5\u7D9A\u3067\u304D\u307E\u305B\u3093\u3067\u3057\u305F\u3002\u5C11\u3057\u6642\u9593\u3092\u304A\u3044\u3066\u3001\u518D\u8A66\u884C\u3057\u3066\u304F\u3060\u3055\u3044\u3002",
+    "We couldn\u2019t connect to Google Calendar. Wait a little and try again."
+  ],
+  CALENDAR_NOT_FOUND: [
+    "\u767B\u9332\u5148\u306E\u30AB\u30EC\u30F3\u30C0\u30FC\u306B\u30A2\u30AF\u30BB\u30B9\u3067\u304D\u307E\u305B\u3093\u3002\u767B\u9332\u5148\u304C\u524A\u9664\u3055\u308C\u3066\u3044\u308B\u5834\u5408\u306F\u3001\u53D6\u308A\u8FBC\u307F\u3092\u6700\u521D\u304B\u3089\u3084\u308A\u76F4\u3057\u3066\u304F\u3060\u3055\u3044\u3002",
+    "We couldn\u2019t access the selected calendar. If it was deleted, start a new import."
+  ],
+  AUTO_DISPATCH_FAILED: [
+    "\u81EA\u52D5\u767B\u9332\u3092\u958B\u59CB\u3067\u304D\u307E\u305B\u3093\u3067\u3057\u305F\u3002\u767B\u9332\u5C65\u6B74\u304B\u3089\u540C\u3058\u5185\u5BB9\u3067\u518D\u8A66\u884C\u3057\u3066\u304F\u3060\u3055\u3044\u3002",
+    "We couldn\u2019t start automatic import. Open your import history and try again."
+  ],
+  PROCESSOR_UNAVAILABLE: [
+    "\u51E6\u7406\u3092\u958B\u59CB\u3067\u304D\u307E\u305B\u3093\u3067\u3057\u305F\u3002\u5C11\u3057\u6642\u9593\u3092\u304A\u3044\u3066\u3001\u3082\u3046\u4E00\u5EA6\u304A\u8A66\u3057\u304F\u3060\u3055\u3044\u3002",
+    "We couldn\u2019t start processing. Wait a little and try again."
+  ],
+  UPLOAD_FAILED: [
+    "\u30D5\u30A1\u30A4\u30EB\u3092\u9001\u4FE1\u3067\u304D\u307E\u305B\u3093\u3067\u3057\u305F\u3002\u901A\u4FE1\u74B0\u5883\u3092\u78BA\u8A8D\u3057\u3066\u3001\u3082\u3046\u4E00\u5EA6\u304A\u8A66\u3057\u304F\u3060\u3055\u3044\u3002",
+    "We couldn\u2019t upload the file. Check your connection and try again."
+  ],
+  UNKNOWN: [
+    "\u51E6\u7406\u3092\u5B8C\u4E86\u3067\u304D\u307E\u305B\u3093\u3067\u3057\u305F\u3002\u6642\u9593\u3092\u304A\u3044\u3066\u3001\u3082\u3046\u4E00\u5EA6\u304A\u8A66\u3057\u304F\u3060\u3055\u3044\u3002",
+    "We couldn\u2019t complete the request. Wait a little and try again."
+  ]
+};
+function parseJobErrorCode(value) {
+  if (typeof value !== "string") return null;
+  if (value === "NOT_A_GARBAGE_CALENDAR" || value === "GOOGLE_OAUTH_CONFIG_ERROR") return value;
+  return Object.hasOwn(messages, value) ? value : null;
+}
+function jobErrorMessage(code, locale) {
+  const normalized = parseJobErrorCode(code);
+  const key = normalized === "NOT_A_GARBAGE_CALENDAR" ? "NOT_A_CALENDAR" : normalized === "GOOGLE_OAUTH_CONFIG_ERROR" ? "UNKNOWN" : normalized ?? "UNKNOWN";
+  return messages[key][locale === "en" ? 1 : 0];
 }
 
 // src/index.ts
@@ -682547,6 +682625,28 @@ function resolveMimeType(objectKey, contentType) {
   const ext = objectKey.split(".").pop()?.toLowerCase() ?? "";
   return MIME_BY_EXT[ext] ?? "application/pdf";
 }
+var JobFailure = class extends Error {
+  constructor(code, detail) {
+    super(detail);
+    this.code = code;
+  }
+};
+function diagnosticMessage(error) {
+  if (error && typeof error === "object" && "message" in error && typeof error.message === "string") {
+    return error.message;
+  }
+  return String(error);
+}
+function workerErrorCode(error, detail) {
+  if (error instanceof JobFailure || error instanceof CalendarIntegrationError) return error.code;
+  if (error instanceof GoogleAccessError) return parseJobErrorCode(error.code) ?? "UNKNOWN";
+  if (error instanceof NotACalendarError) return "NOT_A_CALENDAR";
+  if (/503 Service Unavailable|high demand|fetch failed/i.test(detail)) return "GEMINI_TEMPORARY";
+  if (error instanceof SyntaxError && detail.includes("JSON at position") || detail.startsWith("Gemini returned unexpected format:")) {
+    return "GEMINI_PARSE_ERROR";
+  }
+  return "UNKNOWN";
+}
 async function isLineLinked(userId) {
   try {
     const { data: integration } = await supabase.from("user_integrations").select("line_user_id").eq("user_id", userId).maybeSingle();
@@ -682653,7 +682753,7 @@ async function sendCompletionEmail(toEmail, inserted, skipped, lineLinkCode) {
     console.info("[email] completion email sent to", toEmail);
   }
 }
-async function sendErrorEmail(toEmail, errorMessage) {
+async function sendErrorEmail(toEmail, code, language) {
   const apiKey = process.env.RESEND_API_KEY;
   const fromEmail = process.env.APP_FROM_EMAIL ?? "\u30B4\u30DF\u30AB\u30EC <noreply@gomicale.jp>";
   if (!apiKey) {
@@ -682661,20 +682761,22 @@ async function sendErrorEmail(toEmail, errorMessage) {
     return;
   }
   const resend = new Resend(apiKey);
+  const title = language === "en" ? "Calendar import did not finish" : "\u30AB\u30EC\u30F3\u30C0\u30FC\u767B\u9332\u3092\u5B8C\u4E86\u3067\u304D\u307E\u305B\u3093\u3067\u3057\u305F";
+  const message = jobErrorMessage(code, language);
   const { error } = await resend.emails.send({
     from: fromEmail,
     to: toEmail,
-    subject: "\u30B4\u30DF\u30AB\u30EC - \u30AB\u30EC\u30F3\u30C0\u30FC\u767B\u9332\u306B\u5931\u6557\u3057\u307E\u3057\u305F",
+    subject: language === "en" ? `GomiCale - ${title}` : "\u30B4\u30DF\u30AB\u30EC - \u30AB\u30EC\u30F3\u30C0\u30FC\u767B\u9332\u306B\u5931\u6557\u3057\u307E\u3057\u305F",
+    text: `${title}
+
+${message}`,
     html: `
       <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:24px">
-        <h2 style="color:#dc2626;margin-bottom:8px">\u30AB\u30EC\u30F3\u30C0\u30FC\u767B\u9332\u3067\u30A8\u30E9\u30FC\u304C\u767A\u751F\u3057\u307E\u3057\u305F</h2>
-        <p style="color:#374151;margin-bottom:16px">
-          PDF\u306E\u89E3\u6790\u307E\u305F\u306FGoogle\u30AB\u30EC\u30F3\u30C0\u30FC\u3078\u306E\u767B\u9332\u4E2D\u306B\u30A8\u30E9\u30FC\u304C\u767A\u751F\u3057\u307E\u3057\u305F\u3002
-        </p>
+        <h2 style="color:#dc2626;margin-bottom:8px">${title}</h2>
         <div style="background:#fef2f2;border-radius:8px;padding:16px;margin-bottom:16px">
-          <p style="margin:0;color:#991b1b;font-size:13px;word-break:break-all">${escapeHtml2(errorMessage)}</p>
+          <p style="margin:0;color:#991b1b;font-size:13px">${escapeHtml2(message)}</p>
         </div>
-        <p style="color:#9ca3af;font-size:12px;margin-top:24px">\u30B4\u30DF\u30AB\u30EC</p>
+        <p style="color:#9ca3af;font-size:12px;margin-top:24px">${language === "en" ? "GomiCale" : "\u30B4\u30DF\u30AB\u30EC"}</p>
       </div>
     `
   });
@@ -682711,7 +682813,7 @@ async function dispatchRegistration(review) {
   return dispatchConfirmedImport(supabase, review, APP_URL, async () => {
     try {
       const { data: { user } } = await supabase.auth.admin.getUserById(review.user_id);
-      if (user?.email && await isAccountActive(supabase, review.user_id)) await sendErrorEmail(user.email, "\u767B\u9332\u3092\u958B\u59CB\u3067\u304D\u307E\u305B\u3093\u3067\u3057\u305F\u3002\u30C0\u30C3\u30B7\u30E5\u30DC\u30FC\u30C9\u306E\u767B\u9332\u5C65\u6B74\u304B\u3089\u518D\u8A66\u884C\u3057\u3066\u304F\u3060\u3055\u3044\u3002");
+      if (user?.email && await isAccountActive(supabase, review.user_id)) await sendErrorEmail(user.email, "AUTO_DISPATCH_FAILED", review.language);
     } catch {
       console.warn("[dispatch] error notification failed");
     }
@@ -682734,10 +682836,10 @@ async function registerImport(event, context) {
     if (!integration?.google_refresh_token_enc) throw new CalendarIntegrationError("GOOGLE_REAUTH_REQUIRED", "Google reauthentication required");
     const accessToken = await refreshAccessToken(integration.google_refresh_token_enc);
     if (review.registration_mode === "auto") {
-      if (review.confirmed.calendarId !== "primary") throw new Error("CALENDAR_NOT_FOUND");
+      if (review.confirmed.calendarId !== "primary") throw new JobFailure("CALENDAR_NOT_FOUND", "Registration destination is not primary");
     } else {
       const calendars = await getOwnedCalendars(accessToken);
-      if (!calendars.some((c) => c.id === review.confirmed.calendarId)) throw new Error("CALENDAR_NOT_FOUND");
+      if (!calendars.some((c) => c.id === review.confirmed.calendarId)) throw new JobFailure("CALENDAR_NOT_FOUND", "Registration destination is unavailable");
     }
     const confirmed = review.confirmed;
     const selected = confirmed.events.filter((e) => e.included);
@@ -682776,13 +682878,14 @@ async function registerImport(event, context) {
       if (released) await dispatchRegistration(released);
       return;
     }
-    const message = error instanceof CalendarIntegrationError || error instanceof GoogleAccessError ? error.code : error instanceof Error ? error.message : "Registration failed";
-    const { data: failed } = await supabase.from("calendar_imports").update({ state: "error", error: message, lease_token: null, lease_until: null }).eq("job_id", event.jobId).eq("state", "registering").eq("lease_token", token).select("job_id").maybeSingle();
+    const message = diagnosticMessage(error);
+    const code = error instanceof JobFailure || error instanceof CalendarIntegrationError || error instanceof GoogleAccessError ? workerErrorCode(error, message) : "UNKNOWN";
+    const { data: failed } = await supabase.from("calendar_imports").update({ state: "error", error: code, lease_token: null, lease_until: null }).eq("job_id", event.jobId).eq("state", "registering").eq("lease_token", token).select("job_id").maybeSingle();
     if (failed) {
-      await supabase.from("jobs").update({ status: "error", error_message: message, result_data: { review_available: true, registration_mode: review.registration_mode } }).eq("id", event.jobId);
+      await supabase.from("jobs").update({ status: "error", error_message: message, result_data: { review_available: true, registration_mode: review.registration_mode, error_code: code } }).eq("id", event.jobId);
       try {
         const { data: { user } } = await supabase.auth.admin.getUserById(event.userId);
-        if (user?.email && await isAccountActive(supabase, event.userId)) await sendErrorEmail(user.email, message);
+        if (user?.email && await isAccountActive(supabase, event.userId)) await sendErrorEmail(user.email, code, review.language);
       } catch {
         console.warn("[register] error notification failed");
       }
@@ -682791,7 +682894,7 @@ async function registerImport(event, context) {
   }
 }
 var handler = async (event, context) => {
-  if (event.action === "health") return { protocol: "calendar-review-v1", revision: 4, readyEmailConfigured: !!process.env.RESEND_API_KEY, testSender: /@resend\.dev/i.test(process.env.APP_FROM_EMAIL ?? "") };
+  if (event.action === "health") return { protocol: "calendar-review-v1", revision: 5, readyEmailConfigured: !!process.env.RESEND_API_KEY, testSender: /@resend\.dev/i.test(process.env.APP_FROM_EMAIL ?? "") };
   if (!await isAccountActive(supabase, event.userId)) return;
   if (event.action === "register") return registerImport(event, context);
   if (event.action === "analyze") {
@@ -682860,9 +682963,7 @@ var handler = async (event, context) => {
         });
       }
       if (events.length === 0) {
-        throw new Error(
-          language === "en" ? "No calendar events could be generated from the text instruction. Please make the rule more specific." : "\u5165\u529B\u6307\u793A\u304B\u3089\u767B\u9332\u3067\u304D\u308B\u4E88\u5B9A\u3092\u751F\u6210\u3067\u304D\u307E\u305B\u3093\u3067\u3057\u305F\u3002\u66DC\u65E5\u3084\u53CE\u96C6\u7A2E\u5225\u304C\u5206\u304B\u308B\u3088\u3046\u306B\u3001\u3082\u3046\u5C11\u3057\u5177\u4F53\u7684\u306B\u5165\u529B\u3057\u3066\u304F\u3060\u3055\u3044\u3002"
-        );
+        throw new JobFailure("NO_VALID_MANUAL_EVENTS", "No valid events were found");
       }
     } else {
       const s3Response = await r2.send(
@@ -682910,8 +683011,10 @@ var handler = async (event, context) => {
     }
     if (event.action === "analyze") {
       const sourceEvents = createSourceEvents(events, typeColors);
-      if (!sourceEvents.length) throw new Error("No valid events were found");
-      if (sourceEvents.length > 5e3) throw new Error("Too many events. Please upload a shorter period.");
+      if (!sourceEvents.length) {
+        throw new JobFailure(inputMode === "manual" ? "NO_VALID_MANUAL_EVENTS" : "NO_VALID_EVENTS", "No valid events were found");
+      }
+      if (sourceEvents.length > 5e3) throw new JobFailure("TOO_MANY_EVENTS", "Too many events. Please upload a shorter period.");
       const { error } = await supabase.rpc("prepare_calendar_review", {
         p_job_id: jobId,
         p_user_id: userId,
@@ -682928,7 +683031,8 @@ var handler = async (event, context) => {
     }
     const { data: integration, error: tokenError } = await supabase.from("user_integrations").select("google_refresh_token_enc").eq("user_id", userId).single();
     if (tokenError || !integration?.google_refresh_token_enc) {
-      throw new Error(`No Google refresh token for user: ${userId}`);
+      if (tokenError && tokenError.code !== "PGRST116") throw tokenError;
+      throw new JobFailure("GOOGLE_REAUTH_REQUIRED", "No Google refresh token");
     }
     const accessToken = await refreshAccessToken(
       integration.google_refresh_token_enc
@@ -682970,26 +683074,11 @@ var handler = async (event, context) => {
     }
   } catch (err) {
     if (err instanceof ImportFollowupError) throw err;
-    let message = err instanceof Error ? err.message : String(err);
-    let errorCode = "UNKNOWN";
+    const message = diagnosticMessage(err);
+    const errorCode = workerErrorCode(err, message);
     console.error("[handler] error:", message, err);
-    if (err instanceof CalendarIntegrationError) {
-      errorCode = err.code;
-    }
-    if (err instanceof NotACalendarError) {
-      errorCode = "NOT_A_CALENDAR";
-      message = language === "en" ? "The uploaded file does not appear to be a calendar or schedule. Please upload a garbage collection calendar or event schedule (PDF or photo)." : "\u30AB\u30EC\u30F3\u30C0\u30FC\u5F62\u5F0F\u306E\u30D5\u30A1\u30A4\u30EB\u3067\u306F\u3042\u308A\u307E\u305B\u3093\u3067\u3057\u305F\u3002\u30B4\u30DF\u51FA\u3057\u30AB\u30EC\u30F3\u30C0\u30FC\u3084\u884C\u4E8B\u4E88\u5B9A\u8868\u306A\u3069\u306EPDF\u30FB\u5199\u771F\u3092\u30A2\u30C3\u30D7\u30ED\u30FC\u30C9\u3057\u3066\u304F\u3060\u3055\u3044\u3002";
-    }
-    if (message.includes("503 Service Unavailable") || message.includes("high demand") || message.includes("fetch failed")) {
-      errorCode = "GEMINI_TEMPORARY";
-      message = language === "en" ? "AI server is currently experiencing high demand and is temporarily unavailable. Please wait a few minutes and try again." : "\u73FE\u5728AI\u30B5\u30FC\u30D0\u30FC\u304C\u6DF7\u307F\u5408\u3063\u3066\u304A\u308A\u3001\u4E00\u6642\u7684\u306B\u5229\u7528\u3067\u304D\u306A\u3044\u72B6\u614B\u3067\u3059\u3002\u6570\u5206\u301C\u6570\u5341\u5206\u307B\u3069\u6642\u9593\u3092\u7F6E\u3044\u3066\u304B\u3089\u518D\u5EA6\u304A\u8A66\u3057\u304F\u3060\u3055\u3044\u3002";
-    }
-    if (err instanceof SyntaxError && message.includes("JSON at position")) {
-      errorCode = "GEMINI_PARSE_ERROR";
-      message = language === "en" ? "The AI could not extract all events from this file. The calendar may contain too many entries. Please try uploading a file covering a shorter period." : "AI\u304C\u30D5\u30A1\u30A4\u30EB\u304B\u3089\u4E88\u5B9A\u3092\u6B63\u5E38\u306B\u62BD\u51FA\u3067\u304D\u307E\u305B\u3093\u3067\u3057\u305F\u3002\u30AB\u30EC\u30F3\u30C0\u30FC\u306E\u53CE\u96C6\u4EF6\u6570\u304C\u591A\u3059\u304E\u308B\u53EF\u80FD\u6027\u304C\u3042\u308A\u307E\u3059\u3002\u671F\u9593\u3092\u7D5E\u3063\u305F\u30D5\u30A1\u30A4\u30EB\u3092\u304A\u8A66\u3057\u304F\u3060\u3055\u3044\u3002";
-    }
     if (event.action === "analyze") {
-      const { data: failed } = await supabase.from("calendar_imports").update({ state: "error", error: message }).eq("job_id", jobId).eq("user_id", userId).eq("state", "analyzing").select("job_id").maybeSingle();
+      const { data: failed } = await supabase.from("calendar_imports").update({ state: "error", error: errorCode }).eq("job_id", jobId).eq("user_id", userId).eq("state", "analyzing").select("job_id").maybeSingle();
       if (!failed) return;
     }
     await supabase.from("jobs").update({
@@ -683002,7 +683091,7 @@ var handler = async (event, context) => {
     try {
       const { data: { user: authUser } } = await supabase.auth.admin.getUserById(userId);
       if (authUser?.email && await isAccountActive(supabase, userId)) {
-        await sendErrorEmail(authUser.email, message);
+        await sendErrorEmail(authUser.email, errorCode, language);
       }
     } catch (emailErr) {
       console.warn("[handler] error email notification failed:", emailErr);

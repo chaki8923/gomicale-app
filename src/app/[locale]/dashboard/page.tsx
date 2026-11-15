@@ -1,7 +1,6 @@
 import { redirect } from 'next/navigation'
 import { getSupabaseServerClient, getSupabaseServiceClient } from '@/lib/supabase/server'
 import { DashboardClient } from './DashboardClient'
-import type { Job } from '@/types/database'
 import type { UnreadReply } from '@/components/InquiryReplyModal'
 import type { Metadata } from 'next'
 import { hasSupportCooldownExpired } from '@/lib/support-server'
@@ -77,7 +76,7 @@ export default async function DashboardPage({
       userId={user.id}
       userName={userName}
       userAvatarUrl={userAvatarUrl}
-      initialJobs={(jobs ?? []) as Job[]}
+      initialJobs={jobs ?? []}
       unreadReplies={unreadReplies}
       calendarScopeMissing={calendarScopeMissing}
       calendarPermissionRequired={calendarPermissionRequired}

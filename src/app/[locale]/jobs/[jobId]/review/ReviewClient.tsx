@@ -7,14 +7,26 @@ import { CalendarColorPicker } from '@/components/CalendarColorPicker'
 import { Button } from '@/components/ui/Button'
 import { STANDARD_EVENT_COLORS, type CalendarImport, type ImportDraft, type EventColors } from '../../../../../../shared/calendar-import'
 import type { OwnedCalendar } from '../../../../../../shared/google-calendars'
+import { isCalendarReauthErrorCode, jobErrorMessage, parseJobErrorCode, type JobErrorCode } from '../../../../../../shared/job-errors'
+import { ImportRequestError, type importRequestErrorCode } from '../../../../../../shared/import-request-errors'
 
-type ReviewData = CalendarImport & { ready_email_status?: 'pending'|'sent'|'failed'|null }
+type ReviewData = Pick<CalendarImport, 'state' | 'registration_mode' | 'revision' | 'draft' | 'confirmed' |
+  'registered_count' | 'lease_until' | 'updated_at'> & {
+  error: JobErrorCode | null
+  ready_email_status: 'pending'|'sent'|'failed'|null
+}
+type RequestErrorCode = ReturnType<typeof importRequestErrorCode>
 type CalendarData = { calendars: OwnedCalendar[]; colors: EventColors; selectedCalendarId: string | null }
 async function api<T>(url: string, options?: RequestInit): Promise<T> {
   const response = await fetch(url, { ...options, cache: 'no-store' })
-  const data = await response.json()
-  if (!response.ok) throw new Error(data.error ?? 'REQUEST_FAILED')
-  return data
+  if (!response.ok) {
+    const data = await response.json().catch(() => null)
+    throw new ImportRequestError(data?.error ?? (response.status === 401 ? 'UNAUTHORIZED' : 'REQUEST_FAILED'))
+  }
+  return response.json()
+}
+function requestError(error: unknown): RequestErrorCode {
+  return error instanceof ImportRequestError ? error.code : 'REQUEST_FAILED'
 }
 function Swatch({ color, label }: { color?: string | null; label: string }) {
   return <span className="inline-flex items-center gap-1.5 text-xs text-slate-600"><span aria-hidden="true" className="inline-block size-4 shrink-0 rounded-full border border-slate-300" style={{ background: color ?? 'repeating-linear-gradient(45deg,#fff,#fff 3px,#ddd 3px,#ddd 4px)' }} />{label}</span>
@@ -24,7 +36,8 @@ export function ReviewClient({ jobId }: { jobId: string }) {
   const [review, setReview] = useState<ReviewData | null>(null)
   const [draft, setDraft] = useState<ImportDraft | null>(null)
   const [calendarData, setCalendarData] = useState<CalendarData | null>(null)
-  const [error, setError] = useState(''), [calendarError, setCalendarError] = useState('')
+  const [error, setError] = useState<RequestErrorCode | null>(null)
+  const [calendarError, setCalendarError] = useState<RequestErrorCode | null>(null)
   const [saveStatus, setSaveStatus] = useState<'saved'|'dirty'|'saving'|'failed'>('saved')
   const [page, setPage] = useState(0), [confirming, setConfirming] = useState(false), [busy, setBusy] = useState(false)
   const draftRef = useRef<ImportDraft | null>(null), revision = useRef(0), edit = useRef(0), saved = useRef(0)
@@ -44,8 +57,8 @@ export function ReviewClient({ jobId }: { jobId: string }) {
             body: JSON.stringify({ revision: revision.current, draft: draftRef.current }) })
           revision.current = result.revision; saved.current = version
         }
-        setSaveStatus('saved'); setError('')
-      } catch (e) { setSaveStatus('failed'); setError((e as Error).message); throw e }
+        setSaveStatus('saved'); setError(null)
+      } catch (e) { setSaveStatus('failed'); setError(requestError(e)); throw e }
     })()
     inFlight.current = operation
     try { await operation } finally { if (inFlight.current === operation) inFlight.current = null }
@@ -64,7 +77,7 @@ export function ReviewClient({ jobId }: { jobId: string }) {
         const value = await api<ReviewData>(`${base}/review`)
         let calendars: CalendarData | null = null
         try { calendars = value.registration_mode === 'auto' ? { calendars: [{ id: 'primary', summary: '', primary: true }], colors: STANDARD_EVENT_COLORS, selectedCalendarId: null } : await api<CalendarData>('/api/google-calendars') }
-        catch (e) { if (active) setCalendarError((e as Error).message) }
+        catch (e) { if (active) setCalendarError(requestError(e)) }
         if (!active) return
         setReview(value); revision.current = value.revision
         const initial = value.confirmed ?? value.draft
@@ -76,7 +89,7 @@ export function ReviewClient({ jobId }: { jobId: string }) {
             if (choice) change(d => ({ ...d, calendarId: choice.id }))
           }
         }
-      } catch (e) { if (active) setError((e as Error).message) }
+      } catch (e) { if (active) setError(requestError(e)) }
     }
     void load()
     return () => { active = false; if (timer.current) clearTimeout(timer.current) }
@@ -109,19 +122,18 @@ export function ReviewClient({ jobId }: { jobId: string }) {
   const count = draft?.events.filter(e => e.included).length ?? 0
   const editable = review?.state === 'ready' && !review.confirmed && !busy && !confirming
   const destination = calendarData?.calendars.find(c => c.id === draft?.calendarId)
-  const reauth = (code: string) => /GOOGLE_(REAUTH_REQUIRED|CALENDAR_SCOPE_MISSING|CALENDAR_PERMISSION_DENIED)/.test(code)
-  const message = (code: string) => t.has(`errors.${code}`) ? t(`errors.${code}`) : t('errors.REQUEST_FAILED')
+  const message = (code: RequestErrorCode) => t.has(`errors.${code}`) ? t(`errors.${code}`) : jobErrorMessage(parseJobErrorCode(code), locale)
   const prepare = async () => {
     setBusy(true)
     try { await save(); setConfirming(true) } catch {} finally { setBusy(false) }
   }
   const submit = async () => {
-    setBusy(true); setError('')
+    setBusy(true); setError(null)
     try {
       await save()
       const result = await api<{state:CalendarImport['state']}>(`${base}/import`, { method: 'POST', headers: { 'Content-Type':'application/json' }, body: JSON.stringify({ revision: revision.current }) })
       setReview(r => r ? { ...r, state: result.state, confirmed: draftRef.current } : r); setConfirming(false)
-    } catch (e) { setError((e as Error).message); setConfirming(false) } finally { setBusy(false) }
+    } catch (e) { setError(requestError(e)); setConfirming(false) } finally { setBusy(false) }
   }
   const retry = async () => { await submit() }
 
@@ -130,15 +142,15 @@ export function ReviewClient({ jobId }: { jobId: string }) {
     <div className="mx-auto max-w-6xl px-4 py-8 pb-36 sm:px-6">
       <p className="mb-2 text-xs font-bold tracking-widest text-teal-700">{t('step')}</p><h1 className="text-2xl font-bold sm:text-3xl">{t('title')}</h1><p className="mt-3 max-w-3xl text-sm leading-7 text-slate-600">{t(review?.registration_mode === 'auto' ? 'autoIntro' : 'intro')}</p>
       {error && <div role="alert" className="mt-5 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800">{message(error)} {error === 'EDIT_CONFLICT' && <Button className="underline" onClick={() => window.location.reload()}>{t('reload')}</Button>}
-        {reauth(error) && <Button className="ml-3 underline" onClick={() => void startGoogleOAuth({ postAuthPath: `/${locale}/jobs/${jobId}/review` })}>{t('reconnect')}</Button>}</div>}
+        {isCalendarReauthErrorCode(error) && <Button className="ml-3 underline" onClick={() => void startGoogleOAuth({ postAuthPath: `/${locale}/jobs/${jobId}/review` })}>{t('reconnect')}</Button>}</div>}
       {review?.state === 'ready' && review.ready_email_status && <p role="status" className="mt-5 rounded-xl bg-teal-50 p-4 text-sm leading-7 text-teal-900">{t(`readyEmail.${review.ready_email_status}`)}</p>}
       {!review || !draft ? <p className="mt-8" role="status">{error ? '' : t('loading')}</p> : <>
         {review.state !== 'ready' && <section role="status" className="mt-6 rounded-2xl border border-teal-200 bg-white p-6"><h2 className="font-bold">{t(`state.${review.state}`)}</h2><p className="mt-2 text-sm text-slate-600">{review.confirmed ? t('frozen') : t('waiting')}</p>
-          {review.error && <div className="mt-3 text-sm text-red-700"><p className="break-words">{t.has(`errors.${review.error}`) ? message(review.error) : review.error}</p>{reauth(review.error) && <Button className="mt-2 underline" onClick={() => void startGoogleOAuth({ postAuthPath: `/${locale}/jobs/${jobId}/review` })}>{t('reconnect')}</Button>}</div>}
+          {review.state === 'error' && <div className="mt-3 text-sm text-red-700"><p>{jobErrorMessage(review.error, locale)}</p>{isCalendarReauthErrorCode(review.error) && <Button className="mt-2 underline" onClick={() => void startGoogleOAuth({ postAuthPath: `/${locale}/jobs/${jobId}/review` })}>{t('reconnect')}</Button>}</div>}
           {review.confirmed && <p className="mt-2 text-sm text-teal-800">{t('progress', { count: review.registered_count, total: count })}</p>}
           {review.confirmed && (review.state === 'error' || (review.state === 'registering' && (review.lease_until ? Date.parse(review.lease_until) < Date.now() : Date.parse(review.updated_at) < Date.now()-60000))) && <Button disabled={busy} onClick={() => void retry()} className="mt-4 rounded-lg bg-teal-700 px-4 py-3 text-white disabled:opacity-50">{t('retryImport')}</Button>}
         </section>}
-        {calendarError && review.state !== 'completed' && <section role="alert" className="mt-6 rounded-xl border border-amber-200 bg-amber-50 p-5 text-sm"><p>{message(calendarError)}</p><Button onClick={async () => { try { await save(); if (reauth(calendarError)) await startGoogleOAuth({ postAuthPath: `/${locale}/jobs/${jobId}/review` }); else window.location.reload() } catch {} }} className="mt-3 rounded-lg bg-white px-4 py-2 font-bold text-teal-800 shadow-sm">{reauth(calendarError) ? t('reconnect') : t('reload')}</Button></section>}
+        {calendarError && review.state !== 'completed' && <section role="alert" className="mt-6 rounded-xl border border-amber-200 bg-amber-50 p-5 text-sm"><p>{message(calendarError)}</p><Button onClick={async () => { try { await save(); if (isCalendarReauthErrorCode(calendarError)) await startGoogleOAuth({ postAuthPath: `/${locale}/jobs/${jobId}/review` }); else window.location.reload() } catch {} }} className="mt-3 rounded-lg bg-white px-4 py-2 font-bold text-teal-800 shadow-sm">{isCalendarReauthErrorCode(calendarError) ? t('reconnect') : t('reload')}</Button></section>}
         <section className="mt-6 grid gap-6 rounded-2xl border border-slate-200 bg-white p-5 sm:grid-cols-2 sm:p-6">
           <label className="block text-sm font-semibold">{t('calendar')}<select aria-label={t('calendar')} value={draft.calendarId} disabled={!editable || !calendarData} onChange={e => change(d => ({ ...d, calendarId: e.target.value }))} className="mt-2 w-full rounded-lg border border-slate-300 bg-white p-3 disabled:bg-slate-50"><option value="">{t('selectCalendar')}</option>{draft.calendarId && !destination && <option value={draft.calendarId}>{t('unavailableCalendar')}</option>}{calendarData?.calendars.map(c => <option key={c.id} value={c.id}>{c.summary || t('primary')}{c.primary ? ` (${t('primary')})` : ''}</option>)}</select><span className="mt-2 block text-xs font-normal text-slate-500">{t('ownerOnly')}</span></label>
           <div><label className="block text-sm font-semibold">{t('time')}<select aria-label={t('time')} value={draft.eventTime ? 'timed' : 'allDay'} disabled={!editable} onChange={e => change(d => ({ ...d, eventTime: e.target.value === 'timed' ? '09:00' : null }))} className="mt-2 w-full rounded-lg border border-slate-300 bg-white p-3"><option value="allDay">{t('allDay')}</option><option value="timed">{t('timed')}</option></select></label>{draft.eventTime && <div className="mt-2 flex flex-wrap gap-2"><input aria-label={t('startTime')} type="time" value={draft.eventTime} disabled={!editable} onChange={e => change(d => ({ ...d, eventTime: e.target.value }))} className="rounded-lg border border-slate-300 p-2" /><input aria-label={t('timezone')} value={draft.timezone} disabled={!editable} onChange={e => change(d => ({ ...d, timezone: e.target.value }))} className="min-w-0 flex-1 rounded-lg border border-slate-300 p-2 text-sm" /></div>}</div>

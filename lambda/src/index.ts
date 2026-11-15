@@ -4,6 +4,7 @@ import { sendReadyEmail, dispatchConfirmedImport, ImportFollowupError, escapeHtm
 import { createSourceEvents, type CalendarImport } from '../../shared/calendar-import'
 import { isAccountActive } from '../../shared/account-lifecycle'
 import { getOwnedCalendars, GoogleAccessError } from '../../shared/google-calendars'
+import { jobErrorMessage, parseJobErrorCode, type JobErrorCode } from '../../shared/job-errors'
 import { createHash, randomUUID } from 'crypto'
 import { Resend } from 'resend'
 import type { LambdaPayload, CalendarEvent } from './types'
@@ -15,7 +16,6 @@ import {
   batchInsertGarbageEvents,
   CalendarIntegrationError,
   ImportTimeBudgetError,
-  type CalendarIntegrationErrorCode,
 } from './calendar/client'
 
 const APP_URL = process.env.APP_URL ?? 'https://gomicale.jp'
@@ -38,12 +38,29 @@ function resolveMimeType(objectKey: string, contentType?: string): string {
   return MIME_BY_EXT[ext] ?? 'application/pdf'
 }
 
-type JobErrorCode =
-  | CalendarIntegrationErrorCode
-  | 'NOT_A_CALENDAR'
-  | 'GEMINI_TEMPORARY'
-  | 'GEMINI_PARSE_ERROR'
-  | 'UNKNOWN'
+class JobFailure extends Error {
+  constructor(readonly code: JobErrorCode, detail: string) {
+    super(detail)
+  }
+}
+
+function diagnosticMessage(error: unknown): string {
+  if (error && typeof error === 'object' && 'message' in error && typeof error.message === 'string') {
+    return error.message
+  }
+  return String(error)
+}
+
+function workerErrorCode(error: unknown, detail: string): JobErrorCode {
+  if (error instanceof JobFailure || error instanceof CalendarIntegrationError) return error.code
+  if (error instanceof GoogleAccessError) return parseJobErrorCode(error.code) ?? 'UNKNOWN'
+  if (error instanceof NotACalendarError) return 'NOT_A_CALENDAR'
+  if (/503 Service Unavailable|high demand|fetch failed/i.test(detail)) return 'GEMINI_TEMPORARY'
+  if ((error instanceof SyntaxError && detail.includes('JSON at position')) || detail.startsWith('Gemini returned unexpected format:')) {
+    return 'GEMINI_PARSE_ERROR'
+  }
+  return 'UNKNOWN'
+}
 
 // LINE 連携済みかどうかを確認する（user_integrations と line_links の両方を確認）
 async function isLineLinked(userId: string): Promise<boolean> {
@@ -186,7 +203,8 @@ async function sendCompletionEmail(
 
 async function sendErrorEmail(
   toEmail: string,
-  errorMessage: string,
+  code: JobErrorCode,
+  language: 'ja' | 'en',
 ): Promise<void> {
   const apiKey = process.env.RESEND_API_KEY
   const fromEmail = process.env.APP_FROM_EMAIL ?? 'ゴミカレ <noreply@gomicale.jp>'
@@ -195,20 +213,20 @@ async function sendErrorEmail(
     return
   }
   const resend = new Resend(apiKey)
+  const title = language === 'en' ? 'Calendar import did not finish' : 'カレンダー登録を完了できませんでした'
+  const message = jobErrorMessage(code, language)
   const { error } = await resend.emails.send({
     from: fromEmail,
     to: toEmail,
-    subject: 'ゴミカレ - カレンダー登録に失敗しました',
+    subject: language === 'en' ? `GomiCale - ${title}` : 'ゴミカレ - カレンダー登録に失敗しました',
+    text: `${title}\n\n${message}`,
     html: `
       <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:24px">
-        <h2 style="color:#dc2626;margin-bottom:8px">カレンダー登録でエラーが発生しました</h2>
-        <p style="color:#374151;margin-bottom:16px">
-          PDFの解析またはGoogleカレンダーへの登録中にエラーが発生しました。
-        </p>
+        <h2 style="color:#dc2626;margin-bottom:8px">${title}</h2>
         <div style="background:#fef2f2;border-radius:8px;padding:16px;margin-bottom:16px">
-          <p style="margin:0;color:#991b1b;font-size:13px;word-break:break-all">${escapeHtml(errorMessage)}</p>
+          <p style="margin:0;color:#991b1b;font-size:13px">${escapeHtml(message)}</p>
         </div>
-        <p style="color:#9ca3af;font-size:12px;margin-top:24px">ゴミカレ</p>
+        <p style="color:#9ca3af;font-size:12px;margin-top:24px">${language === 'en' ? 'GomiCale' : 'ゴミカレ'}</p>
       </div>
     `,
   })
@@ -252,7 +270,7 @@ async function dispatchRegistration(review: CalendarImport): Promise<void> {
   return dispatchConfirmedImport(supabase,review,APP_URL,async () => {
     try {
       const { data: { user } } = await supabase.auth.admin.getUserById(review.user_id)
-      if (user?.email && await isAccountActive(supabase,review.user_id)) await sendErrorEmail(user.email,'登録を開始できませんでした。ダッシュボードの登録履歴から再試行してください。')
+      if (user?.email && await isAccountActive(supabase,review.user_id)) await sendErrorEmail(user.email,'AUTO_DISPATCH_FAILED',review.language)
     } catch { console.warn('[dispatch] error notification failed') }
   })
 }
@@ -274,10 +292,10 @@ async function registerImport(event: LambdaPayload, context?: { getRemainingTime
     if (!integration?.google_refresh_token_enc) throw new CalendarIntegrationError('GOOGLE_REAUTH_REQUIRED', 'Google reauthentication required')
     const accessToken = await refreshAccessToken(integration.google_refresh_token_enc)
     if (review.registration_mode === 'auto') {
-      if (review.confirmed.calendarId !== 'primary') throw new Error('CALENDAR_NOT_FOUND')
+      if (review.confirmed.calendarId !== 'primary') throw new JobFailure('CALENDAR_NOT_FOUND', 'Registration destination is not primary')
     } else {
       const calendars = await getOwnedCalendars(accessToken)
-      if (!calendars.some(c => c.id === review.confirmed!.calendarId)) throw new Error('CALENDAR_NOT_FOUND')
+      if (!calendars.some(c => c.id === review.confirmed!.calendarId)) throw new JobFailure('CALENDAR_NOT_FOUND', 'Registration destination is unavailable')
     }
     const confirmed = review.confirmed
     const selected = confirmed.events.filter(e => e.included)
@@ -310,15 +328,16 @@ async function registerImport(event: LambdaPayload, context?: { getRemainingTime
       if (released) await dispatchRegistration(released as CalendarImport)
       return
     }
-    const message = error instanceof CalendarIntegrationError || error instanceof GoogleAccessError
-      ? error.code : error instanceof Error ? error.message : 'Registration failed'
-    const { data: failed } = await supabase.from('calendar_imports').update({ state: 'error', error: message, lease_token: null, lease_until: null })
+    const message = diagnosticMessage(error)
+    const code = error instanceof JobFailure || error instanceof CalendarIntegrationError || error instanceof GoogleAccessError
+      ? workerErrorCode(error, message) : 'UNKNOWN'
+    const { data: failed } = await supabase.from('calendar_imports').update({ state: 'error', error: code, lease_token: null, lease_until: null })
       .eq('job_id', event.jobId).eq('state','registering').eq('lease_token',token).select('job_id').maybeSingle()
     if (failed) {
-      await supabase.from('jobs').update({ status: 'error', error_message: message, result_data: { review_available: true, registration_mode: review.registration_mode } }).eq('id', event.jobId)
+      await supabase.from('jobs').update({ status: 'error', error_message: message, result_data: { review_available: true, registration_mode: review.registration_mode, error_code: code } }).eq('id', event.jobId)
       try {
         const { data: { user } } = await supabase.auth.admin.getUserById(event.userId)
-        if (user?.email && await isAccountActive(supabase,event.userId)) await sendErrorEmail(user.email,message)
+        if (user?.email && await isAccountActive(supabase,event.userId)) await sendErrorEmail(user.email,code,review.language)
       } catch { console.warn('[register] error notification failed') }
     }
     console.error('[register] failed', event.jobId, message)
@@ -326,7 +345,7 @@ async function registerImport(event: LambdaPayload, context?: { getRemainingTime
 }
 
 export const handler = async (event: LambdaPayload, context?: { getRemainingTimeInMillis(): number }): Promise<unknown> => {
-  if (event.action === 'health') return { protocol: 'calendar-review-v1', revision: 4, readyEmailConfigured: !!process.env.RESEND_API_KEY, testSender: /@resend\.dev/i.test(process.env.APP_FROM_EMAIL ?? '') }
+  if (event.action === 'health') return { protocol: 'calendar-review-v1', revision: 5, readyEmailConfigured: !!process.env.RESEND_API_KEY, testSender: /@resend\.dev/i.test(process.env.APP_FROM_EMAIL ?? '') }
   if (!await isAccountActive(supabase,event.userId)) return
   if (event.action === 'register') return registerImport(event, context)
   if (event.action === 'analyze') {
@@ -410,11 +429,7 @@ export const handler = async (event: LambdaPayload, context?: { getRemainingTime
       }
 
       if (events.length === 0) {
-        throw new Error(
-          language === 'en'
-            ? 'No calendar events could be generated from the text instruction. Please make the rule more specific.'
-            : '入力指示から登録できる予定を生成できませんでした。曜日や収集種別が分かるように、もう少し具体的に入力してください。',
-        )
+        throw new JobFailure('NO_VALID_MANUAL_EVENTS', 'No valid events were found')
       }
     } else {
       // ── 1. R2 から PDF をダウンロード ──────────────────────────────
@@ -483,8 +498,10 @@ export const handler = async (event: LambdaPayload, context?: { getRemainingTime
 
     if (event.action === 'analyze') {
       const sourceEvents = createSourceEvents(events, typeColors)
-      if (!sourceEvents.length) throw new Error('No valid events were found')
-      if (sourceEvents.length > 5000) throw new Error('Too many events. Please upload a shorter period.')
+      if (!sourceEvents.length) {
+        throw new JobFailure(inputMode === 'manual' ? 'NO_VALID_MANUAL_EVENTS' : 'NO_VALID_EVENTS', 'No valid events were found')
+      }
+      if (sourceEvents.length > 5000) throw new JobFailure('TOO_MANY_EVENTS', 'Too many events. Please upload a shorter period.')
       const { error } = await supabase.rpc('prepare_calendar_review', { p_job_id: jobId, p_user_id: userId,
         p_events: sourceEvents, p_hash: pdfHash, p_title: pdfTitle ?? null, p_mode: resolvedParserMode })
       if (error) throw error
@@ -502,7 +519,8 @@ export const handler = async (event: LambdaPayload, context?: { getRemainingTime
       .single()
 
     if (tokenError || !integration?.google_refresh_token_enc) {
-      throw new Error(`No Google refresh token for user: ${userId}`)
+      if (tokenError && tokenError.code !== 'PGRST116') throw tokenError
+      throw new JobFailure('GOOGLE_REAUTH_REQUIRED', 'No Google refresh token')
     }
 
     // ── 6. アクセストークンを更新 ─────────────────────────────────
@@ -554,40 +572,12 @@ export const handler = async (event: LambdaPayload, context?: { getRemainingTime
     }
   } catch (err) {
     if (err instanceof ImportFollowupError) throw err // Retry follow-up without repeating analysis.
-    let message = err instanceof Error ? err.message : String(err)
-    let errorCode: JobErrorCode = 'UNKNOWN'
+    const message = diagnosticMessage(err)
+    const errorCode = workerErrorCode(err, message)
     console.error('[handler] error:', message, err)
 
-    if (err instanceof CalendarIntegrationError) {
-      errorCode = err.code
-    }
-
-    // カレンダー形式でないファイルが送信された場合
-    if (err instanceof NotACalendarError) {
-      errorCode = 'NOT_A_CALENDAR'
-      message = language === 'en'
-        ? 'The uploaded file does not appear to be a calendar or schedule. Please upload a garbage collection calendar or event schedule (PDF or photo).'
-        : 'カレンダー形式のファイルではありませんでした。ゴミ出しカレンダーや行事予定表などのPDF・写真をアップロードしてください。'
-    }
-
-    // Gemini APIの一時的なエラー（503やfetch failed）をユーザーフレンドリーなメッセージに書き換える
-    if (message.includes('503 Service Unavailable') || message.includes('high demand') || message.includes('fetch failed')) {
-      errorCode = 'GEMINI_TEMPORARY'
-      message = language === 'en'
-        ? 'AI server is currently experiencing high demand and is temporarily unavailable. Please wait a few minutes and try again.'
-        : '現在AIサーバーが混み合っており、一時的に利用できない状態です。数分〜数十分ほど時間を置いてから再度お試しください。'
-    }
-
-    // Gemini レスポンスの JSON パース失敗（出力トークン超過による途中切れ等）
-    if (err instanceof SyntaxError && message.includes('JSON at position')) {
-      errorCode = 'GEMINI_PARSE_ERROR'
-      message = language === 'en'
-        ? 'The AI could not extract all events from this file. The calendar may contain too many entries. Please try uploading a file covering a shorter period.'
-        : 'AIがファイルから予定を正常に抽出できませんでした。カレンダーの収集件数が多すぎる可能性があります。期間を絞ったファイルをお試しください。'
-    }
-
     if (event.action === 'analyze') {
-      const { data: failed } = await supabase.from('calendar_imports').update({ state: 'error', error: message })
+      const { data: failed } = await supabase.from('calendar_imports').update({ state: 'error', error: errorCode })
         .eq('job_id',jobId).eq('user_id',userId).eq('state','analyzing').select('job_id').maybeSingle()
       if (!failed) return
     }
@@ -604,7 +594,7 @@ export const handler = async (event: LambdaPayload, context?: { getRemainingTime
     try {
       const { data: { user: authUser } } = await supabase.auth.admin.getUserById(userId)
       if (authUser?.email && await isAccountActive(supabase,userId)) {
-        await sendErrorEmail(authUser.email, message)
+        await sendErrorEmail(authUser.email, errorCode, language)
       }
     } catch (emailErr) {
       console.warn('[handler] error email notification failed:', emailErr)

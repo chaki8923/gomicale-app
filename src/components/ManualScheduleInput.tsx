@@ -5,6 +5,8 @@ import { useLocale, useTranslations } from 'next-intl'
 import { RegistrationModeSelector } from '@/components/RegistrationModeSelector'
 import type { RegistrationMode } from '../../shared/calendar-import'
 import { Button } from '@/components/ui/Button'
+import { ImportRequestError } from '../../shared/import-request-errors'
+import { jobErrorMessage } from '../../shared/job-errors'
 
 interface ManualScheduleInputProps {
   onStart: (jobId: string) => void
@@ -51,14 +53,8 @@ export function ManualScheduleInput({ onStart }: ManualScheduleInputProps) {
       })
 
       if (!res.ok) {
-        let message: string | null = null
-        try {
-          const body = await res.json() as { message?: string }
-          message = body.message ?? null
-        } catch {
-          message = null
-        }
-        throw new Error(message ?? t('errorSubmit'))
+        const body = await res.json().catch(() => null)
+        throw new ImportRequestError(res.status === 429 ? 'LIMIT_EXCEEDED' : res.status === 401 ? 'UNAUTHORIZED' : body?.error)
       }
 
       const body = await res.json() as { jobId: string }
@@ -67,7 +63,11 @@ export function ManualScheduleInput({ onStart }: ManualScheduleInputProps) {
       onStart(body.jobId)
     } catch (err) {
       setState('error')
-      setError(err instanceof Error ? err.message : t('errorUnexpected'))
+      const code = err instanceof ImportRequestError ? err.code : null
+      if (code === 'UNAUTHORIZED') setError(t('sessionExpired'))
+      else if (code === 'LIMIT_EXCEEDED') setError(t('errorLimitExceeded'))
+      else if (code === 'INVALID_INSTRUCTION') setError(t('errorInstruction'))
+      else setError(jobErrorMessage(code, locale))
     }
   }
 
@@ -103,7 +103,7 @@ export function ManualScheduleInput({ onStart }: ManualScheduleInputProps) {
       </div>
 
       {error && (
-        <p className="text-sm text-red-500">{error}</p>
+        <p role="alert" className="text-sm text-red-500">{error}</p>
       )}
 
       <Button

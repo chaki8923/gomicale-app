@@ -7,7 +7,7 @@ export async function POST(request: Request) {
     if (!apiKey) {
       console.error('RESEND_API_KEY is not defined')
       return NextResponse.json(
-        { error: 'Server configuration error' },
+        { error: 'CONTACT_SEND_FAILED' },
         { status: 500 }
       )
     }
@@ -38,14 +38,14 @@ ${message}
 
     if (error) {
       console.error('Error sending contact email:', error)
-      return NextResponse.json({ error: error.message }, { status: 500 })
+      return NextResponse.json({ error: 'CONTACT_SEND_FAILED' }, { status: 500 })
     }
 
     return NextResponse.json({ success: true, data })
   } catch (error) {
     console.error('Unexpected error in contact API:', error)
     return NextResponse.json(
-      { error: 'An unexpected error occurred' },
+      { error: 'CONTACT_SEND_FAILED' },
       { status: 500 }
     )
   }

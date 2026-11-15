@@ -5,50 +5,58 @@ import { useEffect, useState } from 'react'
 import { useTranslations, useLocale } from 'next-intl'
 import { getSupabaseBrowserClient } from '@/lib/supabase/client'
 import { CalendarPermissionModal } from '@/components/CalendarPermissionModal'
-import { getJobErrorCode, isCalendarReauthErrorCode, type JobResultDataLike } from '@/lib/job-errors'
-import type { Job } from '@/types/database'
+import { getJobErrorCode, isCalendarReauthErrorCode, jobErrorMessage, JOB_SUMMARY_COLUMNS, type JobSummary, type JobResultDataLike } from '@/lib/job-errors'
 
 interface JobStatusCardProps {
   jobId: string
-  onComplete?: (job: Job) => void
+  onComplete?: (job: JobSummary) => void
 }
-
-const CALENDAR_PERMISSION_ERROR_MARKER = 'Googleカレンダーへのアクセス権限'
 
 export function JobStatusCard({ jobId, onComplete }: JobStatusCardProps) {
   const t = useTranslations('jobStatus')
   const locale = useLocale()
-  const [job, setJob] = useState<Job | null>(null)
+  const [job, setJob] = useState<JobSummary | null>(null)
+  const [loadFailed, setLoadFailed] = useState(false)
   const [isModalOpen, setIsModalOpen] = useState(false)
 
   useEffect(() => {
     const supabase = getSupabaseBrowserClient()
 
     let finished = false
-    const receive = (updated: Job) => {
+    const receive = (updated: JobSummary) => {
+      if (finished || updated.id !== jobId) return
       setJob(updated)
-      if (!finished && ['completed', 'error', 'awaiting_confirmation'].includes(updated.status)) {
+      setLoadFailed(false)
+      if (['completed', 'error', 'awaiting_confirmation'].includes(updated.status)) {
         finished = true
         clearInterval(poll)
         onComplete?.(updated)
         void supabase.removeChannel(channel)
       }
     }
-    const load = () => {
-      void supabase.from('jobs').select('*').eq('id', jobId).single()
-        .then(({ data }) => { if (data) receive(data as Job) })
+    const load = async () => {
+      try {
+        const { data } = await supabase.from('jobs').select(JOB_SUMMARY_COLUMNS).eq('id', jobId).single()
+        if (data) receive(data)
+        else if (!finished) setLoadFailed(true)
+      } catch {
+        if (!finished) setLoadFailed(true)
+      }
     }
     // Realtime may connect after a fast cached analysis finishes; polling closes that gap.
     const poll = setInterval(load, 3000)
     const channel = supabase.channel(`job-${jobId}`)
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'jobs', filter: `id=eq.${jobId}` },
-        payload => receive(payload.new as Job)).subscribe()
-    load()
-    return () => { clearInterval(poll); void supabase.removeChannel(channel) }
+        payload => {
+          const { id, status, created_at, pdf_title, result_data } = payload.new as JobSummary
+          receive({ id, status, created_at, pdf_title, result_data })
+        }).subscribe()
+    void load()
+    return () => { finished = true; clearInterval(poll); void supabase.removeChannel(channel) }
 
   }, [jobId, onComplete])
 
-  const statusLabel: Record<Job['status'], string> = {
+  const statusLabel: Record<JobSummary['status'], string> = {
     awaiting_confirmation: t('awaitingConfirmation'),
     pending:    t('pending'),
     processing: t('processing'),
@@ -56,7 +64,7 @@ export function JobStatusCard({ jobId, onComplete }: JobStatusCardProps) {
     error:      t('error'),
   }
 
-  const statusColor: Record<Job['status'], string> = {
+  const statusColor: Record<JobSummary['status'], string> = {
     awaiting_confirmation: 'bg-teal-100 text-teal-800',
     pending:    'bg-gray-100 text-gray-600',
     processing: 'bg-blue-100 text-blue-700',
@@ -65,18 +73,14 @@ export function JobStatusCard({ jobId, onComplete }: JobStatusCardProps) {
   }
 
   if (!job) {
+    if (loadFailed) return <p role="status" className="rounded-xl bg-white p-5 text-sm text-red-700">{jobErrorMessage(null, locale)}</p>
     return <div className="animate-pulse rounded-xl bg-gray-100 h-20" />
   }
 
   const isProcessing = job.status === 'pending' || job.status === 'processing'
   const resultData = job.result_data as JobResultDataLike | null
   const errorCode = getJobErrorCode(job.result_data)
-  const isCalendarPermissionError =
-    job.status === 'error' &&
-    (
-      isCalendarReauthErrorCode(errorCode) ||
-      (typeof job.error_message === 'string' && job.error_message.includes(CALENDAR_PERMISSION_ERROR_MARKER))
-    )
+  const isCalendarPermissionError = isCalendarReauthErrorCode(errorCode)
 
   return (
     <>
@@ -114,7 +118,7 @@ export function JobStatusCard({ jobId, onComplete }: JobStatusCardProps) {
 
           {job.status === 'error' && isCalendarPermissionError && (
             <div className="mt-2 space-y-2">
-              <p className="text-sm text-red-500">{t('calendarPermissionError')}</p>
+              <p className="text-sm text-red-500">{jobErrorMessage(errorCode, locale)}</p>
               <button
                 onClick={() => { navigator.vibrate?.(10); setIsModalOpen(true) }}
                 className="inline-flex items-center gap-1.5 text-xs font-semibold text-white bg-red-500 hover:bg-red-600 active:bg-red-700 px-3 py-1.5 rounded-lg cursor-pointer transition shadow-sm"
@@ -129,9 +133,7 @@ export function JobStatusCard({ jobId, onComplete }: JobStatusCardProps) {
 
           {job.status === 'error' && !isCalendarPermissionError && (
             <p className="text-sm text-red-500 mt-2 break-all">
-              {errorCode === 'UNKNOWN' || errorCode === null
-                ? t('unknownError')
-                : job.error_message ?? t('unknownError')}
+              {jobErrorMessage(errorCode, locale)}
             </p>
           )}
 

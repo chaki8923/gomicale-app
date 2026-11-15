@@ -5,6 +5,7 @@ const Module = require('node:module')
 require('ts-node').register({ transpileOnly: true, compilerOptions: { module: 'CommonJS', moduleResolution: 'node' } })
 const model = require('../shared/calendar-import.ts')
 const google = require('../shared/google-calendars.ts')
+const { jobErrorMessage } = require('../shared/job-errors.ts')
 const calendar = require('../lambda/src/calendar/client.ts')
 const clone = value => structuredClone(value)
 const source = () => model.createSourceEvents([{ date:'2026-11-09',title:'Paper' },{ date:'2026-11-10',title:'Plastic' }], {Paper:'#46d6db'})
@@ -73,8 +74,8 @@ Module._load=function(request,parent,...args) {
   if(parent?.filename.endsWith('/lambda/src/index.ts')) {
     if(request==='@supabase/supabase-js')return {createClient:()=>fixture.db}
     if(request==='@aws-sdk/client-s3')return {S3Client:class{async send(){return {Body:{transformToByteArray:async()=>new Uint8Array([1,2])},ContentType:'image/png'}}},GetObjectCommand:class{}}
-    if(request==='./parsers/factory')return {createPdfParser:()=>({parse:async()=>{fixture.parseCalls++;return {events:source().map(({date,title})=>({date,title})),typeColors:{Paper:'#46d6db'},parserMode:'garbage'}}})}
-    if(request==='./parsers/gemini')return {parseManualGarbageInstruction:async()=>({events:source()})}
+    if(request==='./parsers/factory')return {createPdfParser:()=>({parse:async()=>{fixture.parseCalls++;return {events:fixture.parsedEvents ?? source().map(({date,title})=>({date,title})),typeColors:{Paper:'#46d6db'},parserMode:'garbage'}}})}
+    if(request==='./parsers/gemini')return {parseManualGarbageInstruction:async()=>({events:fixture.parsedEvents ?? source()})}
     if(request==='./calendar/client')return {...calendar,refreshAccessToken:async()=>{fixture.tokenCalls++;return 'access'},batchInsertGarbageEvents:async(...args)=>{fixture.writes.push(args);if(fixture.pause){fixture.pause=false;await args[7].checkpoint(1);throw new calendar.ImportTimeBudgetError()}if(fixture.fail)throw new Error('Temporary failure');return {inserted:args[1].length,skipped:0}}}
     if(request==='resend')return {Resend:class{emails={send:async data=>{fixture.emails.push(data);return {data:{id:'mock'}}}}}}
   }
@@ -173,10 +174,64 @@ test('registration failure stays failed; retry uses the frozen content and only 
   const r=setup();r.state='registering';r.confirmed=draft();r.confirmed.events[1].included=false;fixture.fail=true
   await worker.handler({action:'register',jobId:r.job_id,userId:'alice'})
   assert.equal(r.state,'error');assert.equal(fixture.tables.jobs[0].status,'error');assert.equal(fixture.emails.length,1);assert.match(fixture.emails[0].subject,/失敗/)
+  assert.equal(r.error, 'UNKNOWN')
+  assert.equal(fixture.tables.jobs[0].error_message, 'Temporary failure')
+  assert.match(fixture.emails[0].text, /時間をおいて/)
+  assert.doesNotMatch(JSON.stringify(fixture.emails[0]), /Temporary failure|UNKNOWN/)
   r.state='registering';fixture.fail=false
   await worker.handler({action:'register',jobId:r.job_id,userId:'alice'})
   assert.equal(r.state,'completed');assert.equal(fixture.emails.length,2);assert.equal(fixture.writes[1][1].length,1);assert.equal(fixture.writes[1][5],'owned')
   await worker.handler({action:'register',jobId:r.job_id,userId:'alice'});assert.equal(fixture.writes.length,2)
+})
+test('empty, invalid, and oversized analysis results show localized next steps', async () => {
+  const many = Array.from({ length: 5001 }, (_, i) => ({ date: '2026-11-01', title: `Event ${i}` }))
+  for (const { events, language, code, expected, manual } of [
+    { events: [], language: 'ja', code: 'NO_VALID_EVENTS', expected: /日付と予定名/ },
+    { events: [{ date: '2026-02-30', title: 'Paper' }], language: 'en', code: 'NO_VALID_EVENTS', expected: /clearly shows the dates/ },
+    { events: [], language: 'ja', code: 'NO_VALID_MANUAL_EVENTS', expected: /収集ルール/ , manual: true },
+    { events: many, language: 'en', code: 'TOO_MANY_EVENTS', expected: /shorter date range/ },
+  ]) {
+    const review = setup()
+    review.state = 'analyzing'
+    fixture.parsedEvents = events
+    const options = manual ? { inputMode: 'manual', manualInstruction: 'Mondays', fiscalYearStart: '2026-04-01', fiscalYearEnd: '2027-03-31' } : {}
+    await worker.handler({ action: 'analyze', jobId: review.job_id, userId: 'alice', r2ObjectKey: 'sample.png', language, ...options })
+    assert.equal(review.state, 'error')
+    assert.equal(review.error, code)
+    assert.equal(fixture.tables.jobs[0].result_data.error_code, code)
+    assert.equal(fixture.writes.length, 0)
+    assert.match(fixture.emails[0].text, expected)
+    assert.doesNotMatch(JSON.stringify(fixture.emails[0]), /No valid events were found|Too many events\. Please upload/)
+  }
+})
+
+test('legacy, Google permission, and arbitrary failure details are mapped before browser delivery', async () => {
+  const review = setup()
+  const job = fixture.tables.jobs[0]
+  review.state = 'error'
+  review.lease_token = 'private lease'
+  for (const { detail, code, legacyCode } of [
+    { detail: 'No valid events were found', code: 'NO_VALID_EVENTS', legacyCode: 'UNKNOWN' },
+    { detail: 'Googleカレンダーへのアクセス権限がありません', code: 'GOOGLE_CALENDAR_SCOPE_MISSING' },
+    { detail: 'INVALID_PRIVATE_VALUE: internal detail', code: 'UNKNOWN' },
+  ]) {
+    review.error = detail
+    job.result_data = { error_code: legacyCode }
+    const response = await reviewRoute.GET(new Request('http://localhost/api/test'), context())
+    const data = await response.json()
+    assert.equal(data.error, code)
+    assert.equal(data.lease_token, undefined)
+    assert.equal(data.source_events, undefined)
+    assert.ok(!JSON.stringify(data).includes(detail))
+    assert.match(response.headers.get('cache-control'), /no-store/)
+  }
+  assert.match(jobErrorMessage('GOOGLE_REAUTH_REQUIRED', 'en'), /Reconnect/)
+  assert.match(jobErrorMessage('INVALID_PRIVATE_VALUE: internal detail', 'ja'), /時間をおいて/)
+
+  const { importErrorResponse } = require('../src/lib/calendar-import-server.ts')
+  const response = importErrorResponse(new Error('INVALID_PRIVATE_VALUE: internal detail'))
+  assert.equal(response.status, 500)
+  assert.deepEqual(await response.json(), { error: 'REQUEST_FAILED' })
 })
 test('batch retries partial writes with stable IDs, destination and colors on insert/update',async()=>{
   setup();const events=source().map(e=>({...e,colorId:'7'}));const stored=new Map();let fail=true;const writes=[]

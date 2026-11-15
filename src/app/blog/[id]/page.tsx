@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation'
 
-export default function Page({ params }: { params: { id: string } }) {
-  redirect(`/ja/blog/${params.id}`)
+export default async function Page({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params
+  redirect(`/ja/blog/${id}`)
 }

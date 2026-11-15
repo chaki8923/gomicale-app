@@ -110,6 +110,15 @@ ${scheduleText}
 }
 
 export async function POST(request: NextRequest) {
+  try {
+    return await classify(request)
+  } catch (error) {
+    console.error('[classify] request failed', error instanceof Error ? error.name : 'Unknown error')
+    return NextResponse.json({ error: 'classification_failed' }, { status: 500 })
+  }
+}
+
+async function classify(request: NextRequest) {
   const supabase = await getSupabaseServerClient()
   const { data: { user }, error: authError } = await supabase.auth.getUser()
   if (authError || !user) {
@@ -169,7 +178,8 @@ export async function POST(request: NextRequest) {
   // Gemini でゴミ分類
   const apiKey = process.env.GEMINI_API_KEY
   if (!apiKey) {
-    return NextResponse.json({ error: 'Gemini API key not configured' }, { status: 500 })
+    console.error('[classify] Gemini API key not configured')
+    return NextResponse.json({ error: 'classification_failed' }, { status: 500 })
   }
 
   const today = new Date().toISOString().slice(0, 10)
@@ -213,7 +223,8 @@ export async function POST(request: NextRequest) {
     if (!match) throw new Error('No JSON found')
     parsed = JSON.parse(match[0]) as ClassifyResult
   } catch {
-    return NextResponse.json({ error: 'parse_error', raw: text }, { status: 500 })
+    console.warn('[classify] could not parse classification')
+    return NextResponse.json({ error: 'parse_error' }, { status: 500 })
   }
 
   const isSodaiGomi = detectSodaiGomi(parsed.category, parsed.nextDates.length)
@@ -221,5 +232,6 @@ export async function POST(request: NextRequest) {
   // ストリーク更新（共有 utility を使用）
   const streak = await updateUserStreak(serviceClient, userId)
 
-  return NextResponse.json({ ...parsed, isSodaiGomi, streak })
+  const nextDates = parsed.nextDates.map(({ date, title, description }) => ({ date, title, description }))
+  return NextResponse.json({ category: parsed.category, nextDates, isSodaiGomi, streak })
 }

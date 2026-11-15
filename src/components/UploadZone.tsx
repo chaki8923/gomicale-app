@@ -1,10 +1,12 @@
 'use client'
 
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { useTranslations, useLocale, type TranslationValues } from 'next-intl'
+import { useTranslations, useLocale } from 'next-intl'
 import { RegistrationModeSelector } from '@/components/RegistrationModeSelector'
 import type { RegistrationMode } from '../../shared/calendar-import'
 import { Button } from '@/components/ui/Button'
+import { ImportRequestError } from '../../shared/import-request-errors'
+import { jobErrorMessage } from '../../shared/job-errors'
 
 const ACCEPTED_TYPES = ['application/pdf', 'image/jpeg', 'image/png', 'image/webp']
 
@@ -69,14 +71,14 @@ export function UploadZone({ onUploadComplete }: UploadZoneProps) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ contentType: file.type }),
       })
-      if (presignRes.status === 401) throw new Error(t('errorPresign'))
-      if (presignRes.status === 429) throw new Error(t('errorLimitExceeded'))
-      if (!presignRes.ok) throw new Error(t('errorUnexpected'))
+      if (presignRes.status === 401) throw new ImportRequestError('UNAUTHORIZED')
+      if (presignRes.status === 429) throw new ImportRequestError('LIMIT_EXCEEDED')
+      if (!presignRes.ok) throw new ImportRequestError('UPLOAD_FAILED')
       const { uploadUrl, jobId } = await presignRes.json() as { uploadUrl: string; jobId: string }
 
       // ── 2. ブラウザ → R2 へ直接アップロード（XHR で進捗取得）──
       setState('uploading')
-      await uploadToR2(uploadUrl, file, setProgress, t)
+      await uploadToR2(uploadUrl, file, setProgress)
 
       // ── 2. Lambda を非同期で起動 ─────────────────────────────
       setState('starting')
@@ -87,21 +89,18 @@ export function UploadZone({ onUploadComplete }: UploadZoneProps) {
         body: JSON.stringify({ jobId, language: locale, eventTime, timezone, registrationMode }),
       })
       if (!startRes.ok) {
-        let detailMessage: string | null = null
-        try {
-          const body = await startRes.json() as { message?: string }
-          detailMessage = body.message ?? null
-        } catch {
-          detailMessage = null
-        }
-        throw new Error(detailMessage ?? t('errorJobStart'))
+        const body = await startRes.json().catch(() => null)
+        throw new ImportRequestError(startRes.status === 401 ? 'UNAUTHORIZED' : body?.error)
       }
 
       setState('done')
       onUploadComplete(jobId)
     } catch (err) {
       setState('error')
-      setError(err instanceof Error ? err.message : t('errorUnexpected'))
+      const code = err instanceof ImportRequestError ? err.code : null
+      if (code === 'UNAUTHORIZED') setError(t('errorPresign'))
+      else if (code === 'LIMIT_EXCEEDED') setError(t('errorLimitExceeded'))
+      else setError(jobErrorMessage(code, locale))
     } finally { busyRef.current = false }
   }, [onUploadComplete, locale, t, eventTime, registrationMode])
 
@@ -306,7 +305,7 @@ export function UploadZone({ onUploadComplete }: UploadZoneProps) {
       </label>
 
       {error && (
-        <p className="mt-2 text-sm text-red-500">{error}</p>
+        <p role="alert" className="mt-2 text-sm text-red-500">{error}</p>
       )}
     </div>
     </>
@@ -318,7 +317,6 @@ function uploadToR2(
   uploadUrl: string,
   file: File,
   onProgress: (n: number) => void,
-  t: (key: string, values?: TranslationValues) => string,
 ): Promise<void> {
   return new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest()
@@ -336,12 +334,12 @@ function uploadToR2(
       if (xhr.status >= 200 && xhr.status < 300) {
         resolve()
       } else {
-        reject(new Error(t('errorUploadFailed', { status: xhr.status })))
+        reject(new ImportRequestError('UPLOAD_FAILED'))
       }
     }
 
     xhr.onerror = () => {
-      reject(new Error(t('errorNetwork')))
+      reject(new ImportRequestError('UPLOAD_FAILED'))
     }
 
     xhr.send(file)

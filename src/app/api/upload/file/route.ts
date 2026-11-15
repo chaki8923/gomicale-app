@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseServerClient } from '@/lib/supabase/server'
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3'
 import { randomUUID } from 'crypto'
-import type { Job } from '@/types/database'
 import { accountAccessError } from '@/lib/account-access'
 
 // R2 クライアント（直接 SDK でアップロード）
@@ -35,7 +34,7 @@ export async function POST(request: NextRequest) {
   )
   const { count: uploadCount } = await supabase
     .from('jobs')
-    .select('*', { count: 'exact', head: true })
+    .select('id', { count: 'exact', head: true })
     .eq('user_id', user.id)
     .neq('status', 'error')
     .gte('created_at', todayJstMidnight.toISOString())
@@ -85,7 +84,7 @@ export async function POST(request: NextRequest) {
       status: 'pending' as const,
       r2_object_key: objectKey,
     })
-    .select()
+    .select('id')
     .single()
 
   if (jobError || !job) {
@@ -99,9 +98,11 @@ export async function POST(request: NextRequest) {
       Bucket:process.env.R2_BUCKET_NAME!,Key:objectKey,Body:Buffer.from(fileBuffer),ContentType:'application/pdf',
     }), { abortSignal:AbortSignal.timeout(60000) })
   } catch {
-    await supabase.from('jobs').update({status:'error',error_message:'UPLOAD_FAILED'}).eq('id',job.id)
+    await supabase.from('jobs').update({
+      status: 'error', error_message: 'UPLOAD_FAILED', result_data: { error_code: 'UPLOAD_FAILED' },
+    }).eq('id',job.id)
     return NextResponse.json({error:'Upload failed'},{status:503})
   }
 
-  return NextResponse.json({ jobId: (job as Job).id, objectKey })
+  return NextResponse.json({ jobId: job.id, objectKey })
 }

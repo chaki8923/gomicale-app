@@ -31,7 +31,7 @@ export async function POST(request: NextRequest) {
     .gte('created_at', todayJstMidnight.toISOString())
 
   if ((uploadCount ?? 0) >= 5) {
-    return NextResponse.json({ error: 'limit_exceeded', message: '1日の登録上限（5回）に達しました。明日またお試しください。' }, { status: 429 })
+    throw new ImportError('LIMIT_EXCEEDED', 429)
   }
 
   const jobObjectKey = `manual/${user.id}/${randomUUID()}.json`
@@ -49,7 +49,7 @@ export async function POST(request: NextRequest) {
 
   if (jobError || !job) {
     console.error('[manual-schedules/start] insert job error:', jobError)
-    return NextResponse.json({ error: 'failed_to_create_job', message: 'ジョブの作成に失敗しました。' }, { status: 500 })
+    throw new ImportError('REQUEST_FAILED', 500)
   }
 
 

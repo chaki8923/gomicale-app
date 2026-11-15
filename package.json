@@ -4,11 +4,11 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "next build --webpack",
     "start": "next start",
     "lint": "eslint",
     "test:admin-emails": "node --test tests/admin-error-emails.test.cjs",
-    "test:calendar-imports": "node --test tests/calendar-imports.test.cjs",
+    "test:calendar-imports": "node --test tests/calendar-imports.test.cjs tests/job-error-access.test.mjs",
     "test:account-deletion": "node --test tests/account-deletion.test.cjs tests/account-deletion-sql.test.mjs",
     "test:performance": "node --test tests/performance.test.cjs",
     "test:inquiry-notifications": "node --test tests/inquiry-notifications.test.cjs tests/inquiry-notifications-sql.test.mjs"

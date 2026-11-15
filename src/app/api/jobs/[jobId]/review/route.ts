@@ -1,13 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { ownImport, ImportError, importErrorResponse, readImportJson } from '@/lib/calendar-import-server'
 import { validateDraft } from '../../../../../../shared/calendar-import'
+import { parseJobErrorCode, storedJobErrorCode } from '../../../../../../shared/job-errors'
 type Context = { params: Promise<{ jobId: string }> }
 export async function GET(_request: NextRequest, context: Context) {
   try {
-    const { review, db } = await ownImport((await context.params).jobId)
+    const { review, db, user } = await ownImport((await context.params).jobId)
     const { data: task } = await db.from('calendar_import_tasks').select('email_status,email_first_attempt_at').eq('job_id',review.job_id).maybeSingle()
-    // Lease tokens are internal. The browser only needs the expiry for recovery.
-    return NextResponse.json({ ...review, lease_token: undefined, ready_email_status: task?.email_first_attempt_at ? task.email_status : null }, { headers: { 'Cache-Control': 'private, no-store' } })
+    let errorCode = review.state === 'error' ? parseJobErrorCode(review.error) : null
+    if (review.state === 'error' && !errorCode) {
+      const { data: job } = await db.from('jobs').select('result_data,r2_object_key')
+        .eq('id', review.job_id).eq('user_id', user.id).maybeSingle()
+      errorCode = storedJobErrorCode(job?.result_data, review.error, job?.r2_object_key.startsWith('manual/'))
+    }
+    return NextResponse.json({
+      state: review.state, registration_mode: review.registration_mode, revision: review.revision,
+      draft: review.draft, confirmed: review.confirmed, registered_count: review.registered_count,
+      lease_until: review.lease_until, updated_at: review.updated_at, error: errorCode,
+      ready_email_status: task?.email_first_attempt_at ? task.email_status : null,
+    }, { headers: { 'Cache-Control': 'private, no-store' } })
   } catch (error) { return importErrorResponse(error) }
 }
 export async function PATCH(request: NextRequest, context: Context) {

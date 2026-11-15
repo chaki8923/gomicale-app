@@ -1,6 +1,7 @@
 import type { NextConfig } from 'next'
 import createNextIntlPlugin from 'next-intl/plugin'
 import withPWAInit from '@ducanh2912/next-pwa'
+import { privateCacheUrls } from './shared/private-cache-urls'
 
 const withNextIntl = createNextIntlPlugin()
 
@@ -17,11 +18,13 @@ const nextConfig: NextConfig = {
 
 const withPWA = withPWAInit({
   dest: 'public',
-  cacheOnFrontEndNav: true,
-  aggressiveFrontEndNavCaching: true,
   reloadOnOnline: true,
   disable: process.env.NODE_ENV === 'development',
-  workboxOptions: { disableDevLogs: true },
+  extendDefaultRuntimeCaching: true,
+  workboxOptions: {
+    disableDevLogs: true,
+    runtimeCaching: [{ urlPattern: privateCacheUrls, handler: 'NetworkOnly', options: { fetchOptions: { cache: 'no-store' } } }],
+  },
 })
 
 export default withPWA(withNextIntl(nextConfig))

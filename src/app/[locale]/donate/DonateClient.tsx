@@ -54,13 +54,15 @@ export function DonateClient({ source, jobId }: DonateClientProps) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ amount: selected, source, jobId, locale }),
       })
-      const data = await res.json() as { url?: string; error?: string }
+      const data = await res.json() as { url?: string }
       if (!res.ok || !data.url) {
-        throw new Error(data.error ?? t('error'))
+        setError(t('error'))
+        setLoading(false)
+        return
       }
       window.location.href = data.url
-    } catch (err) {
-      setError(err instanceof Error ? err.message : t('error'))
+    } catch {
+      setError(t('error'))
       setLoading(false)
     }
   }

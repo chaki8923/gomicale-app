@@ -78,7 +78,7 @@ export async function dispatchConfirmedImport(db: SupabaseClient, review: Calend
         const { data: failed } = await db.from('calendar_imports').update({ state: 'error', error: 'AUTO_DISPATCH_FAILED' })
           .eq('job_id',review.job_id).eq('state','registering').is('lease_token',null).select('job_id').maybeSingle()
         if (failed) {
-          await db.from('jobs').update({ status: 'error', error_message: 'AUTO_DISPATCH_FAILED', result_data: { review_available: true, registration_mode: 'auto' } }).eq('id',review.job_id)
+          await db.from('jobs').update({ status: 'error', error_message: 'AUTO_DISPATCH_FAILED', result_data: { review_available: true, registration_mode: 'auto', error_code: 'AUTO_DISPATCH_FAILED' } }).eq('id',review.job_id)
           await onTerminalFailure?.()
         }
         throw new ImportFollowupError('AUTO_DISPATCH_FAILED')

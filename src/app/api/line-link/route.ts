@@ -31,7 +31,8 @@ export async function POST() {
     .single()
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    console.error('[line-link] code creation failed', error)
+    return NextResponse.json({ error: 'LINE_LINK_FAILED' }, { status: 500 })
   }
 
   return NextResponse.json({ code: data.code, expiresAt: data.expires_at })

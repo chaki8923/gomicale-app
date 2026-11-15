@@ -6,11 +6,11 @@ import { getSupabaseBrowserClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/Button'
 import { UploadZone } from '@/components/UploadZone'
 import { JobStatusCard } from '@/components/JobStatusCard'
-import type { Job } from '@/types/database'
+import { getJobErrorCode, jobErrorMessage, type JobSummary } from '@/lib/job-errors'
 
 interface DashboardClientProps {
   userEmail: string
-  initialJobs: Job[]
+  initialJobs: JobSummary[]
 }
 
 export function DashboardClient({ userEmail, initialJobs }: DashboardClientProps) {
@@ -113,7 +113,7 @@ export function DashboardClient({ userEmail, initialJobs }: DashboardClientProps
                           )
                         })()}
                         {job.status === 'error' && (
-                          <p className="text-sm text-red-400">エラー: {job.error_message}</p>
+                          <p className="text-sm text-red-400">{jobErrorMessage(getJobErrorCode(job.result_data), 'ja')}</p>
                         )}
                         {(job.status === 'pending' || job.status === 'processing') && (
                           <p className="text-sm text-blue-500">処理中...</p>
